@@ -8,8 +8,18 @@ Atlantique, Méditerranée, Corse). Version bêta, gratuite, sans compte.
 
 ## Ce que fait l'application
 
+- **Comptes obligatoires** (e-mail et mot de passe) : prénom, département,
+  pratiques, tranche d'âge et accord e-mails à l'inscription ; spots privés
+  et favoris synchronisés entre appareils et visibles par leur seul
+  propriétaire ; page « Mon compte » (profil, mot de passe, export des
+  données, suppression). Liste des clients exportable depuis Supabase.
 - **Carte** des 46 points Kelvisi, colorés selon la visibilité du jour choisi,
-  avec trois fonds : plan, vue aérienne IGN, profondeurs EMODnet.
+  avec trois fonds : plan, vue aérienne IGN, profondeurs (Shom près des
+  côtes, dont les relevés laser Litto3D au mètre ; EMODnet au large).
+- **Profondeur au point** lue sur les cartes du Shom (relevé laser, modèle
+  côtier à 20 m, modèle de façade à 100 m), avec sa référence (niveau moyen
+  ou plus basses mers) ; direction du large et abri d'un lieu calculés sur
+  la carte de façade du Shom.
 - **Recherche de lieux** (plage, pointe, commune) avec la Géoplateforme IGN,
   puis prévision calculée sur place pour ce lieu.
 - **Clic en mer** n'importe où : profondeur et orientation estimées
@@ -44,7 +54,7 @@ GitHub Actions, toutes les heures
   Hub'Eau (débits Seine, Loire, Vilaine, Adour,     ├─> moteur Python ─> app/donnees/*.json
            Rhône, Var)                              │
   Copernicus Marine (satellite, facultatif)         │
-  Supabase (retours terrain, facultatif)           ─┘
+  Supabase (comptes, retours terrain)              ─┘
                      │
                      v
 GitHub Pages : site statique app/  ──>  téléphone ou ordinateur

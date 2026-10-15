@@ -35,7 +35,7 @@ const PAGES = {
         <li>Les réglages du modèle sont des ordres de grandeur. Ils seront ajustés avec les observations satellite puis avec vos retours terrain.</li>
         <li>Par mer calme, la prévision plafonne à la visibilité habituelle du secteur : elle ne voit pas encore les variations fines qu'apportera le satellite.</li>
         <li>Les horaires de marée et le courant viennent d'un modèle à maille de 8 km : ce sont des indications, pas des horaires officiels.</li>
-        <li>La carte des profondeurs (EMODnet, environ 100 m de résolution) donne la forme générale du fond. Elle peut rater une roche isolée et ne sert pas à naviguer.</li>
+        <li>La profondeur d'un lieu vient des cartes du Shom : relevés laser Litto3D au mètre près en Bretagne, Nouvelle-Aquitaine, Occitanie et Provence, modèles à 20 m ou 100 m ailleurs. Kelvisi lit la valeur sur la couleur de ces cartes : compte environ un mètre d'incertitude. Elles ne servent pas à naviguer.</li>
       </ul>
       <p>Chaque retour « Tu y étais ? » aide à corriger la prévision du point concerné.</p>`,
   },
@@ -70,7 +70,9 @@ const PAGES = {
         <li>Débits des rivières : <a href="https://hubeau.eaufrance.fr" target="_blank" rel="noopener">Hub'Eau</a>, réseau Vigicrues et services de l'État (Licence Ouverte).</li>
         <li>Fond de carte : <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>, © OpenMapTiles, © contributeurs OpenStreetMap.</li>
         <li>Vue aérienne et recherche de lieux : Géoplateforme de l'IGN (Licence Ouverte).</li>
-        <li>Profondeurs : <a href="https://emodnet.ec.europa.eu/en/bathymetry" target="_blank" rel="noopener">EMODnet Bathymetry</a>, réseau européen d'observation marine.</li>
+        <li>Profondeurs près des côtes : <a href="https://data.shom.fr" target="_blank" rel="noopener">Shom</a> (Licence Ouverte) : Litto3D® Shom-IGN, MNT côtiers et MNT de façade (projet Homonim).</li>
+        <li>Profondeurs au large : <a href="https://emodnet.ec.europa.eu/en/bathymetry" target="_blank" rel="noopener">EMODnet Bathymetry</a>, réseau européen d'observation marine.</li>
+        <li>Comptes et données des utilisateurs : Supabase, serveurs dans l'Union européenne.</li>
         <li>Fond de carte de secours : trait de côte Natural Earth (domaine public).</li>
         <li>Carte interactive : MapLibre GL JS (licence BSD).</li>
         <li>Polices : Archivo et Atkinson Hyperlegible (licence SIL Open Font).</li>
