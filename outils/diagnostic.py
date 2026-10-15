@@ -83,8 +83,7 @@ def shom_point(couche: str, url="https://services.data.shom.fr/INSPIRE/wms/r"):
             extrait = ""
             if "bil" in fmt and r.ok:
                 import numpy as np
-                v = np.frombuffer(r.content, dtype="<f4")
-                extrait = f" valeurs {v[:25].round(2).tolist()}"
+                extrait = f" octets {r.content[:24].hex()} | uint8 {list(r.content[:20])} | >f4 {np.frombuffer(r.content, dtype='>f4')[:8].round(2).tolist()}"
             elif not r.ok:
                 extrait = " " + r.text[:200]
             lignes.append(f"GetMap {fmt} : HTTP {r.status_code}, type {r.headers.get('Content-Type')}, {len(r.content)} octets, CORS {cors(r)}{extrait}")
@@ -101,6 +100,20 @@ def shom_couche(couche: str, url="https://services.data.shom.fr/INSPIRE/wms/r"):
     fin = r.text.find("</Layer>", i)
     bloc = re.sub(r"\s+", " ", r.text[debut:fin])
     annoter(f"Couche {couche}"[:60], [bloc[:3000]])
+
+
+def wcs():
+    lignes = []
+    for url in ["https://services.data.shom.fr/INSPIRE/wcs", "https://services.data.shom.fr/wcs", "https://data.geopf.fr/wcs"]:
+        for version in ["2.0.1", "1.0.0"]:
+            try:
+                r = get(url, params={"service": "WCS", "request": "GetCapabilities", "version": version})
+                ids = re.findall(r"<(?:wcs:CoverageId|wcs:Identifier|name|CoverageId)>([^<]+)<", r.text)
+                bathy = [i for i in ids if re.search(r"LITTO|MNT|HOMONIM|BATHY|ELEVATION", i, re.I)]
+                lignes.append(f"{url} v{version} : HTTP {r.status_code}, CORS {cors(r)}, {len(ids)} couvertures, utiles {bathy[:25]} | {r.text[:160]!r}")
+            except Exception as e:
+                lignes.append(f"{url} v{version} : {type(e).__name__} {e}")
+    annoter("WCS", lignes)
 
 
 def geopf():
