@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Imiter Supabase
         run: psql -v ON_ERROR_STOP=1 -f tests/supabase/preparer.sql
-      - name: Appliquer le schéma (deux fois : il doit pouvoir être relancé)
+      - name: "Appliquer le schéma, deux fois (il doit pouvoir être relancé)"
         run: |
           psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
           psql -v ON_ERROR_STOP=1 -f supabase/schema.sql

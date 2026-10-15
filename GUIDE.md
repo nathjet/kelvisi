@@ -99,48 +99,92 @@ affichent `[… à compléter]` tant que ces deux informations manquent.
 Conseil : crée une adresse dédiée (par exemple `kelvisi.contact@…`) plutôt
 que ton adresse personnelle, puisqu'elle sera publique.
 
-## 6. Partager les retours terrain (facultatif, conseillé pour la bêta)
+## 6. Comptes et base clients (Supabase)
 
-Sans cette étape, l'appli fonctionne, mais chaque retour « Tu y étais ? »
-reste sur le téléphone de la personne. Avec elle, les retours sur les points
-Kelvisi sont mis en commun et corrigent la prévision de tout le monde.
+Les comptes sont obligatoires : tant que Supabase n'est pas branché, l'appli
+fonctionne sans compte ; dès que Claude a mis l'adresse et la clé publique
+du projet dans `app/js/config.js`, l'écran d'inscription s'affiche pour tout
+le monde. Fais donc les étapes a à d **avant** d'envoyer ces deux valeurs.
 
-1. Crée un compte gratuit sur supabase.com, puis un projet :
-   - nom : `kelvisi` ;
-   - région : **une région européenne** (Paris ou Francfort), car la page
-     Confidentialité annonce un hébergement dans l'Union européenne ;
-   - note le mot de passe de base de données dans ton gestionnaire de mots
-     de passe (on ne s'en sert pas ici).
-2. Dans le projet : **SQL Editor** > nouvelle requête > colle tout le contenu
-   du fichier `supabase/schema.sql` > **Run**. Cela crée la table des retours
-   avec les bonnes protections (dépôt anonyme possible, lecture publique
-   impossible).
-3. Dans **Settings > API Keys**, repère :
-   - l'adresse du projet (`https://xxxx.supabase.co`, aussi visible dans
-     **Settings > Data API** ou sur la page d'accueil du projet) ;
-   - la clé **publishable** (`sb_publishable_…`) : elle est faite pour être
-     publique ;
-   - la clé **secret** (`sb_secret_…`) : elle ne doit **jamais** être publiée.
-4. Dans `app/js/config.js` (comme à l'étape 5), remplis :
-   ```js
-   supabaseUrl: "https://xxxx.supabase.co",
-   supabaseCleAnon: "sb_publishable_…",
-   ```
-5. Dans GitHub : **Settings > Secrets and variables > Actions >
-   New repository secret**, crée deux secrets :
-   - `SUPABASE_URL` : l'adresse du projet ;
-   - `SUPABASE_SERVICE_KEY` : la clé **secret**.
+### a. Créer le projet
 
-Le calcul horaire lit alors les retours des 90 derniers jours et corrige
-chaque point. Le journal du calcul (onglet Actions) affiche
-« Retours terrain lus : N ».
+Sur supabase.com : nouveau projet `kelvisi`, région **Paris** (ou
+Frankfurt). La page Confidentialité annonce un hébergement dans l'Union
+européenne. Note le mot de passe de la base dans ton gestionnaire de mots de
+passe.
+
+### b. Créer les tables
+
+**SQL Editor** > nouvelle requête > colle tout le fichier
+`supabase/schema.sql` > **Run**. Le script crée les profils, les spots
+privés, les favoris, les retours terrain, les règles d'accès (chacun ne voit
+que ses données), la suppression de compte et ta liste de clients. Il peut
+être relancé sans risque après une mise à jour. Il est testé automatiquement
+sur une base PostgreSQL à chaque modification (workflow « Base de données »).
+
+### c. Régler la connexion
+
+Dans **Authentication** :
+
+- **URL Configuration** : *Site URL* = `https://nathjet.github.io/kelvisi/`.
+  Dans *Redirect URLs*, ajoute `https://nathjet.github.io/kelvisi/**`. Ce
+  sont les adresses vers lesquelles renvoient les liens des e-mails.
+- **Sign In / Providers** > **Email** : laisse *Email* activé, mets la
+  longueur minimale du mot de passe à **8**.
+  *Confirm email* : **désactive-le pour commencer** (voir e. ci-dessous),
+  puis réactive-le dès que les e-mails passent par Brevo.
+
+### d. Envoyer les clés
+
+Dans **Project Settings** > **API Keys** :
+
+- envoie à Claude l'adresse du projet (`https://xxxx.supabase.co`) et la clé
+  **publishable** (`sb_publishable_…`), faite pour être publique ;
+- mets la clé **secret** (`sb_secret_…`) uniquement dans les secrets GitHub
+  (**Settings > Secrets and variables > Actions**) : `SUPABASE_SERVICE_KEY`,
+  avec l'adresse du projet dans `SUPABASE_URL`. Elle sert au calcul horaire
+  (lecture des retours terrain, effacement des comptes inactifs depuis 3 ans).
+
+### e. Les e-mails (confirmation d'inscription, mot de passe oublié)
+
+Le service d'e-mails intégré à Supabase n'envoie qu'aux membres de ton
+équipe Supabase, et deux e-mails par heure au plus : tes utilisateurs ne
+recevraient rien. D'où le réglage *Confirm email* désactivé au départ.
+Conséquence en attendant : les inscriptions fonctionnent, mais « Mot de
+passe oublié » n'enverra rien, et les adresses ne sont pas vérifiées.
+
+Dès que tu as ton nom de domaine :
+
+1. Crée un compte gratuit **Brevo** (300 e-mails par jour). Dans *Senders,
+   Domains & Dedicated IPs*, ajoute ton domaine et les enregistrements DNS
+   qu'il indique, puis crée l'expéditeur `contact@ton-domaine.fr`.
+2. Dans Brevo, *Settings* > *SMTP & API* > onglet *SMTP* : génère une clé
+   SMTP (pas une clé API).
+3. Dans Supabase, **Authentication** > **Emails** > **SMTP Settings** :
+   active *Enable custom SMTP* et saisis : expéditeur `contact@ton-domaine.fr`,
+   nom `Kelvisi`, hôte `smtp-relay.brevo.com`, port `587`, identifiant = ton
+   adresse de connexion Brevo, mot de passe = la clé SMTP.
+4. **Authentication** > **Emails** > **Templates** : remplace les modèles
+   « Confirm signup » et « Reset Password » par ceux du dossier
+   `supabase/emails/` (objets indiqués en tête de chaque fichier).
+5. Réactive *Confirm email* (étape c).
+
+### f. Voir et exporter tes clients
+
+**SQL Editor** > `select * from admin.clients;` > **Run**, puis **Export**
+(CSV, à ouvrir dans Excel). Tu y trouves l'e-mail, le prénom, le
+département, les pratiques, la tranche d'âge, l'accord e-mails (et sa date),
+la date d'inscription, la dernière connexion, le nombre de spots et de
+retours. **Tu ne vois jamais l'emplacement des spots privés.**
+
+Pour une newsletter, n'envoie qu'aux lignes où `accord_emails` vaut `true`
+(c'est la loi : l'accord doit être donné avant l'envoi), avec un lien de
+désinscription dans chaque e-mail. Un utilisateur peut retirer son accord
+dans « Mon compte ».
 
 À savoir : un projet Supabase gratuit se met en pause après une semaine sans
-activité. La lecture horaire devrait suffire à le garder actif ; s'il se met
-quand même en pause, un bouton dans Supabase le relance.
-
-Les anciennes clés `anon` et `service_role` fonctionnent aussi, mais Supabase
-annonce leur arrêt pour fin 2026 : prends les nouvelles.
+activité. Le calcul horaire lit la base toutes les heures, ce qui suffit en
+principe à le garder actif.
 
 ## 7. Activer le satellite Copernicus (facultatif, non testé)
 
@@ -223,5 +267,6 @@ depuis « Mes spots » avant le changement et les réimporter après).
 | Fonds de carte en ligne (OpenFreeMap, vue aérienne IGN, profondeurs EMODnet) | À vérifier à l'étape 4 : ces serveurs n'étaient pas joignables pendant le développement |
 | Recherche de lieux (IGN) et profondeur au point (EMODnet) depuis un téléphone | À vérifier à l'étape 4, pour la même raison |
 | Satellite Copernicus | Codé, testé sur données simulées, jamais lancé sur le vrai service |
-| Partage des retours (Supabase) | Testé avec un faux serveur ; à vérifier après l'étape 6 en envoyant un retour |
+| Comptes (inscription, connexion, mot de passe oublié, profil, synchronisation, suppression) | Testés de bout en bout avec un faux serveur ; schéma testé sur un vrai PostgreSQL ; à vérifier sur ton projet après l'étape 6 |
+| Profondeurs du Shom lues au point et direction du large | Vérifiées dans Chromium sur les vraies cartes du Shom (Bretagne, Provence, Pays basque, Normandie, Corse) |
 | Réglages du modèle (« À CALER ») | Ordres de grandeur de la littérature ; seront ajustés avec le satellite et les retours de la bêta |
