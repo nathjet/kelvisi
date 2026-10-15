@@ -10,6 +10,7 @@ const COQUILLE = [
   "vendor/maplibre-gl.js",
   "vendor/maplibre-gl.css",
   "js/app.js",
+  "js/bathymetrie.js",
   "js/carte.js",
   "js/compte.js",
   "js/config.js",
