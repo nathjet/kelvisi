@@ -72,15 +72,24 @@ def shom_point(couche: str, url="https://services.data.shom.fr/INSPIRE/wms/r"):
             "bbox": f"{lat - d},{lon - d},{lat + d},{lon + d}", "width": 101, "height": 101, "styles": ""}
     for fmt in ["text/plain", "application/json", "text/html", "application/vnd.ogc.gml"]:
         try:
-            r = get(url, params={**base, "request": "GetFeatureInfo", "query_layers": couche, "info_format": fmt, "i": 50, "j": 50})
+            r = get(url, params={**base, "request": "GetFeatureInfo", "query_layers": couche, "info_format": fmt, "i": 50, "j": 50,
+                                 "format": "image/png"})
             lignes.append(f"GetFeatureInfo {fmt} : HTTP {r.status_code}, CORS {cors(r)}, {r.text[:300]!r}")
         except Exception as e:
             lignes.append(f"GetFeatureInfo {fmt} : {type(e).__name__} {e}")
-    try:
-        r = get(url, params={**base, "request": "GetMap", "format": "image/png"})
-        lignes.append(f"GetMap : HTTP {r.status_code}, type {r.headers.get('Content-Type')}, {len(r.content)} octets, CORS {cors(r)}")
-    except Exception as e:
-        lignes.append(f"GetMap : {type(e).__name__} {e}")
+    for fmt in ["image/png", "image/x-bil;bits=32", "image/tiff", "image/geotiff"]:
+        try:
+            r = get(url, params={**base, "request": "GetMap", "format": fmt, "width": 5, "height": 5})
+            extrait = ""
+            if "bil" in fmt and r.ok:
+                import numpy as np
+                v = np.frombuffer(r.content, dtype="<f4")
+                extrait = f" valeurs {v[:25].round(2).tolist()}"
+            elif not r.ok:
+                extrait = " " + r.text[:200]
+            lignes.append(f"GetMap {fmt} : HTTP {r.status_code}, type {r.headers.get('Content-Type')}, {len(r.content)} octets, CORS {cors(r)}{extrait}")
+        except Exception as e:
+            lignes.append(f"GetMap {fmt} : {type(e).__name__} {e}")
     annoter(f"Shom point {couche}"[:60], lignes)
 
 
