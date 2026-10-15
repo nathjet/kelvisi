@@ -1,0 +1,36 @@
+# Vérifie les services en ligne (Shom, IGN, EMODnet, Copernicus, Supabase). Lancement manuel uniquement.
+name: Diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: "Tests à lancer, séparés par des espaces (vide = tous)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+      COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer
+        run: |
+          pip install requests numpy
+          if [ -n "$COPERNICUSMARINE_SERVICE_USERNAME" ]; then pip install copernicusmarine; fi
+      - name: Diagnostic
+        env:
+          TESTS: ${{ github.event.inputs.tests }}
+        run: python outils/diagnostic.py $TESTS
