@@ -1,5 +1,8 @@
-// Profondeur et orientation d'un lieu, estimées avec la bathymétrie EMODnet (maille d'environ 100 m).
+// Profondeur et orientation d'un lieu. D'abord avec les modèles du Shom (relevés laser au mètre,
+// modèles côtiers à 20 m, modèles de façade à 100 m), sinon avec EMODnet (maille d'environ 100 m).
 // Sert à pré-remplir la fiche d'un lieu ; l'utilisateur peut toujours corriger.
+
+import { grilleAutour, meilleureMesure, orientationDepuisGrille, profondeursAuPoint } from "./bathymetrie.js";
 
 const URL = "https://rest.emodnet-bathymetry.eu/depth_sample";
 
@@ -26,8 +29,33 @@ function deplacer(lat, lon, azimut, metres) {
   ];
 }
 
-// Direction vers le large : celle où le fond plonge le plus, sur un cercle de 1,5 km
 export async function estimerLieu(lat, lon, signal) {
+  try {
+    const [mesures, grille] = await Promise.all([profondeursAuPoint(lat, lon, { signal }), grilleAutour(lat, lon, { signal })]);
+    let orientation = grille ? orientationDepuisGrille(grille) : null;
+    const m = meilleureMesure(mesures);
+    if (!orientation && m && !m.terre) {
+      const e = await estimerLieuEmodnet(lat, lon, signal);
+      if (e && e.orientation_deg !== null) orientation = { orientation_deg: e.orientation_deg, ouverture_deg: e.ouverture_deg };
+    }
+    if (orientation || (m && !m.terre)) {
+      return {
+        profondeur_m: m && !m.terre ? m.profondeur_m : null,
+        orientation_deg: orientation ? orientation.orientation_deg : null,
+        ouverture_deg: orientation ? orientation.ouverture_deg : 90,
+        mesures,
+        source: "shom",
+      };
+    }
+  } catch (e) {
+    if (e.name === "AbortError") throw e;
+  }
+  const ancien = await estimerLieuEmodnet(lat, lon, signal);
+  return ancien && { ...ancien, mesures: [], source: "emodnet" };
+}
+
+// Direction vers le large : celle où le fond plonge le plus, sur un cercle de 1,5 km
+async function estimerLieuEmodnet(lat, lon, signal) {
   const directions = [0, 45, 90, 135, 180, 225, 270, 315];
   const [centre, ...autour] = await Promise.all([
     profondeurAuPoint(lat, lon, signal),

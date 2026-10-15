@@ -1,4 +1,6 @@
-// Carte : fond OpenFreeMap, vue aérienne IGN, profondeurs EMODnet, repères des spots.
+// Carte : fond OpenFreeMap, vue aérienne IGN, profondeurs (EMODnet, et près des côtes Shom), repères des spots.
+
+import { urlTuilesShom } from "./bathymetrie.js";
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 const TUILES_IGN = "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}";
@@ -97,12 +99,18 @@ function ajouterCouches() {
     carte.addSource("emodnet", { type: "raster", tiles: [TUILES_EMODNET], tileSize: 256, maxzoom: 12, attribution: "Profondeurs EMODnet Bathymetry" });
     carte.addLayer({ id: "couche-profondeurs", type: "raster", source: "emodnet", paint: { "raster-opacity": 0.78 }, layout: { visibility: "none" } }, premiereCoucheTexte());
   }
+  // Près des côtes : relevés laser Litto3D (au mètre) et modèles côtiers du Shom, à partir du zoom 10
+  if (!carte.getSource("shom")) {
+    carte.addSource("shom", { type: "raster", tiles: [urlTuilesShom()], tileSize: 256, minzoom: 10, maxzoom: 18, attribution: "Profondeurs côtières © Shom, Litto3D® Shom-IGN" });
+    carte.addLayer({ id: "couche-profondeurs-shom", type: "raster", source: "shom", minzoom: 10, paint: { "raster-opacity": 0.9 }, layout: { visibility: "none" } }, premiereCoucheTexte());
+  }
 }
 
 function appliquerCouches() {
   if (!carte || !carte.getLayer("couche-aerien")) return;
   carte.setLayoutProperty("couche-aerien", "visibility", couches.aerien ? "visible" : "none");
   carte.setLayoutProperty("couche-profondeurs", "visibility", couches.profondeurs ? "visible" : "none");
+  if (carte.getLayer("couche-profondeurs-shom")) carte.setLayoutProperty("couche-profondeurs-shom", "visibility", couches.profondeurs ? "visible" : "none");
 }
 
 export function definirCouches(nouvelles) {

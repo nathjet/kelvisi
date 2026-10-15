@@ -222,7 +222,7 @@ def lire_retours_supabase(url: str, cle: str, maintenant: int, session=None) -> 
     depuis = datetime.fromtimestamp(maintenant - JOURS_RETOURS * 86400, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     r = http.get(
         f"{url.rstrip('/')}/rest/v1/rapports",
-        params={"select": "spot_id,visibilite_m,prevision_m,observe_le,appareil", "observe_le": f"gte.{depuis}",
+        params={"select": "spot_id,visibilite_m,prevision_m,observe_le,appareil,utilisateur", "observe_le": f"gte.{depuis}",
                 "order": "observe_le.asc", "limit": "10000"},
         headers=entetes_supabase(cle),
         timeout=30,
@@ -233,12 +233,24 @@ def lire_retours_supabase(url: str, cle: str, maintenant: int, session=None) -> 
         try:
             t = int(datetime.fromisoformat(ligne["observe_le"].replace("Z", "+00:00")).timestamp())
             par_spot[ligne["spot_id"]].append(Rapport(
-                temps=t, visibilite_m=float(ligne["visibilite_m"]), utilisateur=str(ligne.get("appareil") or "anonyme"),
+                temps=t, visibilite_m=float(ligne["visibilite_m"]),
+                utilisateur=str(ligne.get("utilisateur") or ligne.get("appareil") or "anonyme"),
                 prevision_m=None if ligne.get("prevision_m") is None else float(ligne["prevision_m"]),
             ))
         except (KeyError, TypeError, ValueError):
             continue
     return dict(par_spot)
+
+
+def purger_comptes_inactifs(url: str, cle: str, session=None) -> int | None:
+    """Supprime les comptes sans connexion depuis 3 ans (fonction SQL de supabase/schema.sql)."""
+    import requests
+
+    http = session or requests.Session()
+    r = http.post(f"{url.rstrip('/')}/rest/v1/rpc/purger_comptes_inactifs", json={},
+                  headers={**entetes_supabase(cle), "Content-Type": "application/json"}, timeout=30)
+    r.raise_for_status()
+    return r.json()
 
 
 def main():
@@ -281,6 +293,13 @@ def main():
             print(f"Retours terrain lus : {sum(len(v) for v in rapports.values())}")
         except Exception as e:
             print(f"Retours terrain indisponibles ({type(e).__name__}) : prévisions sans correction")
+        # Une fois par jour : effacement des comptes inactifs depuis 3 ans (durée annoncée aux utilisateurs)
+        if datetime.fromtimestamp(maintenant, timezone.utc).hour == 3:
+            try:
+                n = purger_comptes_inactifs(url, cle)
+                print(f"Comptes inactifs supprimés : {n}")
+            except Exception as e:
+                print(f"Purge des comptes inactifs impossible ({type(e).__name__})")
 
     sorties = construire(spots, conditions, maintenant, rapports, args.jours, satellites)
     resume = sorties["resume"]

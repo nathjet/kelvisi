@@ -4,11 +4,13 @@ import { detailPublic, pointPublic, previsionLieu } from "../donnees.js";
 import { monSpot, enregistrerSpot, supprimerSpot } from "../messpots.js";
 import { enregistrerRetour, partageActif, rapportsPourMoteur, retoursDuSpot } from "../retours.js";
 import { estimerLieu } from "../profondeur.js";
+import { profondeursAuPoint } from "../bathymetrie.js";
+import { comptesActifs } from "../compte.js";
 import { estFavori, basculerFavori } from "../favoris.js";
 import { CONFIG } from "../config.js";
 import {
   NOM_CLASSE, NOM_FACADE, NOM_FOND, SECTEURS_COURTS, de, echapper, facadePour, fleche, heure, jourCourt, jourLong,
-  metres, regionPour, secteur, dateHeure, vitesseVent, lune,
+  metres, regionPour, secteur, dateHeure, vitesseVent, lune, decrireMesure,
 } from "../format.js";
 
 const lieuxEstimes = new Map();
@@ -186,7 +188,7 @@ function reglages(spot, type) {
   const ouv = ouvertures.reduce((a, o) => (Math.abs(o[0] - spot.ouverture_deg) < Math.abs(a[0] - spot.ouverture_deg) ? o : a), ouvertures[1])[0];
   const fonds = ["sable", "roche", "mixte", "herbier", "vase"];
   return `<div class="bloc"><h2 class="titre-bloc">${type === "point" ? "Réglages du lieu (estimés)" : "Réglages du spot"}</h2>
-    <p class="note">${type === "point" ? "Estimés d'après la carte des profondeurs EMODnet. Corrige-les si tu connais l'endroit : la prévision se recalcule aussitôt." : "Modifie-les si l'endroit ne correspond pas : la prévision se recalcule aussitôt."}</p>
+    <p class="note">${type === "point" ? `Estimés d'après ${spot.source_estimation === "shom" ? "les cartes des fonds du Shom" : "la carte des profondeurs EMODnet"}. Corrige-les si tu connais l'endroit : la prévision se recalcule aussitôt.` : "Modifie-les si l'endroit ne correspond pas : la prévision se recalcule aussitôt."}</p>
     <div class="formulaire" id="reglages">
       <div><span class="etiquette">Direction du large</span><div class="boussole" id="regl-orientation">${dirs.map((d, i) => `<button type="button" data-v="${d}" aria-pressed="${d === proche}">${SECTEURS_COURTS[i]}</button>`).join("")}</div></div>
       <div><span class="etiquette">Ouverture sur la mer</span><div class="segments" id="regl-ouverture">${ouvertures.map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${v === ouv}">${n}</button>`).join("")}</div></div>
@@ -195,7 +197,7 @@ function reglages(spot, type) {
       <div><span class="etiquette">Fond</span><div class="segments" id="regl-fond">${fonds.map((f) => `<button type="button" data-v="${f}" aria-pressed="${f === spot.fond}">${NOM_FOND[f]}</button>`).join("")}</div></div>
       ${type === "point" ? `<div class="rangee"><label class="etiquette" for="regl-nom">Nom</label><input id="regl-nom" type="text" maxlength="60" placeholder="Mon spot" value=""></div>
         <button class="bouton" type="button" id="regl-enregistrer">Enregistrer dans mes spots</button>
-        <p class="note">Tes spots restent sur ton appareil. Kelvisi ne les reçoit jamais.</p>` : ""}
+        <p class="note">${comptesActifs() ? "Tes spots privés ne sont visibles que par toi." : "Tes spots restent sur ton appareil. Kelvisi ne les reçoit jamais."}</p>` : ""}
     </div>
   </div>`;
 }
@@ -276,6 +278,7 @@ async function estimationLieu(lat, lon) {
     profondeur_m: Math.min(30, Math.max(2, Math.round(est?.profondeur_m ?? 8))),
     fond: "mixte",
     estime: Boolean(est && est.orientation_deg !== null),
+    source_estimation: est?.source || null,
   };
   lieuxEstimes.set(cle, spot);
   return spot;
@@ -369,6 +372,7 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
     </div>
     <div class="bloc"><h2 class="titre-bloc">Heure par heure</h2>${graphique(prevision, jour)}</div>
     <div class="bloc"><h2 class="titre-bloc">Conditions</h2>${conditions(prevision, jour, meta)}</div>
+    <div class="bloc" id="bloc-profondeur" hidden></div>
     ${cible.type !== "public" && spot ? reglages(spot, cible.type) : ""}
     ${formulaireRetour(cible.type, meta.id)}
     ${cible.type === "prive" && spot ? actionsPrive(spot) : ""}
@@ -393,8 +397,45 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
   const bp = zone.querySelector("#partager");
   if (bp) bp.addEventListener("click", () => partager(zone, cible, meta, jour, v));
   lierFormulaireRetour(zone, cible, ctx, meta, prevision);
+  remplirProfondeur(zone, cible, ctx, meta, prevision, jour, spot);
   if (cible.type !== "public" && spot) lierReglages(zone, cible, ctx, spot);
   if (cible.type === "prive" && spot) lierActionsPrive(zone, ctx, spot);
+}
+
+// Profondeur au point d'après le Shom : rempli dès que les mesures arrivent (souvent déjà en mémoire)
+async function remplirProfondeur(zone, cible, ctx, meta, prevision, jour, spot) {
+  const bloc = zone.querySelector("#bloc-profondeur");
+  if (!bloc || !Number.isFinite(meta.lat)) return;
+  let mesures;
+  try {
+    mesures = await profondeursAuPoint(meta.lat, meta.lon);
+  } catch (e) {
+    return;
+  }
+  if (!mesures.length || !bloc.isConnected) return;
+  const niveaux = heuresDuJour(prevision, jour.date).map((h) => h.niveau_mer_m).filter((x) => Number.isFinite(x));
+  const demiMarnage = niveaux.length ? (Math.max(...niveaux) - Math.min(...niveaux)) / 2 : 0;
+  const laser = mesures.find((m) => m.type === "laser" && !m.terre && !m.au_moins);
+  const utilisable = mesures.find((m) => !m.terre && !m.au_moins);
+  bloc.innerHTML = `<h2 class="titre-bloc">Profondeur au point</h2>
+    <div class="conditions">${mesures.map((m, i) => {
+      const d = decrireMesure(m);
+      return `<div class="condition${i === 0 ? " principale" : ""}"><span class="etiquette">${m.type === "laser" ? "Relevé laser" : m.type === "cotier" ? "Carte côtière" : "Carte du large"}</span>
+        <span class="valeur chiffres">${d.valeur}</span><span class="sous">${echapper(d.reference)}${d.reference ? " · " : ""}${echapper(d.source)}</span></div>`;
+    }).join("")}</div>
+    ${laser && demiMarnage >= 0.3 ? `<p class="note">Ce jour-là, la mer descend jusqu'à environ ${metres(demiMarnage)} m sous son niveau moyen : à basse mer, compte autant de moins.</p>` : ""}
+    ${mesures.some((m) => m.reference === "pbma" && !m.terre) ? '<p class="note">« Plus basses mers » : c\'est la profondeur minimale, celle des cartes marines. La marée ajoute de l\'eau par-dessus.</p>' : ""}
+    ${spot && cible.type !== "public" && utilisable && Math.abs(utilisable.profondeur_m - spot.profondeur_m) >= 1 && utilisable.profondeur_m <= 40
+      ? `<div class="rangee"><button type="button" class="bouton secondaire" id="utiliser-profondeur">Régler la prévision sur ${metres(utilisable.profondeur_m)} m</button></div>` : ""}
+    <p class="note">Données Shom (licence ouverte) lues sur leurs cartes. Ne pas naviguer avec.</p>`;
+  bloc.hidden = false;
+  const b = bloc.querySelector("#utiliser-profondeur");
+  if (b) b.addEventListener("click", () => {
+    const champ = zone.querySelector("#regl-profondeur");
+    if (!champ) return;
+    champ.value = Math.round(utilisable.profondeur_m);
+    champ.dispatchEvent(new Event("change"));
+  });
 }
 
 function lierFormulaireRetour(zone, cible, ctx, meta, prevision) {

@@ -50,12 +50,14 @@ function reponseOpenMeteo(table) {
 
 const appels = [];
 const envois = [];
+const entetesEnvois = [];
 async function fauxFetch(entree, options = {}) {
   const url = String(entree);
   appels.push(url);
   const json = (d, statut = 200) => ({ ok: statut === 200, status: statut, json: async () => d });
   if (url.includes("supabase.test/rest/v1/rapports")) {
     envois.push(JSON.parse(options.body));
+    entetesEnvois.push(options.headers);
     return { ok: true, status: 201, json: async () => null };
   }
   if (url.startsWith("donnees/")) {
@@ -164,6 +166,24 @@ async function etape(nom, f) {
   }
 }
 
+// Cartes des fonds du Shom : images synthétiques peintes avec les palettes du Shom (mer à l'ouest de -3.16)
+const bathy = await import(pathToFileURL(join(APP, "js", "bathymetrie.js")).href);
+bathy.definirLecteurImage(async (url) => {
+  const q = new URL(url).searchParams;
+  const [s, o, n, e] = q.get("BBOX").split(",").map(Number);
+  const taille = Number(q.get("WIDTH"));
+  const source = bathy.SOURCES.find((x) => x.couche === q.get("LAYERS"));
+  const pixels = new Uint8ClampedArray(taille * taille * 4);
+  for (let y = 0; y < taille; y++) {
+    for (let x = 0; x < taille; x++) {
+      const lon = o + ((x + 0.5) / taille) * (e - o);
+      const d = lon < -3.16 ? Math.min(60, 4 + (-3.16 - lon) * 300) : -6;
+      pixels.set([...bathy.couleurPour(Math.min(d, source.max), source.palette), 255], (y * taille + x) * 4);
+    }
+  }
+  return { largeur: taille, hauteur: taille, pixels };
+});
+
 await import(pathToFileURL(join(APP, "js", "app.js")).href);
 const resume = JSON.parse(readFileSync(join(APP, "donnees", "resume.json"), "utf8"));
 
@@ -238,7 +258,12 @@ await etape("retour terrain sur un point public (partage désactivé)", async ()
 await etape("retour partagé quand le serveur de retours est configuré", async () => {
   const { CONFIG } = await import(pathToFileURL(join(APP, "js", "config.js")).href);
   CONFIG.supabaseUrl = "https://supabase.test";
-  CONFIG.supabaseCleAnon = "cle-publique";
+  CONFIG.supabaseCleAnon = "sb_publishable_test";
+  // Compte connecté (session encore valable une heure)
+  w.localStorage.setItem("kelvisi-session", JSON.stringify({
+    access_token: "jeton-utilisateur", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 3600,
+    user: { id: "11111111-1111-1111-1111-111111111111", email: "test@exemple.fr" },
+  }));
   await aller("#/spot/ref-penmarch");
   await jusqua(() => /Penmarc'h/.test(texte(panneau())) && panneau().querySelector("#form-retour"), "fiche");
   assert.match(texte(panneau()), /partagé de façon anonyme/);
@@ -260,8 +285,12 @@ await etape("retour partagé quand le serveur de retours est configuré", async 
     (jourParis(observe) === veille && /^15/.test(heureParis)) || Math.abs(Date.now() - observe - 86400 * 1000) < 3600 * 1000,
     `retour daté d'hier après-midi (${e.observe_le})`,
   );
+  assert.equal(entetesEnvois[0].Authorization, "Bearer jeton-utilisateur", "retour déposé au nom du compte");
+  assert.equal(entetesEnvois[0].apikey, "sb_publishable_test");
   CONFIG.supabaseUrl = "";
   CONFIG.supabaseCleAnon = "";
+  w.localStorage.removeItem("kelvisi-session");
+  w.localStorage.removeItem("kelvisi-synchro-attente");
 });
 
 await etape("clic en mer puis prévision d'un lieu libre", async () => {
@@ -279,6 +308,10 @@ await etape("clic en mer puis prévision d'un lieu libre", async () => {
   const ouest = panneau().querySelector('#regl-orientation button[aria-pressed="true"]');
   assert.equal(ouest.textContent, "O", "orientation estimée vers l'ouest");
   assert.match(texte(panneau()), /Pluie\s*[\d,]+ mm\s*tombés ces dernières 48 h/);
+  await jusqua(() => /Profondeur au point/.test(texte(panneau())), "profondeur Shom");
+  assert.match(texte(panneau()), /Relevé laser/);
+  assert.match(texte(panneau()), /plus basses mers/);
+  assert.match(texte(panneau()), /les cartes des fonds du Shom/);
   assert.match(texte(panneau()), /Lune/);
   assert.ok(panneau().querySelector("#partager"), "lieu libre partageable");
   assert.ok(!panneau().querySelector("#favori"), "pas de favori pour un lieu libre");

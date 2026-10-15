@@ -10,7 +10,11 @@ import { afficherInfos } from "./vues/infos.js";
 import { mesSpots } from "./messpots.js";
 import { rapportsPourMoteur, renvoyerEnAttente } from "./retours.js";
 import { lire, ecrire } from "./stockage.js";
-import { NOM_CLASSE, dateHeure, distanceKm, echapper, heure, jourCourt, metres } from "./format.js";
+import { comptesActifs, lireProfil, session, traiterLienRecu } from "./compte.js";
+import { effacerDonneesLocales, synchroniser } from "./synchro.js";
+import { afficherEcranCompte, afficherMonCompte, masquerEcranCompte } from "./vues/compte.js";
+import { NOM_CLASSE, dateHeure, decrireMesure, distanceKm, echapper, heure, jourCourt, metres } from "./format.js";
+import { meilleureMesure, profondeursAuPoint } from "./bathymetrie.js";
 
 const large = window.matchMedia("(min-width: 960px)");
 const panneau = document.getElementById("panneau");
@@ -78,6 +82,7 @@ function lireRoute() {
     }
     case "mes-spots": return { nom: "mes-spots" };
     case "infos": return { nom: "infos", page: a };
+    case "compte": return { nom: "compte" };
     case "carte": return { nom: "carte" };
     default: return { nom: large.matches ? "liste" : "carte" };
   }
@@ -91,7 +96,8 @@ function naviguer() {
   if (pile.length > 30) pile.shift();
 
   // Un seul onglet actif : la fiche d'un point Kelvisi dépend de « Où aller ? », celle d'un lieu libre de la carte
-  const onglet = route.nom === "fiche" ? { prive: "mes-spots", point: "carte", public: "liste" }[route.cible.type] : route.nom;
+  const onglet = route.nom === "fiche" ? { prive: "mes-spots", point: "carte", public: "liste" }[route.cible.type]
+    : route.nom === "compte" ? "infos" : route.nom;
   document.querySelectorAll(".onglets a").forEach((a) => {
     if (a.dataset.onglet === onglet) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
@@ -113,6 +119,9 @@ function naviguer() {
       break;
     case "infos":
       afficherInfos(panneau, route.page, ctx);
+      break;
+    case "compte":
+      afficherMonCompte(panneau, ctx);
       break;
     case "fiche": {
       const c = route.cible;
@@ -230,9 +239,25 @@ function surMer({ lat, lon, enMer }) {
   ouvrirFicheRapide({
     titre: `<strong>${enMer ? "Prévision à cet endroit ?" : "Ce point semble à terre"}</strong>`,
     corps: `${enMer ? '<p class="note">Kelvisi estime la profondeur et l\'orientation du lieu, puis calcule la visibilité.</p>' : '<p class="note">Touche la mer, près de la côte, là où tu veux chasser.</p>'}
+      <p class="profondeur-rapide" data-profondeur hidden></p>
       <div class="rangee"><button type="button" class="bouton" data-aller="#/point/${coord}">${enMer ? "Calculer la prévision" : "Calculer quand même"}</button></div>
       ${listeProches(lat, lon)}`,
   }, lierAllers);
+  afficherProfondeurRapide(lat, lon);
+}
+
+// Profondeur lue sur les cartes du Shom, ajoutée à la fiche rapide dès qu'elle arrive
+async function afficherProfondeurRapide(lat, lon) {
+  try {
+    const m = meilleureMesure(await profondeursAuPoint(lat, lon));
+    const zone = ficheRapide.querySelector("[data-profondeur]");
+    if (!m || !zone) return;
+    const d = decrireMesure(m);
+    zone.innerHTML = `<strong class="chiffres">Profondeur : ${d.valeur}</strong><br><span class="note">${echapper(d.reference)}${d.reference ? " · " : ""}${echapper(d.source)}</span>`;
+    zone.hidden = false;
+  } catch (e) {
+    /* sans réseau : la fiche rapide reste sans profondeur */
+  }
 }
 
 // --- Recherche ----------------------------------------------------------------------------------
@@ -338,6 +363,51 @@ function majFraicheur() {
   bandeau.hidden = !message;
 }
 
+// --- Comptes -------------------------------------------------------------------------------------
+
+let minuterieAnnonce = null;
+function annoncer(texte) {
+  bandeau.textContent = texte;
+  bandeau.hidden = false;
+  clearTimeout(minuterieAnnonce);
+  minuterieAnnonce = setTimeout(majFraicheur, 6000);
+}
+
+async function surConnexion() {
+  masquerEcranCompte();
+  const r = await synchroniser();
+  if (r && !r.ok && r.raison === "erreur") annoncer("Tes spots n'ont pas pu être synchronisés. Nouvel essai au prochain démarrage.");
+  lireProfil().catch(() => {});
+}
+
+function lierComptes(lien) {
+  document.addEventListener("kelvisi-compte", (e) => {
+    if (e.detail.connecte) {
+      surConnexion();
+      return;
+    }
+    effacerDonneesLocales();
+    previsionsPrivees.clear();
+    majReperes();
+    afficherEcranCompte("connexion");
+    allerA(large.matches ? "#/liste" : "#/carte");
+  });
+  document.addEventListener("kelvisi-synchro", () => {
+    calculerMesSpots();
+    majReperes();
+    if (etat.route?.nom === "mes-spots") afficherMesSpots(panneau, ctx);
+  });
+  document.addEventListener("kelvisi-message", (e) => annoncer(e.detail));
+  window.addEventListener("online", () => { if (session()) synchroniser().catch(() => {}); });
+
+  if (lien?.type === "recovery") afficherEcranCompte("nouveau-mot-de-passe");
+  else if (!session()) afficherEcranCompte(lien?.erreur ? "connexion" : "inscription", { info: lien?.erreur || "" });
+  else {
+    surConnexion();
+    if (lien?.type === "signup") annoncer("Adresse confirmée : ton compte est actif. Bienvenue !");
+  }
+}
+
 // --- Démarrage ----------------------------------------------------------------------------------
 
 function lierOutilsCarte() {
@@ -370,6 +440,9 @@ function lierOutilsCarte() {
 }
 
 async function lancer() {
+  // Lien reçu par e-mail (confirmation, nouveau mot de passe) : lu avant toute navigation
+  const comptes = comptesActifs() && !window.KELVISI_APERCU;
+  const lien = comptes ? await traiterLienRecu() : null;
   try {
     ctx.resume = await demarrer();
   } catch (e) {
@@ -389,6 +462,7 @@ async function lancer() {
   window.addEventListener("hashchange", naviguer);
   large.addEventListener("change", () => { naviguer(); redimensionner(); });
   naviguer();
+  if (comptes) lierComptes(lien);
   calculerMesSpots();
   renvoyerEnAttente();
   setInterval(majFraicheur, 10 * 60 * 1000);

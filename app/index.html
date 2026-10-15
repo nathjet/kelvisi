@@ -48,12 +48,13 @@
         <div class="legende-carte" id="legende-carte">
           <span><i style="background:var(--v-mauvaise)"></i>Mauvaise</span><span><i style="background:var(--v-moyenne)"></i>Moyenne</span>
           <span><i style="background:var(--v-bonne)"></i>Bonne</span><span><i style="background:var(--v-excellente)"></i>Excellente</span>
-          <span id="legende-profondeurs" hidden>Profondeurs EMODnet, environ 100 m : ne pas naviguer avec.</span>
+          <span id="legende-profondeurs" hidden>Profondeurs : EMODnet au large ; près des côtes, relevés du Shom (laser au mètre en Bretagne, Nouvelle-Aquitaine, Occitanie et Provence), visibles en zoomant. Touche la mer pour lire la profondeur. Ne pas naviguer avec.</span>
         </div>
       </div>
       <div class="fiche-rapide" id="fiche-rapide" hidden></div>
     </div>
   </main>
+  <div class="ecran-compte" id="ecran-compte" role="dialog" aria-modal="true" aria-label="Compte Kelvisi" hidden></div>
   <nav class="onglets" aria-label="Navigation principale">
     <a href="#/carte" data-onglet="carte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>Carte</a>
     <a href="#/liste" data-onglet="liste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h11M4 18h7"/></svg>Où aller ?</a>

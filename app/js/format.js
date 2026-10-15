@@ -108,3 +108,11 @@ export function lune(date) {
   else maree = depuisVives < demi / 2 ? "coefficients en baisse" : "coefficients en hausse";
   return { age, phase, maree };
 }
+
+// Mesure de profondeur du Shom en texte : valeur, source et référence
+export function decrireMesure(m) {
+  const valeur = m.terre ? "à terre" : m.au_moins ? `plus de ${metres(m.profondeur_m)} m` : `${metres(m.profondeur_m)} m`;
+  const source = m.type === "laser" ? `${m.source}, relevé laser au mètre` : `${m.source}, maille de ${m.precision_m} m`;
+  const reference = m.terre ? "" : m.reference === "moyen" ? "sous le niveau moyen de la mer" : "sous les plus basses mers (zéro des cartes)";
+  return { valeur, source, reference };
+}

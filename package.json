@@ -4,7 +4,7 @@
   "description": "Kelvisi : tests de l'interface (le site lui-même n'a besoin d'aucune installation)",
   "type": "module",
   "scripts": {
-    "test": "node tests/interface.test.mjs"
+    "test": "node tests/bathymetrie.test.mjs && node tests/interface.test.mjs && node tests/comptes.test.mjs"
   },
   "devDependencies": {
     "jsdom": "24.1.3"

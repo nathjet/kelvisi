@@ -500,3 +500,44 @@ select, input[type="number"], input[type="text"] {
   .panneau > * { animation: monte 0.2s ease-out; }
   @keyframes monte { from { transform: translateY(4px); opacity: 0.6; } to { transform: none; opacity: 1; } }
 }
+
+/* --- Compte : écran d'accueil obligatoire et formulaires ------------------------------------ */
+.ecran-compte, .page-modale {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-y: auto;
+  background: var(--fond);
+  padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+}
+.page-modale { z-index: 51; }
+.ecran-compte[hidden], .page-modale[hidden] { display: none; }
+body.compte-requis { overflow: hidden; }
+.ecran-contenu { max-width: 520px; margin: 0 auto; display: grid; gap: 16px; }
+.ecran-entete { display: grid; gap: 6px; padding-top: 8px; }
+.ecran-entete .marque { font-size: 34px; }
+.ecran-entete p { margin: 0; color: var(--discret); }
+.pied-compte { text-align: center; justify-self: center; }
+.formulaire { display: grid; gap: 14px; }
+.champ { display: grid; gap: 6px; border: none; padding: 0; margin: 0; min-width: 0; }
+.champ > span, .champ > legend { font-weight: 700; font-size: 15px; padding: 0; }
+.champ small { color: var(--discret); font-size: 13px; }
+.champ input, .champ select {
+  width: 100%;
+  font-size: 16px; /* évite le zoom automatique sur iPhone */
+  padding: 11px 12px;
+  border: 1.5px solid var(--ligne);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--encre);
+}
+.champ input:focus, .champ select:focus { outline: 2px solid var(--bouee); outline-offset: 1px; }
+.avec-bouton { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.cases { display: grid; gap: 8px; }
+.case { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; line-height: 1.35; }
+.case input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--bouee); }
+.lien.danger { color: var(--alerte); }
+.formulaire .bouton { justify-self: stretch; text-align: center; padding: 13px 16px; font-size: 16px; }
+.formulaire [data-message] { margin: 0; }
+.profondeur-rapide { margin: 0; }
+.condition.principale { border-color: var(--bouee); }

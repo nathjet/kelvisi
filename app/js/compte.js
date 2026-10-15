@@ -87,7 +87,7 @@ async function appel(chemin, { methode = "POST", corps, jeton } = {}) {
   return donnees;
 }
 
-function memoriserSession(d) {
+function memoriserSession(d, annoncer = true) {
   const s = {
     access_token: d.access_token,
     refresh_token: d.refresh_token,
@@ -95,7 +95,7 @@ function memoriserSession(d) {
     user: { id: d.user.id, email: d.user.email },
   };
   ecrire(CLE_SESSION, s);
-  document.dispatchEvent(new CustomEvent("kelvisi-compte", { detail: { connecte: true } }));
+  if (annoncer) document.dispatchEvent(new CustomEvent("kelvisi-compte", { detail: { connecte: true } }));
   return s;
 }
 
@@ -169,7 +169,7 @@ export async function jeton() {
     renouvellement = (async () => {
       try {
         const d = await appel("/auth/v1/token?grant_type=refresh_token", { corps: { refresh_token: s.refresh_token } });
-        return memoriserSession(d).access_token;
+        return memoriserSession(d, false).access_token;
       } catch (e) {
         // Jeton de renouvellement refusé (compte supprimé, session révoquée) : il faut se reconnecter
         if (e.code !== "reseau" && !/^5\d\d$/.test(e.code)) oublierSession();

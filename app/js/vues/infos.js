@@ -1,8 +1,8 @@
 // Pages d'information : fonctionnement, sécurité, sources, mentions légales, confidentialité.
 
 import { CONFIG } from "../config.js";
-import { partageActif } from "../retours.js";
 import { echapper, dateHeure, CLE_UNITE_VENT } from "../format.js";
+import { comptesActifs, utilisateur, profilEnMemoire } from "../compte.js";
 import { lire, ecrire } from "../stockage.js";
 
 const aCompleter = (v, libelle) => (v ? echapper(v) : `<span class="a-completer">[${libelle} à compléter]</span>`);
@@ -80,34 +80,58 @@ const PAGES = {
   },
   confidentialite: {
     titre: "Confidentialité",
-    resume: "Ce qui reste sur ton appareil, ce qui en sort",
-    contenu: () => `
-      <p>Kelvisi fonctionne sans compte, sans publicité et sans mesure d'audience.</p>
+    resume: "Ton compte, tes données, tes droits",
+    contenu: () => comptesActifs() ? `
+      <p>Kelvisi est édité par ${aCompleter(CONFIG.editeur, "nom de l'éditeur")}, responsable du traitement de tes données. Pas de publicité, pas de revente de données, pas de mesure d'audience.</p>
+      <h2>Les données de ton compte</h2>
+      <ul>
+        <li><strong>Ce que tu donnes à l'inscription</strong> : adresse e-mail, mot de passe (stocké chiffré, personne ne peut le lire), prénom, département, pratiques, tranche d'âge, et ton choix de recevoir ou non des e-mails de Kelvisi.</li>
+        <li><strong>Ce que tu enregistres</strong> : tes spots privés, tes favoris et tes retours terrain.</li>
+        <li><strong>Ce qui est noté automatiquement</strong> : dates d'inscription et de dernière connexion.</li>
+      </ul>
+      <h2>À quoi elles servent</h2>
+      <ul>
+        <li>Faire fonctionner ton compte et retrouver tes spots sur tous tes appareils (exécution des conditions d'utilisation).</li>
+        <li>Corriger les prévisions grâce aux retours terrain, et mieux connaître les utilisateurs de Kelvisi pour améliorer le service, de façon statistique (intérêt légitime).</li>
+        <li>T'envoyer des nouvelles et des offres de Kelvisi, <strong>seulement si tu l'as accepté</strong> (consentement). Tu peux retirer ton accord à tout moment dans « Mon compte » ou par le lien de désinscription de chaque e-mail.</li>
+      </ul>
+      <h2>Qui y a accès</h2>
+      <ul>
+        <li>Tes spots privés ne sont visibles que par toi. Ni les autres utilisateurs ni l'application ne peuvent les lire.</li>
+        <li>L'éditeur de Kelvisi voit la liste des comptes (e-mail, profil, nombre de spots et de retours), mais pas l'emplacement de tes spots.</li>
+        <li>Hébergement de la base : Supabase, serveurs situés dans l'Union européenne. Envoi des e-mails : prestataire d'envoi d'e-mails. Aucune donnée n'est vendue ni cédée.</li>
+      </ul>
+      <h2>Combien de temps</h2>
+      <p>Tant que ton compte existe. Un compte sans connexion pendant trois ans est supprimé avec ses données. Les retours terrain sont gardés trois ans au plus ; à la suppression d'un compte, ils restent sans lien avec toi.</p>
       <h2>Ce qui reste sur ton appareil</h2>
       <ul>
-        <li>Tes spots privés et leurs réglages, tes retours sur ces spots, tes préférences d'affichage. Ils sont stockés dans ton navigateur et effacés si tu vides ses données.</li>
+        <li>Ta session de connexion, une copie de tes spots et favoris pour l'usage hors connexion, tes préférences d'affichage. Tout est effacé quand tu te déconnectes.</li>
         <li>Ta position, si tu utilises « Autour de moi » : elle sert seulement à trier les spots et n'est envoyée nulle part.</li>
       </ul>
       <h2>Ce qui est envoyé à des services tiers</h2>
       <ul>
         <li>Pour calculer la prévision d'un lieu ou d'un spot privé : sa position arrondie à environ 1 km, envoyée à Open-Meteo.</li>
-        <li>Pour estimer la profondeur d'un lieu : sa position arrondie à environ 100 m, envoyée à EMODnet.</li>
-        <li>Le texte tapé dans la recherche, envoyé à la Géoplateforme de l'IGN.</li>
-        <li>Les tuiles de carte, chargées depuis OpenFreeMap, l'IGN et EMODnet.</li>
+        <li>Pour la profondeur d'un lieu : sa position, envoyée au Shom et à EMODnet.</li>
+        <li>Le texte tapé dans la recherche, envoyé à la Géoplateforme de l'IGN. Les tuiles de carte, chargées depuis OpenFreeMap, l'IGN, le Shom et EMODnet.</li>
       </ul>
       <p>Ces services reçoivent aussi, comme tout site web, ton adresse IP. Kelvisi ne leur transmet rien d'autre.</p>
-      <h2>Retours terrain sur les points Kelvisi</h2>
-      ${partageActif()
-        ? "<p>Quand tu envoies un retour sur un point Kelvisi, sont enregistrés : le point, la visibilité, le moment, et un identifiant aléatoire propre à cet appareil (il ne permet pas de te reconnaître). Ces retours, hébergés dans l'Union européenne, servent uniquement à corriger les prévisions. Ils sont conservés trois ans au plus.</p>"
-        : "<p>Le partage des retours n'est pas activé : tous tes retours restent sur ton appareil.</p>"}
       <h2>Tes droits</h2>
-      <p>Pour toute question ou demande sur tes données : ${aCompleter(CONFIG.contact, "adresse de contact")}.</p>`,
+      <p>Tu peux à tout moment consulter et corriger ton profil, télécharger tes données et supprimer ton compte depuis « Mon compte ». Pour toute autre demande (accès, opposition, limitation) : ${aCompleter(CONFIG.contact, "adresse de contact")}. Tu peux aussi saisir la CNIL (cnil.fr).</p>
+      <p>Kelvisi est réservé aux personnes de 15 ans et plus.</p>` : `
+      <p>Kelvisi fonctionne sans publicité et sans mesure d'audience. Tes spots privés, tes retours et tes préférences restent dans ce navigateur.</p>
+      <ul>
+        <li>Pour calculer la prévision d'un lieu ou d'un spot privé : sa position arrondie à environ 1 km, envoyée à Open-Meteo.</li>
+        <li>Pour la profondeur d'un lieu : sa position, envoyée au Shom et à EMODnet. Le texte tapé dans la recherche, envoyé à la Géoplateforme de l'IGN.</li>
+      </ul>
+      <p>Pour toute question : ${aCompleter(CONFIG.contact, "adresse de contact")}.</p>`,
   },
   cgu: {
     titre: "Conditions d'utilisation",
     resume: "Les règles du jeu de la bêta",
     contenu: () => `
-      <p>Kelvisi est proposé gratuitement, en version bêta. En l'utilisant, tu acceptes ces conditions.</p>
+      <p>Kelvisi est proposé gratuitement, en version bêta. En créant un compte et en utilisant le service, tu acceptes ces conditions.</p>
+      <h2>Ton compte</h2>
+      <p>Le compte est personnel et réservé aux personnes de 15 ans et plus. Donne des informations exactes et garde ton mot de passe pour toi. Tu peux supprimer ton compte à tout moment depuis « Mon compte ». Un compte utilisé pour nuire au service (faux retours en série, tentative d'accès aux données d'autrui) peut être fermé.</p>
       <h2>Une prévision, pas une garantie</h2>
       <p>Les visibilités annoncées sont des estimations calculées à partir de modèles météorologiques. Elles peuvent se tromper. Elles ne remplacent ni l'observation sur place, ni les bulletins officiels, ni ton jugement. La carte des profondeurs ne doit pas servir à la navigation.</p>
       <h2>Ta sécurité et la réglementation</h2>
@@ -138,6 +162,12 @@ const PAGES = {
   },
 };
 
+// Contenu d'une page (titre compris), aussi affiché depuis l'écran de connexion
+export function contenuPage(page, ctx) {
+  const p = PAGES[page];
+  return p ? `<h1 class="titre-vue">${p.titre}</h1>${p.contenu(ctx)}` : "";
+}
+
 export function afficherInfos(zone, page, ctx) {
   if (page && PAGES[page]) {
     const p = PAGES[page];
@@ -148,8 +178,11 @@ export function afficherInfos(zone, page, ctx) {
   }
   const r = ctx.resume;
   const unite = lire(CLE_UNITE_VENT, "kn");
+  const u = comptesActifs() ? utilisateur() : null;
+  const prenom = profilEnMemoire()?.prenom;
   zone.innerHTML = `<div class="entete-fiche"><h1 class="titre-vue">Infos</h1>
       <p>Kelvisi prévoit la visibilité sous l'eau sur les côtes françaises. Version bêta${r ? `, prévisions mises à jour ${dateHeure(r.genere_le)}` : ""}.</p></div>
+    ${u ? `<ul class="menu-infos"><li><a href="#/compte">Mon compte<span>${echapper(prenom ? `${prenom} · ${u.email}` : u.email)}</span></a></li></ul>` : ""}
     <ul class="menu-infos">${Object.entries(PAGES).map(([id, p]) => `<li><a href="#/infos/${id}">${p.titre}<span>${p.resume}</span></a></li>`).join("")}</ul>
     <div class="bloc"><h2 class="titre-bloc">Unité du vent</h2>
       <div class="segments" id="unite-vent" role="group" aria-label="Unité du vent">

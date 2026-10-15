@@ -4,6 +4,7 @@ import { echapper, heure, metres, NOM_FACADE, facadePour } from "../format.js";
 import { mesSpots, enregistrerSpot } from "../messpots.js";
 import { favoris, ajouterFavoris } from "../favoris.js";
 import { pointPublic } from "../donnees.js";
+import { comptesActifs } from "../compte.js";
 
 function ligneFavori(p, iJour) {
   const j = p.jours[Math.min(iJour, p.jours.length - 1)];
@@ -19,7 +20,7 @@ export function afficherMesSpots(zone, ctx) {
   const favs = favoris().map((id) => pointPublic(id)).filter(Boolean);
   zone.innerHTML = `
     <div class="entete-fiche"><h1 class="titre-vue">Mes spots</h1>
-      <p>Tes coins à toi. Ils restent sur cet appareil : Kelvisi ne les reçoit jamais.</p></div>
+      <p>${comptesActifs() ? "Tes coins à toi : enregistrés dans ton compte, visibles par toi seul, sur tous tes appareils." : "Tes coins à toi. Ils restent sur cet appareil : Kelvisi ne les reçoit jamais."}</p></div>
     ${favs.length ? `<h2 class="titre-bloc">Points Kelvisi favoris</h2><ol class="liste" id="liste-favoris">${favs.map((p) => ligneFavori(p, iJour)).join("")}</ol>
       <h2 class="titre-bloc">Mes spots privés</h2>` : ""}
     ${spots.length ? `<ol class="liste">${spots.map((s) => {
@@ -33,7 +34,7 @@ export function afficherMesSpots(zone, ctx) {
       <p class="texte">Sur la carte, touche la mer à l'endroit où tu chasses, puis « Prévision ici ». Règle la profondeur et le fond, et enregistre.</p></div>`}
     <div class="rangee"><a class="bouton" href="#/carte">Ajouter un spot depuis la carte</a></div>
     <div class="bloc"><h2 class="titre-bloc">Changer d'appareil</h2>
-      <p class="note">Sans compte, tes spots et favoris ne se synchronisent pas. Copie-les ici, puis colle-les dans Kelvisi sur l'autre appareil.</p>
+      <p class="note">${comptesActifs() ? "Avec ton compte, tes spots et favoris te suivent : connecte-toi sur l'autre appareil. Tu peux aussi les copier ici pour les garder ou les partager." : "Sans compte, tes spots et favoris ne se synchronisent pas. Copie-les ici, puis colle-les dans Kelvisi sur l'autre appareil."}</p>
       <div class="rangee"><button type="button" class="bouton secondaire" id="exporter" ${spots.length || favs.length ? "" : "disabled"}>Copier mes spots</button></div>
       <label class="etiquette" for="import-texte">Coller des spots copiés</label>
       <textarea id="import-texte" rows="3" style="width:100%;border:1.5px solid var(--ligne);border-radius:10px;padding:8px;background:var(--surface)"></textarea>
