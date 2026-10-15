@@ -4,11 +4,12 @@
 
 import { CONFIG } from "./config.js";
 import { lire, ecrire, appareil } from "./stockage.js";
+import { comptesActifs, jeton } from "./compte.js";
 
 const CLE = "kelvisi-retours";
 
 export function partageActif() {
-  return Boolean(CONFIG.supabaseUrl && CONFIG.supabaseCleAnon);
+  return comptesActifs();
 }
 
 export function tousLesRetours() {
@@ -34,9 +35,12 @@ export function entetesSupabase(cle) {
 }
 
 async function envoyer(retour) {
+  // Les retours sont déposés au nom du compte connecté (règle d'accès de la table « rapports »)
+  const j = await jeton();
+  if (!j) throw new Error("Connexion nécessaire");
   const r = await fetch(`${CONFIG.supabaseUrl.replace(/\/$/, "")}/rest/v1/rapports`, {
     method: "POST",
-    headers: entetesSupabase(CONFIG.supabaseCleAnon),
+    headers: { ...entetesSupabase(CONFIG.supabaseCleAnon), Authorization: `Bearer ${j}` },
     body: JSON.stringify({
       spot_id: retour.spot_id,
       visibilite_m: retour.visibilite_m,

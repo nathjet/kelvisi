@@ -3,6 +3,7 @@
 import { lire, ecrire, identifiant } from "./stockage.js";
 import { regionPour } from "./format.js";
 import { supprimerRetoursDuSpot } from "./retours.js";
+import { noterSpot } from "./synchro.js";
 
 const CLE = "kelvisi-spots";
 const FONDS = ["sable", "vase", "mixte", "herbier", "roche"];
@@ -30,6 +31,7 @@ export function normaliser(s) {
     fond: FONDS.includes(s.fond) ? s.fond : "mixte",
     prive: true,
     cree_le: s.cree_le || new Date().toISOString(),
+    maj_le: new Date().toISOString(),
   };
 }
 
@@ -38,10 +40,12 @@ export function enregistrerSpot(s) {
   const liste = mesSpots().filter((x) => x.id !== spot.id);
   liste.push(spot);
   if (!ecrire(CLE, liste)) throw new Error("Impossible d'enregistrer sur cet appareil (stockage plein ou bloqué)");
+  noterSpot(spot.id, "maj");
   return spot;
 }
 
 export function supprimerSpot(id) {
   ecrire(CLE, mesSpots().filter((x) => x.id !== id));
   supprimerRetoursDuSpot(id);
+  noterSpot(id, "suppr");
 }

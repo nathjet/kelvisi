@@ -10,7 +10,7 @@ on:
         default: ""
 
 permissions:
-  contents: read
+  contents: write   # publie les fichiers de diagnostic sur la branche « diagnostic »
 
 jobs:
   diagnostic:
@@ -34,3 +34,12 @@ jobs:
         env:
           TESTS: ${{ github.event.inputs.tests }}
         run: python outils/diagnostic.py $TESTS
+      - name: Publier les fichiers de diagnostic
+        run: |
+          if [ -d diag ]; then
+            cd diag
+            git init -q -b diagnostic
+            git -c user.name="diagnostic" -c user.email="diagnostic@users.noreply.github.com" add -A
+            git -c user.name="diagnostic" -c user.email="diagnostic@users.noreply.github.com" commit -q -m "Diagnostic $GITHUB_RUN_ID"
+            git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" diagnostic
+          fi

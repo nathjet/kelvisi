@@ -102,6 +102,58 @@ def shom_couche(couche: str, url="https://services.data.shom.fr/INSPIRE/wms/r"):
     annoter(f"Couche {couche}"[:60], [bloc[:3000]])
 
 
+SORTIE = os.environ.get("DIAG_SORTIE", "diag")
+
+
+def legendes():
+    """Télécharge légendes, capacités et images d'exemple des couches bathymétriques du Shom (dossier diag/)."""
+    from pathlib import Path
+
+    dossier = Path(SORTIE)
+    dossier.mkdir(exist_ok=True)
+    url = "https://services.data.shom.fr/INSPIRE/wms/r"
+    r = get(url, params={"service": "WMS", "request": "GetCapabilities", "version": "1.3.0"})
+    (dossier / "capacites_wms_r.xml").write_text(r.text, encoding="utf-8")
+    lignes = []
+    for bloc in re.findall(r"<Layer>(.*?)</Layer>", r.text, re.S):
+        nom = re.search(r"<Name>([^<]+)</Name>", bloc)
+        if not nom or not re.search(r"LITTO3D_(BZH|FINISTR|LR|NAQ|PACA)|MNT_(ATL|MED)|MNT_COTIER_(ARCACHON|DETROIT|GIRONDE|GNB|ILE_DE_RE|MORBIHAN|PERTUIS)", nom.group(1)):
+            continue
+        for style, legende in re.findall(r"<Style>\s*<Name>([^<]+)</Name>.*?xlink:href=\"([^\"]+)\"", bloc, re.S):
+            try:
+                img = get(legende.replace("&amp;", "&"))
+                fichier = dossier / f"legende_{nom.group(1)}_{style}.png"
+                fichier.write_bytes(img.content)
+                lignes.append(f"{nom.group(1)} / {style} : {legende} ({len(img.content)} octets)")
+            except Exception as e:
+                lignes.append(f"{nom.group(1)} / {style} : {type(e).__name__}")
+    exemples = {
+        "quiberon": (47.47, -3.17, ["MNT_ATL100m_HOMONIM_PBMA_3857_WMSR", "LITTO3D_BZH_2018_2021_PYR_3857_WMSR", "MNT_COTIER_MORBIHAN_TANDEM_20m_PBMA_3857_WMSR"]),
+        "marseille": (43.21, 5.35, ["MNT_MED100m_GDL_CA_HOMONIM_PBMA_3857_WMSR", "LITTO3D_PACA_2015_PYR_3857_WMSR"]),
+    }
+    for lieu, (lat, lon, couches) in exemples.items():
+        for couche in couches:
+            d = 0.03
+            img = get(url, params={"service": "WMS", "version": "1.3.0", "request": "GetMap", "layers": couche, "styles": "",
+                                   "crs": "EPSG:4326", "bbox": f"{lat - d},{lon - d * 1.5},{lat + d},{lon + d * 1.5}",
+                                   "width": 512, "height": 512, "format": "image/png", "transparent": "true"})
+            (dossier / f"exemple_{lieu}_{couche}.png").write_bytes(img.content)
+            lignes.append(f"exemple {lieu} {couche} : HTTP {img.status_code} {len(img.content)} octets")
+    # Profondeur EMODnet sur une grille, pour comparer avec les couleurs
+    pts = []
+    for lieu, (lat, lon, _) in exemples.items():
+        for i in range(7):
+            for j in range(7):
+                la, lo = lat - 0.03 + i * 0.01, lon - 0.045 + j * 0.015
+                try:
+                    v = get(f"https://rest.emodnet-bathymetry.eu/depth_sample?geom=POINT({lo} {la})", timeout=20).json()
+                    pts.append(f"{lieu},{la:.4f},{lo:.4f},{v.get('avg')}")
+                except Exception:
+                    pts.append(f"{lieu},{la:.4f},{lo:.4f},")
+    (dossier / "emodnet_grille.csv").write_text("lieu,lat,lon,profondeur\n" + "\n".join(pts), encoding="utf-8")
+    annoter("Legendes", lignes)
+
+
 def wcs():
     lignes = []
     for url in ["https://services.data.shom.fr/INSPIRE/wcs", "https://services.data.shom.fr/wcs", "https://data.geopf.fr/wcs"]:
