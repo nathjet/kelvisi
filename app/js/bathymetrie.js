@@ -36,12 +36,14 @@ export const SOURCES = [
   { couche: "MNT_MED100m_CORSE_HOMONIM_PBMA_3857_WMSR", nom: "MNT de façade de la Corse", type: "facade", palette: "facade", zone: [7.699, 40.7, 10.4, 43.7], pas: 100, reference: "pbma", max: 3000 },
 ];
 
-// Couches affichées sur la carte « Profondeurs » au-dessus d'EMODnet, de la moins à la plus précise
-// (la couche du golfe normand-breton n'existe qu'en coordonnées géographiques : elle sert à la lecture au point)
-export const COUCHES_CARTE = SOURCES.filter((s) => s.type !== "facade" && !s.couche.includes("_4326_")).map((s) => s.couche).reverse();
+// Couches affichées sur la carte « Profondeurs » au-dessus d'EMODnet, de la moins à la plus précise.
+// Le Shom refuse les demandes qui mélangent plusieurs couches : une source de tuiles par couche,
+// limitée à sa zone. (La couche du golfe normand-breton n'existe qu'en coordonnées géographiques :
+// elle sert seulement à la lecture au point.)
+export const COUCHES_CARTE = SOURCES.filter((s) => s.type !== "facade" && !s.couche.includes("_4326_")).reverse();
 
-export function urlTuilesShom() {
-  return `${WMS}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${COUCHES_CARTE.join(",")}&STYLES=&CRS=EPSG:3857`
+export function urlTuileShom(couche) {
+  return `${WMS}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${couche}&STYLES=&CRS=EPSG:3857`
     + "&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true";
 }
 

@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import {
   SOURCES, couleurPour, decoderCouleur, definirLecteurImage, grilleAutour, meilleureMesure, orientationDepuisGrille,
-  profondeursAuPoint, urlTuilesShom,
+  profondeursAuPoint, COUCHES_CARTE, urlTuileShom,
 } from "../app/js/bathymetrie.js";
 
 const etapes = [];
@@ -95,12 +95,13 @@ await etape("direction du large et ouverture tirées de la carte de façade", as
   assert.ok(o.ouverture_deg >= 135 && o.ouverture_deg <= 180, `ouverture ${o.ouverture_deg}`);
 });
 
-await etape("tuiles de la carte : couches côtières et laser, laser au-dessus", async () => {
-  const u = urlTuilesShom();
-  assert.match(u, /\{bbox-epsg-3857\}/);
-  const couches = new URL(u.replace("{bbox-epsg-3857}", "0,0,1,1")).searchParams.get("LAYERS").split(",");
-  assert.ok(couches.indexOf("LITTO3D_BZH_2018_2021_PYR_3857_WMSR") > couches.indexOf("MNT_COTIER_MORBIHAN_TANDEM_20m_PBMA_3857_WMSR"));
-  assert.ok(!couches.some((c) => c.startsWith("MNT_ATL100m")), "façade non affichée (EMODnet en dessous)");
+await etape("tuiles de la carte : une couche par source, laser au-dessus, chacune limitée à sa zone", async () => {
+  const noms = COUCHES_CARTE.map((c) => c.couche);
+  assert.ok(noms.indexOf("LITTO3D_BZH_2018_2021_PYR_3857_WMSR") > noms.indexOf("MNT_COTIER_MORBIHAN_TANDEM_20m_PBMA_3857_WMSR"));
+  assert.ok(!noms.some((c) => c.startsWith("MNT_ATL100m") || c.includes("_4326_")), "ni façade ni couche géographique");
+  const u = new URL(urlTuileShom(noms[0]).replace("{bbox-epsg-3857}", "0,0,1,1"));
+  assert.equal(u.searchParams.get("LAYERS"), noms[0]);
+  assert.ok(COUCHES_CARTE.every((c) => c.zone.length === 4));
 });
 
 console.log(`Bathymétrie\n${etapes.join("\n")}`);

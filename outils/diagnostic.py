@@ -158,7 +158,7 @@ def shom_tuiles():
     """Tuiles 256 px en EPSG:3857 pour chaque couche côtière, puis la composition utilisée par la carte."""
     import subprocess, json as js
     sortie = subprocess.run(["node", "--input-type=module", "-e",
-                             "import { COUCHES_CARTE } from './app/js/bathymetrie.js'; console.log(JSON.stringify(COUCHES_CARTE));"],
+                             "import { COUCHES_CARTE } from './app/js/bathymetrie.js'; console.log(JSON.stringify(COUCHES_CARTE.map((c) => c.couche)));"],
                             capture_output=True, text=True)
     couches = js.loads(sortie.stdout)
     url = "https://services.data.shom.fr/INSPIRE/wms/r"
