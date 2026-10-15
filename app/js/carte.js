@@ -53,21 +53,22 @@ export function creerCarte(conteneur, options) {
   carte.addControl(new window.maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
 
   // Après chaque chargement de style (y compris le fond de secours), on remet nos couches
+  let styleRecu = false;
   carte.on("style.load", () => {
+    styleRecu = true;
     ajouterCouches();
     appliquerCouches();
   });
   const basculerSecours = () => {
-    if (secours) return;
+    if (secours || styleRecu) return;
     secours = true;
     carte.setStyle(STYLE_SECOURS);
   };
-  const minuterie = setTimeout(() => { if (!carte.isStyleLoaded()) basculerSecours(); }, 8000);
-  carte.on("load", () => clearTimeout(minuterie));
+  // Fond de secours seulement si le style du fond de carte n'arrive pas : une tuile lente ou en
+  // erreur (vue aérienne, profondeurs) ne doit jamais faire perdre le fond de carte.
+  setTimeout(basculerSecours, 10000);
   carte.on("error", (e) => {
-    // Une tuile manquante (vue aérienne, profondeurs) ne doit pas bloquer la carte ;
-    // en revanche, sans style de fond, on passe au fond de secours.
-    if (!carte.isStyleLoaded() && !secours) basculerSecours();
+    if (!styleRecu) basculerSecours();
     if (e && e.error) console.warn("Carte :", e.error.message || e.error);
   });
   carte.on("zoom", majDistance);

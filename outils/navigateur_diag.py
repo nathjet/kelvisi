@@ -54,8 +54,10 @@ async def main():
         page = await ctx.new_page()
         erreurs = []
         page.on("pageerror", lambda e: erreurs.append(str(e)))
-        page.on("console", lambda m: erreurs.append(f"console {m.type}: {m.text}") if m.type in ("error", "warning") else None)
-        page.on("requestfailed", lambda r: erreurs.append(f"échec {r.url[:120]} {r.failure}"))
+        page.on("console", lambda m: erreurs.append(f"console {m.type}: {m.text}") if m.type in ("error", "warning") and "GPU stall" not in m.text else None)
+        page.on("requestfailed", lambda r: erreurs.append(f"échec {r.url[:160]} {r.failure}") if "ERR_ABORTED" not in (r.failure or "") else None)
+        shom = []
+        page.on("response", lambda r: shom.append(f"{r.status} {r.headers.get('content-type')} {r.url[:200]}") if "data.shom.fr" in r.url and "GetMap" in r.url and "WIDTH=256" in r.url else None)
 
         await page.goto(f"http://127.0.0.1:{PORT}/#/carte")
         await page.wait_for_timeout(9000)
@@ -85,11 +87,11 @@ async def main():
 
         # Carte des profondeurs près de Quiberon, puis vue aérienne
         await page.click('[data-profondeurs]')
-        await page.evaluate("""async () => { const c = await import('./js/carte.js'); c.voler(47.475, -3.16, 13); }""")
-        await page.wait_for_timeout(7000)
+        await page.evaluate("""async () => { const c = await import('./js/carte.js'); c.voler(47.53, -3.14, 13.5); }""")
+        await page.wait_for_timeout(12000)
         await page.screenshot(path=str(SORTIE / "nav_carte_profondeurs_quiberon.png"))
-        await page.evaluate("""async () => { const c = await import('./js/carte.js'); c.voler(43.205, 5.36, 13); }""")
-        await page.wait_for_timeout(7000)
+        await page.evaluate("""async () => { const c = await import('./js/carte.js'); c.voler(43.205, 5.36, 13.5); }""")
+        await page.wait_for_timeout(12000)
         await page.screenshot(path=str(SORTIE / "nav_carte_profondeurs_marseille.png"))
         await page.click('[data-profondeurs]')
         await page.click('[data-fond="aerien"]')
@@ -102,6 +104,7 @@ async def main():
         await page.screenshot(path=str(SORTIE / "nav_fiche_lieu.png"), full_page=True)
 
         resultats["erreurs"] = erreurs[:40]
+        resultats["tuiles_shom"] = shom[:12]
         await navigateur.close()
 
     (SORTIE / "navigateur.json").write_text(json.dumps(resultats, ensure_ascii=False, indent=1), encoding="utf-8")

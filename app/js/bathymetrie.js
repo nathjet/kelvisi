@@ -37,7 +37,8 @@ export const SOURCES = [
 ];
 
 // Couches affichées sur la carte « Profondeurs » au-dessus d'EMODnet, de la moins à la plus précise
-export const COUCHES_CARTE = SOURCES.filter((s) => s.type !== "facade").map((s) => s.couche).reverse();
+// (la couche du golfe normand-breton n'existe qu'en coordonnées géographiques : elle sert à la lecture au point)
+export const COUCHES_CARTE = SOURCES.filter((s) => s.type !== "facade" && !s.couche.includes("_4326_")).map((s) => s.couche).reverse();
 
 export function urlTuilesShom() {
   return `${WMS}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${COUCHES_CARTE.join(",")}&STYLES=&CRS=EPSG:3857`
