@@ -84,6 +84,16 @@ def shom_point(couche: str, url="https://services.data.shom.fr/INSPIRE/wms/r"):
     annoter(f"Shom point {couche}"[:60], lignes)
 
 
+def shom_couche(couche: str, url="https://services.data.shom.fr/INSPIRE/wms/r"):
+    """Bloc XML de la couche dans GetCapabilities : interrogeable, styles, emprise, échelles."""
+    r = get(url, params={"service": "WMS", "request": "GetCapabilities", "version": "1.3.0"})
+    i = r.text.find(f"<Name>{couche}</Name>")
+    debut = r.text.rfind("<Layer", 0, i)
+    fin = r.text.find("</Layer>", i)
+    bloc = re.sub(r"\s+", " ", r.text[debut:fin])
+    annoter(f"Couche {couche}"[:60], [bloc[:3000]])
+
+
 def geopf():
     lignes = []
     for url, params in [("https://data.geopf.fr/wmts", {"SERVICE": "WMTS", "REQUEST": "GetCapabilities"}),
