@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kelvisi</title>
+<meta name="description" content="Kelvisi prévoit la visibilité sous l'eau sur les côtes françaises : quelle visi sur ton spot, et à quelle heure y aller.">
+<meta name="theme-color" content="#1b57a3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kelvisi">
+<meta property="og:title" content="Kelvisi">
+<meta property="og:description" content="Quelle visi sur ton spot ? Prévision de la visibilité sous l'eau, heure par heure, sur les côtes françaises.">
+<meta property="og:image" content="icones/icone-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icones/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+<link rel="preload" href="polices/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="stylesheet" href="styles.css">
+<script src="vendor/maplibre-gl.js" defer></script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body class="route-carte">
+<div class="app" id="app">
+  <header class="barre">
+    <a class="marque" href="#/liste" aria-label="Kelvisi, accueil">Kel<i>visi</i></a>
+    <form class="recherche" id="recherche" role="search" autocomplete="off">
+      <label for="recherche-texte" class="visuellement-cache">Rechercher un lieu</label>
+      <input id="recherche-texte" type="search" placeholder="Une plage, une pointe, une commune…" enterkeyhint="search">
+      <ul id="recherche-resultats" class="resultats" hidden></ul>
+    </form>
+    <span class="fraicheur" id="fraicheur"></span>
+  </header>
+  <div class="bandeau" id="bandeau" role="status" hidden></div>
+  <main class="contenu">
+    <section class="panneau" id="panneau" aria-live="polite">
+      <p class="chargement">Chargement des prévisions…</p>
+    </section>
+    <div class="carte-zone" id="carte-zone">
+      <div id="carte" class="carte" aria-label="Carte des spots"></div>
+      <div class="outils-carte">
+        <div class="segments" id="fond-carte" role="group" aria-label="Fond de carte">
+          <button type="button" data-fond="plan" aria-pressed="true">Plan</button>
+          <button type="button" data-fond="aerien" aria-pressed="false">Vue aérienne</button>
+          <button type="button" data-profondeurs aria-pressed="false">Profondeurs</button>
+        </div>
+        <div class="segments jours-carte" id="jours-carte" role="group" aria-label="Jour affiché"></div>
+        <div class="legende-carte" id="legende-carte">
+          <span><i style="background:var(--v-mauvaise)"></i>Mauvaise</span><span><i style="background:var(--v-moyenne)"></i>Moyenne</span>
+          <span><i style="background:var(--v-bonne)"></i>Bonne</span><span><i style="background:var(--v-excellente)"></i>Excellente</span>
+          <span id="legende-profondeurs" hidden>Profondeurs EMODnet, environ 100 m : ne pas naviguer avec.</span>
+        </div>
+      </div>
+      <div class="fiche-rapide" id="fiche-rapide" hidden></div>
+    </div>
+  </main>
+  <nav class="onglets" aria-label="Navigation principale">
+    <a href="#/carte" data-onglet="carte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>Carte</a>
+    <a href="#/liste" data-onglet="liste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h11M4 18h7"/></svg>Où aller ?</a>
+    <a href="#/mes-spots" data-onglet="mes-spots"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Mes spots</a>
+    <a href="#/infos" data-onglet="infos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Infos</a>
+  </nav>
+</div>
+<noscript><p style="padding:16px">Kelvisi a besoin de JavaScript pour afficher les prévisions.</p></noscript>
+</body>
+</html>

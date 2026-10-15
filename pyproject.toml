@@ -1,0 +1,12 @@
+[project]
+name = "kelvisi-moteur"
+version = "0.4.0"
+description = "Kelvisi : moteur de prévision de la visibilité sous-marine sur les côtes françaises"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26", "requests>=2.31"]
+
+[project.optional-dependencies]
+tests = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

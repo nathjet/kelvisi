@@ -1,0 +1,633 @@
+[
+  {
+    "id": "ref-gris-nez",
+    "nom": "Cap Gris-Nez",
+    "lat": 50.8695,
+    "lon": 1.5783,
+    "region": "manche",
+    "orientation_deg": 290,
+    "ouverture_deg": 80,
+    "profondeur_m": 6,
+    "fond": "roche",
+    "notes": "Courants forts du pas de Calais."
+  },
+  {
+    "id": "ref-etretat",
+    "nom": "Étretat",
+    "lat": 49.7152,
+    "lon": 0.1901,
+    "region": "manche",
+    "orientation_deg": 315,
+    "ouverture_deg": 80,
+    "profondeur_m": 8,
+    "fond": "roche",
+    "notes": "Falaises crayeuses : apports de craie par fortes pluies et éboulements.",
+    "stations": [
+      {
+        "code": "H320000104",
+        "debit_reference_m3s": 379.5,
+        "poids": 0.3,
+        "delai_h": 72,
+        "nom": "Seine"
+      }
+    ]
+  },
+  {
+    "id": "ref-barfleur",
+    "nom": "Pointe de Barfleur",
+    "lat": 49.7002,
+    "lon": -1.2611,
+    "region": "manche",
+    "orientation_deg": 45,
+    "ouverture_deg": 90,
+    "profondeur_m": 8,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-granville",
+    "nom": "Granville, pointe du Roc",
+    "lat": 48.835,
+    "lon": -1.6218,
+    "region": "manche",
+    "orientation_deg": 270,
+    "ouverture_deg": 90,
+    "profondeur_m": 6,
+    "fond": "mixte",
+    "sensibilite_maree": 0.9,
+    "notes": "Baie du Mont-Saint-Michel : très forts marnages, eaux souvent chargées."
+  },
+  {
+    "id": "ref-carteret",
+    "nom": "Cap de Carteret",
+    "lat": 49.3742,
+    "lon": -1.8198,
+    "region": "manche",
+    "orientation_deg": 260,
+    "ouverture_deg": 80,
+    "profondeur_m": 6,
+    "fond": "mixte"
+  },
+  {
+    "id": "ref-grouin",
+    "nom": "Cancale, pointe du Grouin",
+    "lat": 48.7175,
+    "lon": -1.84,
+    "region": "manche",
+    "orientation_deg": 0,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-la-hague",
+    "nom": "Cap de la Hague, Goury",
+    "lat": 49.715,
+    "lon": -1.9539,
+    "region": "manche",
+    "orientation_deg": 270,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche",
+    "notes": "Raz Blanchard : parmi les courants les plus forts d'Europe."
+  },
+  {
+    "id": "ref-cap-frehel",
+    "nom": "Cap Fréhel",
+    "lat": 48.6945,
+    "lon": -2.32,
+    "region": "manche",
+    "orientation_deg": 0,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-saint-quay",
+    "nom": "Saint-Quay-Portrieux",
+    "lat": 48.65,
+    "lon": -2.8082,
+    "region": "manche",
+    "orientation_deg": 90,
+    "ouverture_deg": 80,
+    "profondeur_m": 8,
+    "fond": "mixte"
+  },
+  {
+    "id": "ref-brehat",
+    "nom": "Île de Bréhat",
+    "lat": 48.8645,
+    "lon": -3.0,
+    "region": "manche",
+    "orientation_deg": 0,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-ploumanach",
+    "nom": "Ploumanac'h",
+    "lat": 48.8392,
+    "lon": -3.4873,
+    "region": "manche",
+    "orientation_deg": 340,
+    "ouverture_deg": 80,
+    "profondeur_m": 8,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-batz",
+    "nom": "Île de Batz",
+    "lat": 48.7545,
+    "lon": -4.02,
+    "region": "manche",
+    "orientation_deg": 0,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-aber-wrach",
+    "nom": "Landéda, aber Wrac'h",
+    "lat": 48.6132,
+    "lon": -4.6198,
+    "region": "manche",
+    "orientation_deg": 315,
+    "ouverture_deg": 80,
+    "profondeur_m": 8,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-ouessant",
+    "nom": "Ouessant, côte ouest",
+    "lat": 48.46,
+    "lon": -5.1268,
+    "region": "atlantique",
+    "orientation_deg": 270,
+    "ouverture_deg": 100,
+    "profondeur_m": 15,
+    "fond": "roche",
+    "notes": "Parc naturel marin d'Iroise. Courants violents."
+  },
+  {
+    "id": "ref-saint-mathieu",
+    "nom": "Pointe Saint-Mathieu",
+    "lat": 48.3278,
+    "lon": -4.7779,
+    "region": "atlantique",
+    "orientation_deg": 240,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche",
+    "notes": "Parc naturel marin d'Iroise."
+  },
+  {
+    "id": "ref-cap-chevre",
+    "nom": "Presqu'île de Crozon, cap de la Chèvre",
+    "lat": 48.1685,
+    "lon": -4.5663,
+    "region": "atlantique",
+    "orientation_deg": 250,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche",
+    "notes": "Dans le Parc naturel marin d'Iroise."
+  },
+  {
+    "id": "ref-penmarch",
+    "nom": "Penmarc'h",
+    "lat": 47.7918,
+    "lon": -4.3847,
+    "region": "atlantique",
+    "orientation_deg": 225,
+    "ouverture_deg": 90,
+    "profondeur_m": 8,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-glenan",
+    "nom": "Archipel des Glénan",
+    "lat": 47.7175,
+    "lon": -3.999,
+    "region": "atlantique",
+    "orientation_deg": 180,
+    "ouverture_deg": 120,
+    "profondeur_m": 8,
+    "fond": "mixte",
+    "notes": "Zones réglementées dans l'archipel : vérifier avant de chasser."
+  },
+  {
+    "id": "ref-groix",
+    "nom": "Île de Groix, côte sud",
+    "lat": 47.6208,
+    "lon": -3.4523,
+    "region": "atlantique",
+    "orientation_deg": 200,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-quiberon",
+    "nom": "Quiberon, côte sauvage",
+    "lat": 47.4892,
+    "lon": -3.1565,
+    "region": "atlantique",
+    "orientation_deg": 260,
+    "ouverture_deg": 80,
+    "profondeur_m": 6,
+    "fond": "mixte"
+  },
+  {
+    "id": "ref-belle-ile",
+    "nom": "Belle-Île, côte sauvage",
+    "lat": 47.3381,
+    "lon": -3.251,
+    "region": "atlantique",
+    "orientation_deg": 245,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche",
+    "stations": [
+      {
+        "code": "M530001010",
+        "debit_reference_m3s": 497.1,
+        "poids": 0.2,
+        "delai_h": 72,
+        "nom": "Loire"
+      }
+    ]
+  },
+  {
+    "id": "ref-le-croisic",
+    "nom": "Le Croisic",
+    "lat": 47.295,
+    "lon": -2.5516,
+    "region": "atlantique",
+    "orientation_deg": 270,
+    "ouverture_deg": 90,
+    "profondeur_m": 6,
+    "fond": "roche",
+    "sensibilite_pluie": 0.5,
+    "notes": "Sous l'influence de la Loire et de la Vilaine : eau plus trouble après leurs crues.",
+    "stations": [
+      {
+        "code": "M530001010",
+        "debit_reference_m3s": 497.1,
+        "poids": 0.6,
+        "delai_h": 48,
+        "nom": "Loire"
+      },
+      {
+        "code": "J790061002",
+        "debit_reference_m3s": 13.2,
+        "poids": 0.3,
+        "delai_h": 36,
+        "nom": "Vilaine"
+      }
+    ]
+  },
+  {
+    "id": "ref-yeu",
+    "nom": "Île d'Yeu, côte sauvage",
+    "lat": 46.6868,
+    "lon": -2.3746,
+    "region": "atlantique",
+    "orientation_deg": 225,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche",
+    "stations": [
+      {
+        "code": "M530001010",
+        "debit_reference_m3s": 497.1,
+        "poids": 0.2,
+        "delai_h": 72,
+        "nom": "Loire"
+      }
+    ]
+  },
+  {
+    "id": "ref-sables",
+    "nom": "Les Sables-d'Olonne, corniche",
+    "lat": 46.4818,
+    "lon": -1.8096,
+    "region": "atlantique",
+    "orientation_deg": 225,
+    "ouverture_deg": 90,
+    "profondeur_m": 6,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-baleines",
+    "nom": "Île de Ré, pointe des Baleines",
+    "lat": 46.2482,
+    "lon": -1.5676,
+    "region": "atlantique",
+    "orientation_deg": 315,
+    "ouverture_deg": 90,
+    "profondeur_m": 5,
+    "fond": "roche",
+    "notes": "Platiers, eaux souvent chargées."
+  },
+  {
+    "id": "ref-chassiron",
+    "nom": "Oléron, Chassiron",
+    "lat": 46.0519,
+    "lon": -1.4142,
+    "region": "atlantique",
+    "orientation_deg": 330,
+    "ouverture_deg": 90,
+    "profondeur_m": 6,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-biarritz",
+    "nom": "Biarritz, rocher de la Vierge",
+    "lat": 43.4862,
+    "lon": -1.571,
+    "region": "atlantique",
+    "orientation_deg": 285,
+    "ouverture_deg": 80,
+    "profondeur_m": 8,
+    "fond": "roche",
+    "stations": [
+      {
+        "code": "Q312001002",
+        "debit_reference_m3s": 56.9,
+        "poids": 0.6,
+        "delai_h": 12,
+        "nom": "Adour"
+      }
+    ]
+  },
+  {
+    "id": "ref-guethary",
+    "nom": "Guéthary",
+    "lat": 43.4272,
+    "lon": -1.6204,
+    "region": "atlantique",
+    "orientation_deg": 300,
+    "ouverture_deg": 80,
+    "profondeur_m": 8,
+    "fond": "roche",
+    "sensibilite_pluie": 0.5,
+    "notes": "Pluies basques abondantes ; panache de l'Adour par vent de nord.",
+    "stations": [
+      {
+        "code": "Q312001002",
+        "debit_reference_m3s": 56.9,
+        "poids": 0.3,
+        "delai_h": 18,
+        "nom": "Adour"
+      }
+    ]
+  },
+  {
+    "id": "ref-hendaye",
+    "nom": "Hendaye, corniche d'Abbadia",
+    "lat": 43.3889,
+    "lon": -1.7581,
+    "region": "atlantique",
+    "orientation_deg": 330,
+    "ouverture_deg": 80,
+    "profondeur_m": 10,
+    "fond": "roche",
+    "stations": [
+      {
+        "code": "Q312001002",
+        "debit_reference_m3s": 56.9,
+        "poids": 0.15,
+        "delai_h": 24,
+        "nom": "Adour"
+      }
+    ]
+  },
+  {
+    "id": "ref-leucate",
+    "nom": "Cap Leucate",
+    "lat": 42.91,
+    "lon": 3.0661,
+    "region": "mediterranee",
+    "orientation_deg": 90,
+    "ouverture_deg": 80,
+    "profondeur_m": 8,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-cote-vermeille",
+    "nom": "Côte Vermeille, Port-Vendres",
+    "lat": 42.52,
+    "lon": 3.1211,
+    "region": "mediterranee",
+    "orientation_deg": 90,
+    "ouverture_deg": 80,
+    "profondeur_m": 10,
+    "fond": "roche",
+    "notes": "Réserve naturelle de Cerbère-Banyuls à proximité : ne pas publier comme spot de chasse sans vérifier la réglementation."
+  },
+  {
+    "id": "ref-sete",
+    "nom": "Sète, corniche",
+    "lat": 43.3856,
+    "lon": 3.6861,
+    "region": "mediterranee",
+    "orientation_deg": 170,
+    "ouverture_deg": 90,
+    "profondeur_m": 8,
+    "fond": "roche",
+    "stations": [
+      {
+        "code": "V720001002",
+        "debit_reference_m3s": 1248.6,
+        "poids": 0.25,
+        "delai_h": 36,
+        "nom": "Rhône"
+      }
+    ]
+  },
+  {
+    "id": "ref-sausset",
+    "nom": "Côte Bleue, Sausset-les-Pins",
+    "lat": 43.3236,
+    "lon": 5.1039,
+    "region": "mediterranee",
+    "orientation_deg": 190,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche",
+    "notes": "Réserves sans prélèvement de la Côte Bleue à proximité (Carry-le-Rouet, cap Couronne).",
+    "stations": [
+      {
+        "code": "V720001002",
+        "debit_reference_m3s": 1248.6,
+        "poids": 0.3,
+        "delai_h": 24,
+        "nom": "Rhône"
+      }
+    ]
+  },
+  {
+    "id": "ref-la-ciotat",
+    "nom": "La Ciotat, Bec de l'Aigle",
+    "lat": 43.1608,
+    "lon": 5.6029,
+    "region": "mediterranee",
+    "orientation_deg": 200,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche",
+    "notes": "Parc national des Calanques à proximité : zones de non-prélèvement."
+  },
+  {
+    "id": "ref-giens",
+    "nom": "Presqu'île de Giens",
+    "lat": 43.0206,
+    "lon": 6.1289,
+    "region": "mediterranee",
+    "orientation_deg": 190,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche",
+    "notes": "Parc national de Port-Cros à proximité : chasse interdite autour de Port-Cros."
+  },
+  {
+    "id": "ref-camarat",
+    "nom": "Cap Camarat",
+    "lat": 43.1985,
+    "lon": 6.6858,
+    "region": "mediterranee",
+    "orientation_deg": 110,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-dramont",
+    "nom": "Cap Dramont",
+    "lat": 43.4108,
+    "lon": 6.8571,
+    "region": "mediterranee",
+    "orientation_deg": 160,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-cap-antibes",
+    "nom": "Cap d'Antibes",
+    "lat": 43.5405,
+    "lon": 7.13,
+    "region": "mediterranee",
+    "orientation_deg": 180,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche",
+    "stations": [
+      {
+        "code": "Y644201002",
+        "debit_reference_m3s": 30.0,
+        "poids": 0.4,
+        "delai_h": 6,
+        "nom": "Var"
+      }
+    ]
+  },
+  {
+    "id": "ref-cap-ferrat",
+    "nom": "Saint-Jean-Cap-Ferrat",
+    "lat": 43.6725,
+    "lon": 7.33,
+    "region": "mediterranee",
+    "orientation_deg": 180,
+    "ouverture_deg": 90,
+    "profondeur_m": 15,
+    "fond": "roche",
+    "stations": [
+      {
+        "code": "Y644201002",
+        "debit_reference_m3s": 30.0,
+        "poids": 0.2,
+        "delai_h": 12,
+        "nom": "Var"
+      }
+    ]
+  },
+  {
+    "id": "ref-macinaggio",
+    "nom": "Cap Corse, Macinaggio",
+    "lat": 42.9658,
+    "lon": 9.466,
+    "region": "mediterranee",
+    "orientation_deg": 80,
+    "ouverture_deg": 90,
+    "profondeur_m": 10,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-centuri",
+    "nom": "Cap Corse, Centuri",
+    "lat": 42.965,
+    "lon": 9.3339,
+    "region": "mediterranee",
+    "orientation_deg": 270,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-revellata",
+    "nom": "Calvi, pointe de la Revellata",
+    "lat": 42.5872,
+    "lon": 8.7197,
+    "region": "mediterranee",
+    "orientation_deg": 300,
+    "ouverture_deg": 100,
+    "profondeur_m": 15,
+    "fond": "roche",
+    "notes": "Zones réglementées autour de la station de recherche : vérifier."
+  },
+  {
+    "id": "ref-sanguinaires",
+    "nom": "Ajaccio, îles Sanguinaires",
+    "lat": 41.8785,
+    "lon": 8.5893,
+    "region": "mediterranee",
+    "orientation_deg": 250,
+    "ouverture_deg": 100,
+    "profondeur_m": 15,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-solenzara",
+    "nom": "Solenzara",
+    "lat": 41.86,
+    "lon": 9.416,
+    "region": "mediterranee",
+    "orientation_deg": 90,
+    "ouverture_deg": 100,
+    "profondeur_m": 8,
+    "fond": "sable"
+  },
+  {
+    "id": "ref-campomoro",
+    "nom": "Campomoro",
+    "lat": 41.6339,
+    "lon": 8.807,
+    "region": "mediterranee",
+    "orientation_deg": 330,
+    "ouverture_deg": 80,
+    "profondeur_m": 12,
+    "fond": "roche"
+  },
+  {
+    "id": "ref-palombaggia",
+    "nom": "Palombaggia",
+    "lat": 41.5592,
+    "lon": 9.3409,
+    "region": "mediterranee",
+    "orientation_deg": 100,
+    "ouverture_deg": 80,
+    "profondeur_m": 6,
+    "fond": "sable"
+  }
+]

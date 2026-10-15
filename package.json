@@ -1,0 +1,12 @@
+{
+  "name": "kelvisi",
+  "private": true,
+  "description": "Kelvisi : tests de l'interface (le site lui-même n'a besoin d'aucune installation)",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/interface.test.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "24.1.3"
+  }
+}

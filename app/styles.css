@@ -1,0 +1,502 @@
+/* Kelvisi
+   Mise en page : sur téléphone, une vue à la fois (carte ou panneau) et une barre d'onglets en bas ;
+   sur grand écran, le panneau à gauche et la carte toujours visible à droite.
+   L'eau prend la couleur de sa visibilité : limon quand elle est chargée, bleu du large quand elle est claire.
+   Orange bouée pour ce qui demande une action. */
+
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  src: url("polices/archivo-latin-wdth-normal.woff2") format("woff2-variations"), url("polices/archivo-latin-wdth-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  src: url("polices/archivo-latin-ext-wdth-normal.woff2") format("woff2-variations"), url("polices/archivo-latin-ext-wdth-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("polices/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url("polices/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400;
+  src: url("polices/atkinson-hyperlegible-latin-400-italic.woff2") format("woff2");
+}
+
+:root {
+  --fond: #edf2f3;
+  --surface: #ffffff;
+  --surface-2: #f6f9fa;
+  --encre: #0d1b22;
+  --discret: #56676f;
+  --ligne: #d2dcdf;
+  --bouee: #c9420c;
+  --bouee-doux: #fde4d8;
+  --alerte: #b42318;
+  --alerte-doux: #fde7e5;
+  --v-mauvaise: #8a7638;
+  --v-moyenne: #4f8a5e;
+  --v-bonne: #17818f;
+  --v-excellente: #1b57a3;
+  --nuit: #d9e1e4;
+  --sur-couleur: #ffffff;
+  --ombre: 0 6px 24px rgba(13, 27, 34, 0.18);
+  --police-titre: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --police-texte: "Atkinson Hyperlegible", "Segoe UI", Verdana, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fond: #07141a; --surface: #0e1f27; --surface-2: #122833; --encre: #e3edf0; --discret: #92a5ad; --ligne: #1e3440;
+    --bouee: #ff7a3d; --bouee-doux: #3b2015; --alerte: #ff6b5e; --alerte-doux: #3a1714;
+    --v-mauvaise: #c2a959; --v-moyenne: #78c08a; --v-bonne: #3fc3d0; --v-excellente: #6aa4f5;
+    --nuit: #15272f; --sur-couleur: #07141a; --ombre: 0 6px 24px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --fond: #07141a; --surface: #0e1f27; --surface-2: #122833; --encre: #e3edf0; --discret: #92a5ad; --ligne: #1e3440;
+  --bouee: #ff7a3d; --bouee-doux: #3b2015; --alerte: #ff6b5e; --alerte-doux: #3a1714;
+  --v-mauvaise: #c2a959; --v-moyenne: #78c08a; --v-bonne: #3fc3d0; --v-excellente: #6aa4f5;
+  --nuit: #15272f; --sur-couleur: #07141a; --ombre: 0 6px 24px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--encre);
+  font-family: var(--police-texte);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--bouee); outline-offset: 2px; border-radius: 6px; }
+[hidden] { display: none !important; }
+.chiffres { font-variant-numeric: tabular-nums; }
+.visuellement-cache { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* --- Charpente ------------------------------------------------------------------------ */
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: "barre" "bandeau" "contenu" "onglets";
+}
+.barre {
+  grid-area: barre;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--ligne);
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+  padding-bottom: 8px;
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  position: relative;
+  z-index: 30;
+}
+.marque {
+  font-family: var(--police-titre);
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.marque i { font-style: normal; color: var(--bouee); }
+.recherche { position: relative; flex: 1; min-width: 0; }
+.recherche input {
+  width: 100%;
+  border: 1.5px solid var(--ligne);
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 16px; /* évite le zoom automatique sur iPhone */
+}
+.resultats {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--ombre);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.resultats button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: grid;
+}
+.resultats button:hover, .resultats button:focus-visible { background: var(--surface-2); }
+.resultats .detail { font-size: 13px; color: var(--discret); }
+.resultats .message { padding: 8px 10px; color: var(--discret); font-size: 14px; }
+.fraicheur { font-size: 12px; color: var(--discret); white-space: nowrap; }
+@media (max-width: 599px) { .fraicheur { display: none; } }
+
+.bandeau {
+  grid-area: bandeau;
+  background: var(--bouee-doux);
+  color: var(--encre);
+  font-size: 14px;
+  padding-block: 6px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+.contenu { grid-area: contenu; position: relative; min-height: 0; display: grid; }
+.panneau {
+  min-height: 0;
+  overflow-y: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 32px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+.carte-zone { position: relative; min-height: 0; }
+.carte { position: absolute; inset: 0; }
+.carte-absente {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+  padding: 24px; color: var(--discret); background: var(--surface-2);
+}
+
+.onglets {
+  grid-area: onglets;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--ligne);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.onglets a {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 8px 4px 10px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--discret);
+}
+.onglets a svg { width: 22px; height: 22px; }
+.onglets a[aria-current="page"] { color: var(--bouee); }
+
+@media (max-width: 959px) {
+  body.route-carte .panneau { display: none; }
+  body:not(.route-carte) .carte-zone { display: none; }
+}
+@media (min-width: 960px) {
+  .app {
+    grid-template-columns: minmax(380px, 440px) minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-areas: "barre barre" "bandeau bandeau" "onglets carte" "panneau carte";
+  }
+  .contenu { display: contents; }
+  .panneau { grid-area: panneau; border-right: 1px solid var(--ligne); }
+  .carte-zone { grid-area: carte; }
+  .onglets {
+    border-top: none;
+    border-bottom: 1px solid var(--ligne);
+    border-right: 1px solid var(--ligne);
+    padding: 0 8px;
+  }
+  .onglets a { grid-auto-flow: column; align-items: center; gap: 6px; font-size: 14px; padding: 10px 4px; }
+  .onglets a svg { width: 18px; height: 18px; }
+  .recherche { max-width: 460px; }
+}
+
+/* --- Éléments communs ------------------------------------------------------------------ */
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+.titre-vue {
+  font-family: var(--police-titre);
+  font-stretch: 112%;
+  font-weight: 750;
+  font-size: 26px;
+  line-height: 1.15;
+}
+.titre-bloc {
+  font-family: var(--police-titre);
+  font-stretch: 108%;
+  font-weight: 700;
+  font-size: 19px;
+}
+.etiquette {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--discret);
+}
+.note { margin: 0; font-size: 14px; color: var(--discret); max-width: 65ch; }
+.texte { margin: 0; max-width: 65ch; }
+.bloc { background: var(--surface); border-radius: 18px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.segments { display: flex; gap: 6px; flex-wrap: wrap; }
+.segments button, .puce {
+  border: 1.5px solid var(--ligne);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+.segments button[aria-pressed="true"], .puce[aria-pressed="true"] { background: var(--encre); color: var(--fond); border-color: var(--encre); }
+.rangee { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+select, input[type="number"], input[type="text"] {
+  background: var(--surface);
+  border: 1.5px solid var(--ligne);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+.bouton {
+  background: var(--bouee);
+  color: var(--sur-couleur);
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 700;
+  justify-self: start;
+  text-decoration: none;
+  display: inline-block;
+}
+.bouton.secondaire { background: var(--surface-2); color: var(--encre); border: 1.5px solid var(--ligne); }
+.bouton.danger { background: var(--alerte); }
+.bouton:disabled { opacity: 0.6; cursor: default; }
+.lien { background: none; border: none; padding: 0; color: var(--bouee); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.retour { justify-self: start; background: none; border: none; padding: 2px 0; font-weight: 700; color: var(--bouee); }
+.vide { background: var(--surface); border-radius: 14px; padding: 16px; color: var(--discret); }
+.chargement { color: var(--discret); padding: 16px 0; }
+.erreur { background: var(--alerte-doux); color: var(--alerte); border-radius: 14px; padding: 12px 14px; font-weight: 700; }
+
+/* --- Liste « Où aller ? » ---------------------------------------------------------------- */
+.liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ligne-spot {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  background: var(--surface);
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  padding: 10px 14px 10px 10px;
+  text-decoration: none;
+}
+.ligne-spot[aria-current="true"] { border-color: var(--encre); }
+.ligne-spot .eau { align-self: stretch; border-radius: 6px; background: var(--nuit); }
+.ligne-spot .nom { font-weight: 700; line-height: 1.25; }
+.ligne-spot .infos { font-size: 13px; color: var(--discret); }
+.ligne-spot .visi { text-align: right; display: grid; justify-items: end; }
+.ligne-spot .visi strong {
+  font-family: var(--police-titre);
+  font-stretch: 115%;
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1.1;
+}
+.ligne-spot .visi span { font-size: 13px; color: var(--discret); }
+.deconseille { color: var(--alerte); font-weight: 700; }
+.marque-prive {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bouee);
+  border: 1.5px solid var(--bouee);
+  border-radius: 6px;
+  padding: 0 5px;
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+.eau-mauvaise { background: var(--v-mauvaise) !important; }
+.eau-moyenne { background: var(--v-moyenne) !important; }
+.eau-bonne { background: var(--v-bonne) !important; }
+.eau-excellente { background: var(--v-excellente) !important; }
+
+/* --- Fiche d'un spot ---------------------------------------------------------------------- */
+.entete-fiche { display: grid; gap: 4px; }
+.entete-fiche p { margin: 0; color: var(--discret); font-size: 14px; }
+.lecture { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; }
+.lecture .nombre {
+  font-family: var(--police-titre);
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: clamp(72px, 20vw, 112px);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+}
+.lecture .nombre small { font-size: 0.4em; letter-spacing: 0; margin-left: 4px; }
+.lecture .details { display: grid; gap: 6px; padding-bottom: 6px; }
+.classe {
+  justify-self: start;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sur-couleur);
+  border-radius: 999px;
+  padding: 3px 12px;
+}
+.fourchette { color: var(--discret); font-size: 15px; }
+
+.visee { display: grid; gap: 6px; }
+.visee .piste { position: relative; height: 22px; border-radius: 6px; background: var(--nuit); overflow: hidden; }
+.visee .plein, .visee .flou { position: absolute; top: 0; bottom: 0; }
+.visee .repere-visee { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--encre); border-radius: 2px; }
+.visee .graduations { position: relative; height: 18px; font-size: 12px; color: var(--discret); }
+.visee .graduations span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.visee .graduations span:first-child { transform: none; }
+.visee .graduations span:last-child { transform: translateX(-100%); }
+
+.explication { margin: 0; font-size: 17px; max-width: 62ch; }
+.encart { border-radius: 14px; padding: 12px 14px; display: grid; gap: 2px; }
+.encart.creneau { background: var(--bouee-doux); }
+.encart.creneau strong { color: var(--bouee); }
+.encart.alerte { background: var(--alerte-doux); color: var(--alerte); font-weight: 700; }
+.encart.info { background: var(--surface-2); }
+.encart .grand { font-family: var(--police-titre); font-stretch: 115%; font-weight: 800; font-size: 22px; }
+
+.graphique { overflow-x: auto; }
+.graphique svg { display: block; width: 100%; min-width: 520px; height: auto; }
+.legende { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--discret); }
+.legende i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.conditions { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.condition { border: 1.5px solid var(--ligne); border-radius: 14px; padding: 12px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.condition .valeur { font-family: var(--police-titre); font-stretch: 110%; font-weight: 700; font-size: 20px; line-height: 1.2; }
+.condition .sous { font-size: 13px; color: var(--discret); }
+.fleche { display: inline-block; width: 16px; height: 16px; vertical-align: -2px; margin-right: 4px; }
+.marees { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
+
+.formulaire { display: grid; gap: 12px; }
+.formulaire input[type="range"] { flex: 1 1 200px; accent-color: var(--bouee); }
+.formulaire output { font-family: var(--police-titre); font-weight: 800; font-size: 22px; min-width: 4ch; }
+.confirmation { margin: 0; font-weight: 700; color: var(--v-moyenne); }
+.boussole { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; max-width: 420px; }
+.boussole button { border: 1.5px solid var(--ligne); background: var(--surface); border-radius: 8px; padding: 6px 0; font-weight: 700; font-size: 14px; }
+.boussole button[aria-pressed="true"] { background: var(--encre); color: var(--fond); border-color: var(--encre); }
+
+/* --- Carte -------------------------------------------------------------------------------- */
+.outils-carte {
+  position: absolute;
+  top: 10px;
+  left: max(10px, env(safe-area-inset-left, 0px));
+  z-index: 5;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.outils-carte .segments { background: var(--surface); border-radius: 999px; padding: 3px; box-shadow: var(--ombre); gap: 2px; }
+.outils-carte .segments button { border: none; padding: 5px 10px; font-size: 13px; }
+.outils-carte .jours-carte button { font-size: 13px; }
+.legende-carte {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 4px 10px;
+  box-shadow: var(--ombre);
+  font-size: 12px;
+  color: var(--discret);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  max-width: min(360px, calc(100vw - 80px));
+}
+.legende-carte i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; }
+.repere {
+  min-width: 30px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  border: 2px solid var(--surface);
+  background: var(--discret);
+  color: var(--sur-couleur);
+  font: 800 12px/18px var(--police-titre);
+  font-stretch: 110%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+.repere.prive { border-color: var(--bouee); border-radius: 5px; }
+.repere.choisi { outline: 3px solid var(--encre); outline-offset: 1px; }
+.repere.mauvaise { background: var(--v-mauvaise); }
+.repere.moyenne { background: var(--v-moyenne); }
+.repere.bonne { background: var(--v-bonne); }
+.repere.excellente { background: var(--v-excellente); }
+.carte--loin .repere { min-width: 14px; width: 14px; height: 14px; padding: 0; font-size: 0; border-width: 1.5px; }
+.cible { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--bouee); background: rgba(255, 255, 255, 0.4); box-shadow: 0 0 0 2px #fff; }
+.fiche-rapide {
+  position: absolute;
+  z-index: 6;
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: 30px;
+  max-width: 440px;
+  margin-inline: auto;
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--ombre);
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+.fiche-rapide .haut { display: flex; justify-content: space-between; gap: 10px; align-items: start; }
+.fiche-rapide .fermer { background: none; border: none; font-size: 22px; line-height: 1; padding: 0 4px; color: var(--discret); }
+.fiche-rapide .gros { font-family: var(--police-titre); font-stretch: 120%; font-weight: 800; font-size: 32px; line-height: 1; }
+.fiche-rapide ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.fiche-rapide li button { background: none; border: none; padding: 2px 0; text-align: left; width: 100%; display: flex; justify-content: space-between; gap: 8px; }
+.maplibregl-ctrl-attrib { font-size: 11px; }
+
+/* --- Infos ----------------------------------------------------------------------------------- */
+.menu-infos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.menu-infos a { display: block; background: var(--surface); border-radius: 14px; padding: 12px 14px; text-decoration: none; font-weight: 700; }
+.menu-infos a span { display: block; font-weight: 400; font-size: 14px; color: var(--discret); }
+.page-infos { display: grid; gap: 12px; }
+.page-infos h2 { font-family: var(--police-titre); font-stretch: 108%; font-size: 19px; margin-top: 8px; }
+.page-infos p, .page-infos li { max-width: 65ch; }
+.page-infos p { margin: 0; }
+.page-infos ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.page-infos .numero, .note .numero { font-weight: 700; }
+.page-infos .numero { font-size: 22px; }
+.a-completer { background: var(--bouee-doux); border-radius: 4px; padding: 0 4px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .panneau > * { animation: monte 0.2s ease-out; }
+  @keyframes monte { from { transform: translateY(4px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+}

@@ -1,0 +1,736 @@
+<title>Kelvisi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Mise en page : appli à une colonne sur téléphone (liste « Où aller ? » puis fiche du spot) ;
+   sur grand écran, liste à gauche et fiche à droite. L'eau change de couleur avec la visibilité :
+   limon quand elle est chargée, bleu du large quand elle est claire. Orange bouée pour l'action. */
+:root {
+  --fond: #edf2f3;
+  --surface: #ffffff;
+  --encre: #0d1b22;
+  --discret: #56676f;
+  --ligne: #d2dcdf;
+  --bouee: #d9480f;
+  --bouee-doux: #fde4d8;
+  --alerte: #b42318;
+  --alerte-doux: #fde7e5;
+  --v-mauvaise: #8a7638;
+  --v-moyenne: #4f8a5e;
+  --v-bonne: #17818f;
+  --v-excellente: #1b57a3;
+  --nuit: #d9e1e4;
+  --sur-couleur: #ffffff;
+  --police-titre: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --police-texte: "Atkinson Hyperlegible", "Segoe UI", Verdana, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fond: #07141a; --surface: #0e1f27; --encre: #e3edf0; --discret: #92a5ad; --ligne: #1e3440;
+    --bouee: #ff7a3d; --bouee-doux: #3b2015; --alerte: #ff6b5e; --alerte-doux: #3a1714;
+    --v-mauvaise: #c2a959; --v-moyenne: #78c08a; --v-bonne: #3fc3d0; --v-excellente: #6aa4f5;
+    --nuit: #15272f; --sur-couleur: #07141a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --sur-couleur: #07141a;
+  --fond: #07141a; --surface: #0e1f27; --encre: #e3edf0; --discret: #92a5ad; --ligne: #1e3440;
+  --bouee: #ff7a3d; --bouee-doux: #3b2015; --alerte: #ff6b5e; --alerte-doux: #3a1714;
+  --v-mauvaise: #c2a959; --v-moyenne: #78c08a; --v-bonne: #3fc3d0; --v-excellente: #6aa4f5;
+  --nuit: #15272f; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--fond);
+  color: var(--encre);
+  font-family: var(--police-texte);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 48px;
+  display: grid;
+  gap: 20px;
+}
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--bouee); outline-offset: 2px; border-radius: 6px; }
+.chiffres { font-variant-numeric: tabular-nums; }
+
+/* En-tête */
+.entete { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.marque { display: grid; gap: 2px; }
+.marque h1 {
+  margin: 0;
+  font-family: var(--police-titre);
+  font-variation-settings: "wdth" 125;
+  font-weight: 800;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.marque p { margin: 0; color: var(--discret); }
+.badge {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--bouee);
+  border: 1.5px solid var(--bouee);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.avertissement-proto {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 14px;
+  color: var(--discret);
+  max-width: 70ch;
+}
+
+/* Colonnes */
+.colonnes { display: grid; gap: 20px; }
+@media (min-width: 880px) {
+  .colonnes { grid-template-columns: minmax(300px, 390px) minmax(0, 1fr); align-items: start; gap: 28px; }
+  .panneau-liste { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+  .retour { display: none; }
+}
+@media (max-width: 879px) {
+  body.vue-spot .panneau-liste { display: none; }
+  body:not(.vue-spot) .panneau-spot { display: none; }
+}
+
+/* Panneau liste */
+.panneau-liste { display: grid; gap: 14px; min-width: 0; }
+.panneau-liste h2, .panneau-spot h2 {
+  margin: 0;
+  font-family: var(--police-titre);
+  font-variation-settings: "wdth" 110;
+  font-weight: 700;
+  font-size: 22px;
+  text-wrap: balance;
+}
+.etiquette {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--discret);
+}
+.segments { display: flex; gap: 6px; flex-wrap: wrap; }
+.segments button {
+  border: 1.5px solid var(--ligne);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+.segments button[aria-pressed="true"] { background: var(--encre); color: var(--fond); border-color: var(--encre); }
+.reglages-liste { display: grid; gap: 10px; }
+.depuis { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.depuis select {
+  background: var(--surface);
+  border: 1.5px solid var(--ligne);
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+.liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ligne-spot {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  background: var(--surface);
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  padding: 10px 14px 10px 10px;
+}
+.ligne-spot[aria-current="true"] { border-color: var(--encre); }
+.ligne-spot .eau { align-self: stretch; border-radius: 6px; }
+.ligne-spot .nom { font-weight: 700; line-height: 1.25; }
+.ligne-spot .infos { font-size: 13px; color: var(--discret); }
+.ligne-spot .visi { text-align: right; display: grid; justify-items: end; }
+.ligne-spot .visi strong {
+  font-family: var(--police-titre);
+  font-variation-settings: "wdth" 115;
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1.1;
+}
+.ligne-spot .visi span { font-size: 13px; color: var(--discret); }
+.ligne-spot .visi .deconseille { color: var(--alerte); font-weight: 700; }
+.vide { background: var(--surface); border-radius: 14px; padding: 16px; color: var(--discret); }
+
+/* Panneau spot */
+.panneau-spot { display: grid; gap: 16px; min-width: 0; }
+.retour {
+  justify-self: start;
+  border: none;
+  background: none;
+  padding: 4px 0;
+  font-weight: 700;
+  color: var(--bouee);
+}
+.carte { background: var(--surface); border-radius: 18px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.titre-spot { display: grid; gap: 4px; }
+.titre-spot h2 { font-size: 26px; }
+.titre-spot p { margin: 0; color: var(--discret); font-size: 14px; }
+
+.lecture { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 18px; }
+.lecture .nombre {
+  font-family: var(--police-titre);
+  font-variation-settings: "wdth" 125;
+  font-weight: 800;
+  font-size: clamp(72px, 20vw, 120px);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+}
+.lecture .nombre small { font-size: 0.4em; letter-spacing: 0; margin-left: 4px; }
+.lecture .details { display: grid; gap: 6px; padding-bottom: 6px; }
+.classe {
+  justify-self: start;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sur-couleur);
+  border-radius: 999px;
+  padding: 3px 12px;
+}
+.fourchette { color: var(--discret); font-size: 15px; }
+
+.visee { display: grid; gap: 6px; }
+.visee .piste { position: relative; height: 22px; border-radius: 6px; background: var(--nuit); overflow: hidden; }
+.visee .plein, .visee .flou { position: absolute; top: 0; bottom: 0; }
+.visee .repere { position: absolute; top: -4px; bottom: -4px; width: 3px; background: var(--encre); border-radius: 2px; }
+.visee .graduations { position: relative; height: 18px; font-size: 12px; color: var(--discret); }
+.visee .graduations span { position: absolute; transform: translateX(-50%); }
+.visee .graduations span:first-child { transform: none; }
+.visee .graduations span:last-child { transform: translateX(-100%); }
+
+.explication { margin: 0; font-size: 17px; max-width: 62ch; }
+.encart {
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 2px;
+}
+.encart.creneau { background: var(--bouee-doux); }
+.encart.creneau strong { color: var(--bouee); }
+.encart.alerte { background: var(--alerte-doux); color: var(--alerte); font-weight: 700; }
+.encart .grand {
+  font-family: var(--police-titre);
+  font-variation-settings: "wdth" 115;
+  font-weight: 800;
+  font-size: 22px;
+}
+.note { margin: 0; font-size: 14px; color: var(--discret); }
+
+.graphique { overflow-x: auto; }
+.graphique svg { display: block; width: 100%; min-width: 520px; height: auto; }
+.legende { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--discret); }
+.legende i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.conditions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.condition { border: 1.5px solid var(--ligne); border-radius: 14px; padding: 12px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.condition .valeur { font-family: var(--police-titre); font-variation-settings: "wdth" 110; font-weight: 700; font-size: 20px; line-height: 1.2; }
+.condition .sous { font-size: 13px; color: var(--discret); }
+.fleche { display: inline-block; width: 16px; height: 16px; vertical-align: -2px; margin-right: 4px; }
+.marees { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
+
+.signaler form { display: grid; gap: 12px; }
+.signaler .rangee { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.signaler input[type="range"] { flex: 1 1 200px; accent-color: var(--bouee); }
+.signaler output { font-family: var(--police-titre); font-weight: 800; font-size: 22px; min-width: 4ch; }
+.signaler select { background: var(--surface); border: 1.5px solid var(--ligne); border-radius: 10px; padding: 6px 8px; }
+.bouton {
+  justify-self: start;
+  background: var(--bouee);
+  color: var(--sur-couleur);
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 700;
+}
+.confirmation { margin: 0; color: var(--v-moyenne); font-weight: 700; }
+.mes-retours { margin: 0; padding-left: 18px; font-size: 14px; color: var(--discret); }
+
+.pied { display: grid; gap: 6px; font-size: 14px; color: var(--discret); border-top: 1.5px solid var(--ligne); padding-top: 14px; }
+.pied p { margin: 0; max-width: 75ch; }
+.pied strong { color: var(--encre); user-select: all; }
+.pied a { color: var(--encre); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .panneau-spot .carte { animation: monte 0.25s ease-out; }
+  @keyframes monte { from { transform: translateY(6px); } to { transform: none; } }
+}
+</style>
+
+<div class="app">
+  <header class="entete">
+    <div class="marque">
+      <h1>Kelvisi</h1>
+      <p>Quelle visi sur ton spot ?</p>
+    </div>
+    <span class="badge">Prototype · données simulées</span>
+    <p class="avertissement-proto">
+      Ce prototype montre l'appli avec une météo inventée : une houle d'ouest qui retombe sur l'Atlantique
+      et la Manche, une petite houle d'est en Méditerranée. Les chiffres viennent du vrai moteur de calcul,
+      mais ce n'est pas une prévision réelle.
+    </p>
+  </header>
+
+  <div class="colonnes">
+    <section class="panneau-liste" aria-labelledby="titre-liste">
+      <h2 id="titre-liste">Où aller ?</h2>
+      <div class="reglages-liste">
+        <div class="segments" id="jours" role="group" aria-label="Jour"></div>
+        <div class="segments" id="facades" role="group" aria-label="Façade"></div>
+        <div class="depuis">
+          <label class="etiquette" for="ville">Depuis</label>
+          <select id="ville"></select>
+          <label class="etiquette" for="rayon">Rayon</label>
+          <select id="rayon">
+            <option value="50">50 km</option>
+            <option value="100">100 km</option>
+            <option value="200" selected>200 km</option>
+            <option value="0">Sans limite</option>
+          </select>
+        </div>
+      </div>
+      <ol class="liste" id="liste"></ol>
+    </section>
+
+    <section class="panneau-spot" id="spot" aria-live="polite"></section>
+  </div>
+
+  <footer class="pied">
+    <p>Prévision indicative : elle ne remplace pas l'observation sur place, ni un binôme.
+      Urgence en mer : <strong>196</strong> (CROSS).</p>
+    <p>Chasse de nuit interdite : seuls les créneaux entre le lever et le coucher du soleil sont proposés.
+      Déclarations de captures et règles 2026 :
+      <a href="https://www.mer.gouv.fr/peche-de-loisir-en-mer" target="_blank" rel="noopener">pêche de loisir en mer</a>.</p>
+    <p>Version connectée : données Open-Meteo, Copernicus Marine, Hub'Eau et Shom. Ici, météo simulée.</p>
+  </footer>
+</div>
+
+<script id="donnees" type="application/json">/*DONNEES*/null</script>
+<script>
+(function () {
+  "use strict";
+
+  var D;
+  try { D = JSON.parse(document.getElementById("donnees").textContent); } catch (e) { D = null; }
+  var spotZone = document.getElementById("spot");
+  if (!D || !D.previsions) {
+    spotZone.textContent = "Données du prototype absentes.";
+    return;
+  }
+  var P = D.previsions;
+  var PAR_ID = {};
+  P.forEach(function (p) { PAR_ID[p.spot.id] = p; });
+
+  var VILLES = [
+    { id: "", nom: "Toute la France" },
+    { id: "caen", nom: "Caen", lat: 49.18, lon: -0.37 },
+    { id: "rennes", nom: "Rennes", lat: 48.11, lon: -1.68 },
+    { id: "brest", nom: "Brest", lat: 48.39, lon: -4.49 },
+    { id: "nantes", nom: "Nantes", lat: 47.22, lon: -1.55 },
+    { id: "la-rochelle", nom: "La Rochelle", lat: 46.16, lon: -1.15 },
+    { id: "bordeaux", nom: "Bordeaux", lat: 44.84, lon: -0.58 },
+    { id: "bayonne", nom: "Bayonne", lat: 43.49, lon: -1.47 },
+    { id: "perpignan", nom: "Perpignan", lat: 42.70, lon: 2.90 },
+    { id: "marseille", nom: "Marseille", lat: 43.30, lon: 5.37 },
+    { id: "nice", nom: "Nice", lat: 43.70, lon: 7.27 },
+    { id: "ajaccio", nom: "Ajaccio", lat: 41.93, lon: 8.74 }
+  ];
+  var FACADES = [
+    { id: "toutes", nom: "Toutes" },
+    { id: "manche", nom: "Manche" },
+    { id: "atlantique", nom: "Atlantique" },
+    { id: "mediterranee", nom: "Méditerranée" }
+  ];
+  var NOM_REGION = { manche: "Manche", atlantique: "Atlantique", mediterranee: "Méditerranée" };
+  var CLASSES = { mauvaise: "Mauvaise", moyenne: "Moyenne", bonne: "Bonne", excellente: "Excellente" };
+  var FONDS = { sable: "sable", vase: "vase", mixte: "fond mixte", herbier: "herbier", roche: "roche" };
+  var SECTEURS = ["nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"];
+
+  var etat = { jour: 0, facade: "toutes", ville: "", rayon: 200, spot: null };
+  try {
+    var memo = JSON.parse(localStorage.getItem("kelvisi-reglages") || "{}");
+    if (memo.facade) etat.facade = memo.facade;
+    if (typeof memo.ville === "string") etat.ville = memo.ville;
+    if (typeof memo.rayon === "number") etat.rayon = memo.rayon;
+  } catch (e) { /* stockage indisponible : réglages par défaut */ }
+
+  function memoriser() {
+    try {
+      localStorage.setItem("kelvisi-reglages", JSON.stringify({ facade: etat.facade, ville: etat.ville, rayon: etat.rayon }));
+    } catch (e) { /* sans effet */ }
+  }
+
+  // --- Mise en forme ----------------------------------------------------------
+  function m(x) { return (Math.round(x * 2) / 2).toString().replace(".", ","); }
+  function heure(iso) {
+    var h = parseInt(iso.slice(11, 13), 10), mn = iso.slice(14, 16);
+    return h + " h" + (mn !== "00" ? " " + mn : "");
+  }
+  function nomJour(date, court) {
+    var p = date.split("-").map(Number);
+    var d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+    return new Intl.DateTimeFormat("fr-FR", court ? { weekday: "short", day: "numeric", timeZone: "UTC" } : { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(d);
+  }
+  function secteur(deg) {
+    if (deg === null || deg === undefined) return "";
+    return SECTEURS[Math.floor(((deg % 360) + 22.5) / 45) % 8];
+  }
+  function de(mot) { return /^[aeiouy]/.test(mot) ? "d'" + mot : "de " + mot; }
+  function fleche(deg) {
+    // La flèche indique où va le vent ou la houle (provenance + 180°)
+    var r = (deg + 180) % 360;
+    return '<svg class="fleche" viewBox="0 0 16 16" aria-hidden="true"><g transform="rotate(' + r + ' 8 8)">' +
+      '<path d="M8 1 L12 9 L8.9 8 L8.9 15 L7.1 15 L7.1 8 L4 9 Z" fill="currentColor"/></g></svg>';
+  }
+  function couleur(classe) { return "var(--v-" + classe + ")"; }
+  function echapper(t) {
+    return String(t).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function distanceKm(a, b, c, d) {
+    var R = 6371, rad = Math.PI / 180;
+    var dp = (c - a) * rad, dl = (d - b) * rad;
+    var x = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(a * rad) * Math.cos(c * rad) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    return 2 * R * Math.asin(Math.sqrt(x));
+  }
+
+  // --- Réglages de la liste --------------------------------------------------
+  var dates = P[0].jours.map(function (j) { return j.date; });
+  var zoneJours = document.getElementById("jours");
+  var zoneFacades = document.getElementById("facades");
+  var choixVille = document.getElementById("ville");
+  var choixRayon = document.getElementById("rayon");
+
+  dates.forEach(function (d, i) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = nomJour(d, true);
+    b.dataset.jour = i;
+    zoneJours.appendChild(b);
+  });
+  FACADES.forEach(function (f) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = f.nom;
+    b.dataset.facade = f.id;
+    zoneFacades.appendChild(b);
+  });
+  VILLES.forEach(function (v) {
+    var o = document.createElement("option");
+    o.value = v.id;
+    o.textContent = v.nom;
+    choixVille.appendChild(o);
+  });
+
+  zoneJours.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    etat.jour = Number(b.dataset.jour);
+    tout();
+  });
+  zoneFacades.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    etat.facade = b.dataset.facade;
+    memoriser();
+    tout();
+  });
+  choixVille.addEventListener("change", function () { etat.ville = choixVille.value; memoriser(); tout(); });
+  choixRayon.addEventListener("change", function () { etat.rayon = Number(choixRayon.value); memoriser(); tout(); });
+
+  function classement() {
+    var ville = VILLES.filter(function (v) { return v.id === etat.ville && v.id; })[0];
+    return P.map(function (p) {
+      var j = p.jours[etat.jour];
+      var cr = j.meilleur_creneau;
+      return {
+        p: p, j: j, cr: cr,
+        visi: cr ? cr.visibilite_m : j.visibilite_moyenne_m,
+        d: ville ? distanceKm(ville.lat, ville.lon, p.spot.lat, p.spot.lon) : null
+      };
+    }).filter(function (l) {
+      return etat.facade === "toutes" || l.p.spot.region === etat.facade;
+    }).filter(function (l) {
+      return l.d === null || !etat.rayon || l.d <= etat.rayon;
+    }).sort(function (a, b) {
+      return ((a.cr ? 0 : 1) - (b.cr ? 0 : 1)) || (b.visi - a.visi) || ((a.d || 0) - (b.d || 0));
+    });
+  }
+
+  function afficherListe(lignes) {
+    zoneJours.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(Number(b.dataset.jour) === etat.jour));
+    });
+    zoneFacades.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.facade === etat.facade));
+    });
+    choixVille.value = etat.ville;
+    choixRayon.value = String(etat.rayon);
+    choixRayon.disabled = !etat.ville;
+
+    var ol = document.getElementById("liste");
+    if (!lignes.length) {
+      ol.innerHTML = '<li class="vide">Aucun point de référence dans ce rayon. Élargis la distance ou change de façade.</li>';
+      return;
+    }
+    ol.innerHTML = lignes.map(function (l) {
+      var s = l.p.spot;
+      var infos = NOM_REGION[s.region] + (l.d !== null ? " · " + Math.round(l.d) + " km" : "");
+      var sous = l.cr
+        ? "de " + heure(l.cr.debut) + " à " + heure(l.cr.fin)
+        : '<span class="deconseille">déconseillé</span>';
+      return '<li><button type="button" class="ligne-spot" data-id="' + s.id + '"' +
+        (etat.spot === s.id ? ' aria-current="true"' : "") + ">" +
+        '<span class="eau" style="background:' + couleur(l.j.classe) + '"></span>' +
+        '<span><span class="nom">' + echapper(s.nom) + '</span><br><span class="infos">' + infos + "</span></span>" +
+        '<span class="visi chiffres"><strong>' + m(l.visi) + " m</strong><span>" + sous + "</span></span>" +
+        "</button></li>";
+    }).join("");
+  }
+
+  document.getElementById("liste").addEventListener("click", function (e) {
+    var b = e.target.closest(".ligne-spot");
+    if (!b) return;
+    ouvrir(b.dataset.id, true);
+  });
+
+  // --- Fiche du spot ------------------------------------------------------------
+  function heuresDuJour(p, date) {
+    return p.heures.filter(function (h) { return h.heure.slice(0, 10) === date; });
+  }
+
+  function plage(p, j) {
+    // Heures du meilleur créneau, sinon heures de jour : fourchette et confiance affichées
+    var hs = heuresDuJour(p, j.date);
+    var cr = j.meilleur_creneau;
+    var choix = cr ? hs.filter(function (h) { return h.heure >= cr.debut && h.heure < cr.fin; })
+                   : hs.filter(function (h) { return h.de_jour; });
+    if (!choix.length) choix = hs;
+    return {
+      bas: Math.min.apply(null, choix.map(function (h) { return h.fourchette_m[0]; })),
+      haut: Math.max.apply(null, choix.map(function (h) { return h.fourchette_m[1]; })),
+      confiance: Math.min.apply(null, choix.map(function (h) { return h.confiance; })),
+      texte: choix.reduce(function (a, h) { return h.confiance < a.confiance ? h : a; }, choix[0]).confiance_texte
+    };
+  }
+
+  function jauge(j, p) {
+    var s3 = p.spot.seuils[2];
+    var max = s3 >= 15 ? 30 : 15;
+    var pas = max / 3;
+    var pl = plage(p, j);
+    var bas = pl.bas, haut = pl.haut;
+    var v = j.meilleur_creneau ? j.meilleur_creneau.visibilite_m : j.visibilite_moyenne_m;
+    function pc(x) { return Math.max(0, Math.min(100, (x / max) * 100)); }
+    var c = couleur(j.classe);
+    var grad = [];
+    for (var k = 0; k <= max; k += pas) grad.push('<span style="left:' + pc(k) + '%">' + k + " m</span>");
+    return '<div class="visee" role="img" aria-label="Portée de vue estimée entre ' + m(bas) + " et " + m(haut) + ' mètres">' +
+      '<div class="etiquette">Jusqu\'où tu vois</div>' +
+      '<div class="piste">' +
+      '<span class="plein" style="left:0;width:' + pc(bas) + "%;background:" + c + '"></span>' +
+      '<span class="flou" style="left:' + pc(bas) + "%;width:" + (pc(haut) - pc(bas)) + "%;background:linear-gradient(90deg," + c + ',transparent)"></span>' +
+      '<span class="repere" style="left:calc(' + pc(v) + '% - 1.5px)"></span>' +
+      "</div>" +
+      '<div class="graduations chiffres">' + grad.join("") + "</div></div>";
+  }
+
+  function graphique(p, j) {
+    var hs = heuresDuJour(p, j.date);
+    if (!hs.length) return "";
+    var W = 640, H = 230, g = 34, d = 10, haut = 18, bas = 30;
+    var maxV = Math.max.apply(null, hs.map(function (h) { return h.fourchette_m[1]; }));
+    var pasY = maxV > 20 ? 10 : 5;
+    var ymax = Math.max(pasY, Math.ceil(maxV / pasY) * pasY);
+    var largeur = (W - g - d) / 24;
+    function x(i) { return g + i * largeur; }
+    function y(v) { return haut + (H - haut - bas) * (1 - v / ymax); }
+    var cr = j.meilleur_creneau;
+    var parts = [];
+    for (var t = 0; t <= ymax; t += pasY) {
+      parts.push('<line x1="' + g + '" x2="' + (W - d) + '" y1="' + y(t) + '" y2="' + y(t) + '" stroke="var(--ligne)" stroke-width="1"/>');
+      parts.push('<text x="' + (g - 6) + '" y="' + (y(t) + 4) + '" text-anchor="end" font-size="11" fill="var(--discret)">' + t + "</text>");
+    }
+    parts.push('<text x="' + g + '" y="11" font-size="11" fill="var(--discret)">mètres</text>');
+    hs.forEach(function (h) {
+      var i = parseInt(h.heure.slice(11, 13), 10);
+      var cx = x(i) + largeur / 2;
+      var dansCreneau = cr && h.heure >= cr.debut && h.heure < cr.fin;
+      if (!h.de_jour) {
+        parts.push('<rect x="' + x(i) + '" y="' + haut + '" width="' + largeur + '" height="' + (H - haut - bas) + '" fill="var(--nuit)"/>');
+      }
+      parts.push('<line x1="' + cx + '" x2="' + cx + '" y1="' + y(h.fourchette_m[1]) + '" y2="' + y(h.fourchette_m[0]) + '" stroke="var(--discret)" stroke-width="1" opacity="0.6"/>');
+      parts.push('<rect x="' + (x(i) + 2) + '" y="' + y(h.visibilite_m) + '" width="' + (largeur - 4) + '" height="' + Math.max(1, y(0) - y(h.visibilite_m)) +
+        '" rx="2" fill="' + couleur(h.classe) + '" opacity="' + (h.de_jour ? 1 : 0.45) + '"><title>' +
+        heure(h.heure) + " : " + m(h.visibilite_m) + " m (" + m(h.fourchette_m[0]) + " à " + m(h.fourchette_m[1]) + " m)</title></rect>");
+      if (dansCreneau) {
+        parts.push('<rect x="' + x(i) + '" y="' + (y(0) + 3) + '" width="' + largeur + '" height="5" fill="var(--bouee)"/>');
+      }
+      if (i % 3 === 0) {
+        parts.push('<text x="' + x(i) + '" y="' + (H - 8) + '" font-size="11" fill="var(--discret)">' + i + " h</text>");
+      }
+    });
+    return '<div class="graphique"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Visibilité heure par heure, ' + nomJour(j.date) + '">' + parts.join("") + "</svg></div>" +
+      '<div class="legende"><span><i style="background:var(--v-mauvaise)"></i>Mauvaise</span><span><i style="background:var(--v-moyenne)"></i>Moyenne</span>' +
+      '<span><i style="background:var(--v-bonne)"></i>Bonne</span><span><i style="background:var(--v-excellente)"></i>Excellente</span>' +
+      '<span><i style="background:var(--nuit)"></i>Nuit, chasse interdite</span><span><i style="background:var(--bouee)"></i>Meilleur créneau</span></div>';
+  }
+
+  function conditions(p, j) {
+    var hs = heuresDuJour(p, j.date);
+    var cr = j.meilleur_creneau;
+    var h = hs.filter(function (x) { return cr && x.heure === cr.debut; })[0] || hs[Math.min(12, hs.length - 1)];
+    var moment = cr ? "à " + heure(cr.debut) : "à " + heure(h.heure);
+    var houle = h.houle, vent = h.vent;
+    var cartes = [];
+    cartes.push('<div class="condition"><span class="etiquette">Houle au spot</span><span class="valeur chiffres">' +
+      (houle.hauteur_au_spot_m !== null ? m(houle.hauteur_au_spot_m) + " m" : "?") + "</span>" +
+      '<span class="sous">' + (houle.direction_deg !== null ? fleche(houle.direction_deg) : "") +
+      "au large " + m(houle.hauteur_m) + " m " + de(secteur(houle.direction_deg)) + ", " + houle.periode_s + " s · " + moment + "</span></div>");
+    cartes.push('<div class="condition"><span class="etiquette">Vent</span><span class="valeur chiffres">' +
+      (vent.vitesse_kn !== null ? vent.vitesse_kn + " nœuds" : "?") + "</span>" +
+      '<span class="sous">' + fleche(vent.direction_deg) + secteur(vent.direction_deg) + ", rafales " + vent.rafales_kn + " nœuds · " +
+      (vent.de_terre ? "vent de terre" : "vent de mer") + "</span></div>");
+    if (j.marees.length) {
+      cartes.push('<div class="condition"><span class="etiquette">Marée</span><ul class="marees chiffres">' +
+        j.marees.map(function (e) {
+          return "<li><strong>" + (e.type === "PM" ? "Pleine mer" : "Basse mer") + "</strong> " + heure(e.heure) + "</li>";
+        }).join("") + "</ul></div>");
+    }
+    cartes.push('<div class="condition"><span class="etiquette">Soleil</span><span class="valeur chiffres">' +
+      heure(j.lever_soleil) + " à " + heure(j.coucher_soleil) + '</span><span class="sous">Créneaux proposés dans cette plage</span></div>');
+    if (h.temperature_eau_c !== null) {
+      cartes.push('<div class="condition"><span class="etiquette">Eau</span><span class="valeur chiffres">' +
+        String(h.temperature_eau_c).replace(".", ",") + ' °C</span><span class="sous">en surface</span></div>');
+    }
+    return '<div class="conditions">' + cartes.join("") + "</div>";
+  }
+
+  function mesRetours(id) {
+    try { return JSON.parse(localStorage.getItem("kelvisi-retours-" + id) || "[]"); } catch (e) { return []; }
+  }
+
+  function formulaire(p) {
+    var retours = mesRetours(p.spot.id);
+    return '<div class="carte signaler"><h2>Tu y étais ?</h2>' +
+      '<p class="note">Indique la visi que tu as constatée. Dans l\'appli connectée, ces retours corrigent la prévision du spot.</p>' +
+      '<form id="form-retour">' +
+      '<div class="rangee"><label class="etiquette" for="retour-visi">Visibilité</label>' +
+      '<input id="retour-visi" type="range" min="0" max="30" step="0.5" value="5"><output id="retour-sortie" for="retour-visi" class="chiffres">5 m</output></div>' +
+      '<div class="rangee"><label class="etiquette" for="retour-quand">Quand</label><select id="retour-quand">' +
+      '<option value="maintenant">À l\'instant</option><option value="matin">Ce matin</option><option value="hier">Hier</option></select></div>' +
+      '<button class="bouton" type="submit">Envoyer mon retour</button>' +
+      '<p class="confirmation" id="retour-ok" hidden>Retour gardé sur cet appareil (prototype). Merci.</p>' +
+      "</form>" +
+      (retours.length ? '<ul class="mes-retours">' + retours.slice(-3).map(function (r) {
+        return "<li>" + m(r.visi) + " m, " + ({ maintenant: "à l'instant", matin: "ce matin", hier: "hier" }[r.quand] || "") + "</li>";
+      }).join("") + "</ul>" : "") +
+      "</div>";
+  }
+
+  function afficherSpot(id) {
+    var p = PAR_ID[id];
+    if (!p) { spotZone.innerHTML = ""; return; }
+    var j = p.jours[etat.jour];
+    var s = p.spot;
+    var pl = plage(p, j);
+    var v = j.meilleur_creneau ? j.meilleur_creneau.visibilite_m : j.visibilite_moyenne_m;
+    var cr = j.meilleur_creneau;
+    var tendance = { "amélioration": "L'eau s'éclaircit le lendemain.", "dégradation": "L'eau se trouble le lendemain.", "stable": "Peu de changement le lendemain." }[j.tendance] || "";
+
+    var html = '<button type="button" class="retour" id="retour-liste">← Tous les spots</button>' +
+      '<div class="carte">' +
+      '<div class="titre-spot"><h2>' + echapper(s.nom) + "</h2>" +
+      "<p>" + NOM_REGION[s.region] + " · " + FONDS[s.fond] + " · " + m(s.profondeur_m) + " m de fond · " + nomJour(j.date) + "</p></div>" +
+      '<div class="segments" id="jours-spot" role="group" aria-label="Jour">' + dates.map(function (d, i) {
+        return '<button type="button" data-jour="' + i + '" aria-pressed="' + (i === etat.jour) + '">' + nomJour(d, true) + "</button>";
+      }).join("") + "</div>" +
+      '<div class="lecture"><div class="nombre chiffres">' + m(v) + "<small>m</small></div>" +
+      '<div class="details"><span class="classe" style="background:' + couleur(j.classe) + '">' + CLASSES[j.classe] + "</span>" +
+      '<span class="fourchette chiffres">entre ' + m(pl.bas) + " et " + m(pl.haut) +
+        " m · confiance " + pl.texte + " (" + pl.confiance + " %)</span>" +
+      "</div></div>" +
+      jauge(j, p) +
+      '<p class="explication">' + echapper(j.explication) + "</p>" +
+      (j.alerte ? '<div class="encart alerte">' + echapper(j.alerte) + "</div>" : "") +
+      (cr ? '<div class="encart creneau"><strong class="etiquette">Meilleur créneau</strong><span class="grand chiffres">de ' + heure(cr.debut) + " à " + heure(cr.fin) + "</span>" +
+        "<span>" + m(cr.visibilite_m) + " m en moyenne sur le créneau</span></div>"
+        : '<div class="encart alerte">Aucun créneau conseillé ce jour-là.</div>') +
+      (j.conseil_maree || tendance ? '<p class="note">' + [j.conseil_maree, tendance].filter(Boolean).join(" ") + "</p>" : "") +
+      "</div>" +
+      '<div class="carte"><h2>Heure par heure</h2>' + graphique(p, j) + "</div>" +
+      '<div class="carte"><h2>Conditions</h2>' + conditions(p, j) + "</div>" +
+      formulaire(p);
+    spotZone.innerHTML = html;
+
+    document.getElementById("retour-liste").addEventListener("click", function () { fermer(); });
+    document.getElementById("jours-spot").addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      etat.jour = Number(b.dataset.jour);
+      tout();
+    });
+    var curseur = document.getElementById("retour-visi");
+    var sortie = document.getElementById("retour-sortie");
+    curseur.addEventListener("input", function () { sortie.textContent = m(Number(curseur.value)) + " m"; });
+    document.getElementById("form-retour").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var retours = mesRetours(id);
+      retours.push({ visi: Number(curseur.value), quand: document.getElementById("retour-quand").value, t: Date.now() });
+      try { localStorage.setItem("kelvisi-retours-" + id, JSON.stringify(retours.slice(-20))); } catch (err) { /* sans effet */ }
+      document.getElementById("retour-ok").hidden = false;
+    });
+  }
+
+  // --- Navigation --------------------------------------------------------------------
+  function ouvrir(id, defiler) {
+    if (!PAR_ID[id]) return;
+    etat.spot = id;
+    document.body.classList.add("vue-spot");
+    try { history.replaceState(null, "", "#" + id); } catch (e) { /* sans effet */ }
+    tout();
+    if (defiler) window.scrollTo(0, 0);
+  }
+  function fermer() {
+    document.body.classList.remove("vue-spot");
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* sans effet */ }
+    tout();
+  }
+
+  function tout() {
+    var lignes = classement();
+    if (!etat.spot || !PAR_ID[etat.spot]) etat.spot = lignes.length ? lignes[0].p.spot.id : P[0].spot.id;
+    afficherListe(lignes);
+    afficherSpot(etat.spot);
+  }
+
+  var ancre = (location.hash || "").slice(1);
+  if (PAR_ID[ancre]) {
+    etat.spot = ancre;
+    document.body.classList.add("vue-spot");
+  }
+  tout();
+})();
+</script>

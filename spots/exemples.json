@@ -1,0 +1,38 @@
+[
+  {
+    "id": "exemple-anse-sable",
+    "nom": "Exemple A : anse sableuse exposée à l'ouest, 6 m",
+    "lat": 47.90,
+    "lon": -4.40,
+    "region": "atlantique",
+    "orientation_deg": 270,
+    "ouverture_deg": 80,
+    "profondeur_m": 6,
+    "fond": "sable",
+    "sensibilite_pluie": 0.4
+  },
+  {
+    "id": "exemple-pointe-roche",
+    "nom": "Exemple B : pointe rocheuse exposée à l'ouest, 12 m",
+    "lat": 47.90,
+    "lon": -4.40,
+    "region": "atlantique",
+    "orientation_deg": 270,
+    "ouverture_deg": 90,
+    "profondeur_m": 12,
+    "fond": "roche",
+    "sensibilite_pluie": 0.2
+  },
+  {
+    "id": "exemple-baie-abritee",
+    "nom": "Exemple C : baie ouverte au sud-est, abritée de l'ouest, 8 m",
+    "lat": 47.90,
+    "lon": -4.40,
+    "region": "atlantique",
+    "orientation_deg": 135,
+    "ouverture_deg": 60,
+    "profondeur_m": 8,
+    "fond": "mixte",
+    "sensibilite_pluie": 0.3
+  }
+]

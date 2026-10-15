@@ -1,0 +1,79 @@
+# Calcule les prévisions toutes les heures et publie l'application sur GitHub Pages.
+name: Prévisions et publication
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # toutes les heures, à la 17e minute (heure UTC)
+  push:
+    branches: [main]
+  workflow_dispatch:       # bouton « Run workflow » dans l'onglet Actions
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Satellite facultatif : sans ces deux secrets, l'étape est simplement sautée
+      COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+      COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+      # Identifiants de jeux satellite, à renseigner seulement s'ils changent (Settings > Variables)
+      KELVISI_SAT_ATL_TRANSP: ${{ vars.KELVISI_SAT_ATL_TRANSP }}
+      KELVISI_SAT_ATL_PLANCTON: ${{ vars.KELVISI_SAT_ATL_PLANCTON }}
+      KELVISI_SAT_MED_TRANSP: ${{ vars.KELVISI_SAT_MED_TRANSP }}
+      KELVISI_SAT_MED_PLANCTON: ${{ vars.KELVISI_SAT_MED_PLANCTON }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Tester le moteur (sauf passage horaire)
+        if: github.event_name != 'schedule'
+        run: python -m pytest -q
+
+      - name: Tester l'interface (sauf passage horaire)
+        if: github.event_name != 'schedule'
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      - name: Installer l'outil satellite (si identifiants Copernicus)
+        if: env.COPERNICUSMARINE_SERVICE_USERNAME != ''
+        continue-on-error: true
+        run: pip install copernicusmarine
+
+      - name: Calculer les prévisions
+        env:
+          OPEN_METEO_CLE: ${{ secrets.OPEN_METEO_CLE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python outils/calculer_previsions.py --sortie app/donnees
+
+      - name: Marquer la version de l'application
+        run: sed -i "s/__VERSION__/${GITHUB_SHA::12}-${GITHUB_RUN_NUMBER}/" app/sw.js
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+
+      - id: deploiement
+        uses: actions/deploy-pages@v4
