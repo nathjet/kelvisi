@@ -46,13 +46,24 @@ jobs:
 
       - name: Tester le moteur (sauf passage horaire)
         if: github.event_name != 'schedule'
-        run: python -m pytest -q
+        run: |
+          set -o pipefail
+          python -m pytest -q -rf 2>&1 | tee pytest.log
 
       - name: Tester l'interface (sauf passage horaire)
         if: github.event_name != 'schedule'
         run: |
+          set -o pipefail
           npm ci --no-audit --no-fund
-          npm test
+          npm test 2>&1 | tee npm.log
+
+      - name: Résumer l'échec des tests
+        if: failure()
+        run: |
+          for f in pytest.log npm.log; do
+            [ -f "$f" ] && echo "::error title=$f::$(grep -E 'FAILED|ÉCHEC|Error|assert' "$f" | tail -15 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+          done
+          true
 
       - name: Installer l'outil satellite (si identifiants Copernicus)
         if: env.COPERNICUSMARINE_SERVICE_USERNAME != ''
