@@ -259,6 +259,7 @@ await etape("retour partagé quand le serveur de retours est configuré", async 
   const { CONFIG } = await import(pathToFileURL(join(APP, "js", "config.js")).href);
   CONFIG.supabaseUrl = "https://supabase.test";
   CONFIG.supabaseCleAnon = "sb_publishable_test";
+  CONFIG.comptesOuverts = true;
   // Compte connecté (session encore valable une heure)
   w.localStorage.setItem("kelvisi-session", JSON.stringify({
     access_token: "jeton-utilisateur", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 3600,
@@ -289,6 +290,7 @@ await etape("retour partagé quand le serveur de retours est configuré", async 
   assert.equal(entetesEnvois[0].apikey, "sb_publishable_test");
   CONFIG.supabaseUrl = "";
   CONFIG.supabaseCleAnon = "";
+  CONFIG.comptesOuverts = false;
   w.localStorage.removeItem("kelvisi-session");
   w.localStorage.removeItem("kelvisi-synchro-attente");
 });

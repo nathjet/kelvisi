@@ -268,6 +268,7 @@ async function etape(nom, f) {
 const { CONFIG } = await import(pathToFileURL(join(APP, "js", "config.js")).href);
 CONFIG.supabaseUrl = BASE;
 CONFIG.supabaseCleAnon = "sb_publishable_test";
+CONFIG.comptesOuverts = true;
 
 if (mode === "parcours") {
   // Un spot et un favori créés avant l'existence des comptes : ils doivent rejoindre le compte

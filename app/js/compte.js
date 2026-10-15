@@ -13,7 +13,7 @@ export const PRATIQUES = { chasse: "Chasse sous-marine", apnee: "Apnée", plonge
 export const TRANCHES_AGE = ["15-17", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
 
 export function comptesActifs() {
-  return Boolean(CONFIG.supabaseUrl && CONFIG.supabaseCleAnon);
+  return Boolean(CONFIG.supabaseUrl && CONFIG.supabaseCleAnon && CONFIG.comptesOuverts);
 }
 
 export function session() {

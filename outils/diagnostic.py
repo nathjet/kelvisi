@@ -286,6 +286,37 @@ def supabase():
     annoter("Supabase", lignes)
 
 
+def supabase_projet():
+    """État du projet Supabase avec la clé publique de app/js/config.js : connexion par e-mail, confirmation, tables."""
+    from pathlib import Path
+
+    texte = (Path(__file__).resolve().parent.parent / "app" / "js" / "config.js").read_text(encoding="utf-8")
+    url = re.search(r'supabaseUrl: "([^"]*)"', texte).group(1).rstrip("/")
+    cle = re.search(r'supabaseCleAnon: "([^"]*)"', texte).group(1)
+    lignes = [f"projet {url}"]
+    entetes = {"apikey": cle}
+    try:
+        r = requests.get(f"{url}/auth/v1/settings", headers=entetes, timeout=30)
+        d = r.json()
+        lignes.append(f"auth/settings HTTP {r.status_code} : e-mail activé={d.get('external', {}).get('email')}, "
+                      f"confirmation automatique (Confirm email désactivé)={d.get('mailer_autoconfirm')}, "
+                      f"inscriptions fermées={d.get('disable_signup')}")
+    except Exception as e:
+        lignes.append(f"auth/settings : {type(e).__name__} {e}")
+    for table in ["profils", "spots_prives", "favoris", "rapports"]:
+        try:
+            r = requests.get(f"{url}/rest/v1/{table}?select=*&limit=1", headers=entetes, timeout=30)
+            lignes.append(f"table {table} : HTTP {r.status_code} {r.text[:160]}")
+        except Exception as e:
+            lignes.append(f"table {table} : {type(e).__name__} {e}")
+    try:
+        r = requests.post(f"{url}/rest/v1/rpc/supprimer_mon_compte", headers={**entetes, "Content-Type": "application/json"}, json={}, timeout=30)
+        lignes.append(f"fonction supprimer_mon_compte (sans compte) : HTTP {r.status_code} {r.text[:160]}")
+    except Exception as e:
+        lignes.append(f"rpc : {type(e).__name__} {e}")
+    annoter("Projet Supabase", lignes)
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:
