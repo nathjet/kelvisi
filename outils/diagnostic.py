@@ -154,6 +154,31 @@ def legendes():
     annoter("Legendes", lignes)
 
 
+def shom_tuiles():
+    """Tuiles 256 px en EPSG:3857 pour chaque couche côtière, puis la composition utilisée par la carte."""
+    import subprocess, json as js
+    sortie = subprocess.run(["node", "--input-type=module", "-e",
+                             "import { COUCHES_CARTE } from './app/js/bathymetrie.js'; console.log(JSON.stringify(COUCHES_CARTE));"],
+                            capture_output=True, text=True)
+    couches = js.loads(sortie.stdout)
+    url = "https://services.data.shom.fr/INSPIRE/wms/r"
+    # tuile z12 au-dessus de Marseille et de Quiberon (EPSG:3857)
+    emprises = {"marseille": "596000,5340000,606000,5350000", "quiberon": "-352000,6015000,-342000,6025000"}
+    lignes = []
+    def essai(nom_couches, emprise, styles=""):
+        r = get(url, params={"SERVICE": "WMS", "VERSION": "1.3.0", "REQUEST": "GetMap", "LAYERS": nom_couches, "STYLES": styles,
+                             "CRS": "EPSG:3857", "BBOX": emprise, "WIDTH": 256, "HEIGHT": 256, "FORMAT": "image/png", "TRANSPARENT": "true"})
+        return f"HTTP {r.status_code} {r.headers.get('Content-Type')} {len(r.content)} o {r.text[:120] if r.status_code != 200 else ''}"
+    for c in couches:
+        lignes.append(f"{c} : {essai(c, emprises['marseille'])}")
+    lignes.append(f"composition ({len(couches)}) : {essai(','.join(couches), emprises['marseille'])}")
+    lignes.append(f"composition styles vides : {essai(','.join(couches), emprises['marseille'], ','.join([''] * len(couches)))}")
+    for n in (2, 3, 4, 6, 8):
+        lignes.append(f"{n} premières : {essai(','.join(couches[:n]), emprises['quiberon'])}")
+    lignes.append(f"litto seules : {essai(','.join(c for c in couches if c.startswith('LITTO')), emprises['marseille'])}")
+    annoter("Tuiles Shom", lignes)
+
+
 def wcs():
     lignes = []
     for url in ["https://services.data.shom.fr/INSPIRE/wcs", "https://services.data.shom.fr/wcs", "https://data.geopf.fr/wcs"]:
