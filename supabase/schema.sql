@@ -73,7 +73,7 @@ begin
     case when dep ~ '^(0[1-9]|[1-8][0-9]|9[0-5]|2A|2B|97[1-6]|99)$' then dep end,
     liste,
     case when age in ('15-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+') then age end,
-    coalesce((m ->> 'accord_emails')::boolean, false)
+    coalesce(m ->> 'accord_emails', 'false') = 'true'
   )
   on conflict (id) do nothing;
   return new;
@@ -240,7 +240,17 @@ order by u.created_at desc;
 
 revoke all on admin.clients from public, anon, authenticated;
 
--- Profils manquants pour des comptes créés avant ce script
-insert into public.profils (id)
-select id from auth.users
+-- Profils manquants pour des comptes créés avant ce script (repris des informations d'inscription)
+insert into public.profils (id, prenom, departement, pratiques, tranche_age, accord_emails)
+select
+  u.id,
+  left(nullif(trim(u.raw_user_meta_data ->> 'prenom'), ''), 50),
+  case when upper(u.raw_user_meta_data ->> 'departement') ~ '^(0[1-9]|[1-8][0-9]|9[0-5]|2A|2B|97[1-6]|99)$'
+       then upper(u.raw_user_meta_data ->> 'departement') end,
+  coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(u.raw_user_meta_data -> 'pratiques', '[]'::jsonb)) as x
+            where x in ('chasse', 'apnee', 'plongee', 'photo', 'randonnee')), '{}'),
+  case when u.raw_user_meta_data ->> 'tranche_age' in ('15-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+')
+       then u.raw_user_meta_data ->> 'tranche_age' end,
+  coalesce(u.raw_user_meta_data ->> 'accord_emails', 'false') = 'true'
+from auth.users u
 on conflict (id) do nothing;

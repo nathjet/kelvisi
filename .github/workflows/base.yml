@@ -1,0 +1,38 @@
+# Teste le schéma de la base Supabase (comptes, règles d'accès) sur un PostgreSQL vierge.
+name: Base de données
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/**", "tests/supabase/**", ".github/workflows/base.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Imiter Supabase
+        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/preparer.sql
+      - name: Appliquer le schéma (deux fois : il doit pouvoir être relancé)
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
+      - name: Vérifier profils, règles d'accès, suppression et purge
+        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/verifier.sql
