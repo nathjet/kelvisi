@@ -139,9 +139,10 @@ python -m http.server -d app 8000                    # puis http://localhost:800
 | Interface | Testée automatiquement en mobile et grand écran (32 étapes) |
 | Carte | Vérifiée dans Chromium (mobile et ordinateur) avec le fond de secours |
 | Fonds en ligne, recherche IGN, profondeurs EMODnet | Code prêt ; services non joignables depuis l'espace de développement, à vérifier en ligne |
-| Copernicus | Codé et testé sur données simulées ; jamais lancé sur le vrai service |
-| Supabase | Testé avec un faux serveur ; à vérifier une fois le projet créé |
-| Comptes, paiement, fonctions de la version payante | Pas commencés (bêta gratuite sans compte) |
+| Copernicus | En service depuis le 16 octobre 2026 : produits côtiers d'environ 100 m, environ 6 points sur 10 recalés à chaque passage (selon les nuages) |
+| Supabase | Projet en service : inscription, profil, spots privés, favoris, retours et suppression vérifiés sur le vrai projet |
+| Comptes | Ouverts (obligatoires) ; e-mails de mot de passe oublié en attente d'un envoi d'e-mails propre (Brevo et nom de domaine) |
+| Paiement, fonctions de la version payante | Pas commencés |
 | Photo jointe aux retours, statistiques d'audience | Pas commencées |
 
 Limites connues :

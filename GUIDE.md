@@ -186,30 +186,32 @@ dans « Mon compte ».
 activité. Le calcul horaire lit la base toutes les heures, ce qui suffit en
 principe à le garder actif.
 
-## 7. Activer le satellite Copernicus (facultatif, non testé)
+## 7. Satellite Copernicus (en service)
 
 Le satellite recale la prévision sur la turbidité réellement observée
-(Sentinel-3, 300 m, une image par jour quand il n'y a pas de nuages).
-**Cette partie n'a pas pu être essayée sur le vrai service** : l'accès à
-Copernicus était fermé pendant le développement. Elle est conçue pour ne
-jamais bloquer le reste : en cas de souci, les prévisions sont publiées sans
-satellite.
+(produits côtiers Sentinel-2 et Sentinel-3, environ 100 m, une image par jour
+quand il n'y a pas de nuages). Il tourne depuis le 16 octobre 2026. En cas de
+souci, les prévisions sont publiées sans satellite : rien ne bloque.
 
-1. Dans GitHub, **Settings > Secrets and variables > Actions**, crée deux
-   secrets avec les identifiants de ton compte Copernicus Marine :
-   - `COPERNICUSMARINE_SERVICE_USERNAME`
-   - `COPERNICUSMARINE_SERVICE_PASSWORD`
-2. Relance le calcul (étape 3) et ouvre le journal de l'étape « Calculer les
-   prévisions ». Tu dois lire « Satellite : N points avec une image
-   exploitable ».
-3. Si le journal indique « satellite indisponible » avec un nom de jeu de
-   données introuvable, envoie-moi le message : il suffira de corriger le nom
-   dans **Settings > Secrets and variables > Actions > Variables**
-   (`KELVISI_SAT_ATL_TRANSP`, etc.), sans toucher au code.
+- Identifiants : deux secrets GitHub, `COPERNICUSMARINE_SERVICE_USERNAME`
+  (nom d'utilisateur ou e-mail) et `COPERNICUSMARINE_SERVICE_PASSWORD`. Il
+  faut un compte créé directement sur Copernicus Marine : un compte ouvert
+  avec « Login with CDSE » n'a pas de mot de passe Copernicus Marine et
+  l'outil le refuse.
+- Contrôle : dans **Actions**, ouvre un passage de « Prévisions et
+  publication ». Le cadre **Bilan du calcul** indique par exemple
+  « Satellite : 27 points sur 46 avec une image exploitable ». Par temps
+  couvert, ce nombre baisse : c'est normal.
+- Si le bilan indique « satellite indisponible » avec un nom de jeu de
+  données introuvable, envoie-moi le message : il suffira de corriger le nom
+  dans **Settings > Secrets and variables > Actions > Variables**
+  (`KELVISI_SAT_NWS`, `KELVISI_SAT_IBI`, `KELVISI_SAT_MED`), sans toucher au
+  code.
+- Si tu changes le mot de passe de ton compte Copernicus Marine, mets aussi à
+  jour le secret, sinon le satellite s'arrête (sans bloquer le reste).
 
-Quand le satellite fonctionne, la page « Sources » affiche automatiquement la
-mention obligatoire « Generated using E.U. Copernicus Marine Service
-Information ».
+La page « Sources » affiche automatiquement la mention obligatoire
+« Generated using E.U. Copernicus Marine Service Information ».
 
 ## 8. Plus tard : nom de domaine
 
@@ -266,7 +268,7 @@ depuis « Mes spots » avant le changement et les réimporter après).
 | Carte dans un vrai navigateur (Chromium, téléphone et ordinateur) | Vérifiée avec le fond de secours : repères bien placés, fiche rapide, fiches |
 | Fonds de carte en ligne (OpenFreeMap, vue aérienne IGN, profondeurs EMODnet) | À vérifier à l'étape 4 : ces serveurs n'étaient pas joignables pendant le développement |
 | Recherche de lieux (IGN) et profondeur au point (EMODnet) depuis un téléphone | À vérifier à l'étape 4, pour la même raison |
-| Satellite Copernicus | Codé, testé sur données simulées, jamais lancé sur le vrai service |
+| Satellite Copernicus | En service sur le vrai service : 27 points sur 46 recalés au premier passage (16 octobre 2026) |
 | Comptes (inscription, connexion, mot de passe oublié, profil, synchronisation, suppression) | Testés de bout en bout avec un faux serveur ; schéma testé sur un vrai PostgreSQL ; à vérifier sur ton projet après l'étape 6 |
 | Profondeurs du Shom lues au point et direction du large | Vérifiées dans Chromium sur les vraies cartes du Shom (Bretagne, Provence, Pays basque, Normandie, Corse) |
 | Réglages du modèle (« À CALER ») | Ordres de grandeur de la littérature ; seront ajustés avec le satellite et les retours de la bêta |
