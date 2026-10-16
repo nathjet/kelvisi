@@ -38,9 +38,8 @@ URL_ARCHIVE_METEO = "https://archive-api.open-meteo.com/v1/archive"
 VARIABLES_MARINE = {
     "swell_wave_height": "hauteur_houle", "swell_wave_period": "periode_houle", "swell_wave_direction": "direction_houle",
     "wind_wave_height": "hauteur_mer_vent", "wind_wave_period": "periode_mer_vent", "wind_wave_direction": "direction_mer_vent",
-    "wave_height": "hauteur_vagues", "wave_period": "periode_vagues", "wave_direction": "direction_vagues",
     "ocean_current_velocity": "courant", "sea_level_height_msl": "niveau_mer",
-}
+}  # 8 grandeurs : moins de 10, chaque tranche de 2 semaines compte pour un seul appel
 VARIABLES_PLUIE = {"precipitation": "pluie"}
 LOT = 10  # points par requête Open-Meteo
 
@@ -81,7 +80,7 @@ def requete_open_meteo(http, url: str, points, variables: dict, debut: str, fin:
         params["models"] = modele
     if cle_open_meteo():
         params["apikey"] = cle_open_meteo()
-    r = openmeteo._get_avec_reessais(http, url, params, essais=4)
+    r = openmeteo._get_avec_reessais(http, url, params, essais=3)
     d = r.json()
     return d if isinstance(d, list) else [d]
 
@@ -257,30 +256,33 @@ def collecter(budget: float, debut: str) -> None:
                 lignes.append(f"satellite {s.id} : {type(e).__name__} {str(e)[:150]}")
         lignes.append(f"satellite : {faits} points téléchargés en {time.time() - t0:.0f} s")
 
-    # 3. Vagues, courant, marée puis pluie (Open-Meteo, budget limité)
-    for nom, url, variables, fin in (("marine", url_marine(), VARIABLES_MARINE, fin_marine),
-                                     ("pluie", url_archive(), VARIABLES_PLUIE, fin_pluie)):
-        for etiquette, a_debut, a_fin in annees(debut, fin):
-            manquants = [s for s in spots if not (DOSSIER / nom / f"{s.id}_{etiquette}.npz").exists()]
-            for k in range(0, len(manquants), LOT):
-                lot = manquants[k:k + LOT]
-                jours = (date.fromisoformat(a_fin) - date.fromisoformat(a_debut)).days + 1
-                cout = poids_open_meteo(len(variables), jours, len(lot))
-                if depense + cout > budget:
-                    arret = arret or f"budget atteint avant {nom} {etiquette}"
-                    break
-                try:
-                    reponses = requete_open_meteo(http, url, lot, variables, a_debut, a_fin)
-                except Exception as e:
-                    arret = f"{nom} {etiquette} : {type(e).__name__} {str(e)[:200]}"
-                    break
-                depense += cout
-                for s, rep in zip(lot, reponses):
-                    temps, series = vers_series(rep, variables)
-                    enregistrer_npz(DOSSIER / nom / f"{s.id}_{etiquette}.npz", temps, series)
-                time.sleep(2.0)
-            if arret:
+    # 3. Vagues, courant, marée et pluie (Open-Meteo, budget limité), des années récentes aux plus anciennes,
+    #    pour que chaque lancement fournisse des années complètes utilisables tout de suite.
+    sources = {"marine": (url_marine(), VARIABLES_MARINE, fin_marine), "pluie": (url_archive(), VARIABLES_PLUIE, fin_pluie)}
+    taches = [(nom, etiquette, a_debut, a_fin)
+              for etiquette, _, _ in reversed(annees(debut, fin_marine))
+              for nom in sources
+              for e2, a_debut, a_fin in annees(debut, sources[nom][2]) if e2 == etiquette]
+    for nom, etiquette, a_debut, a_fin in taches:
+        url, variables, _ = sources[nom]
+        manquants = [s for s in spots if not (DOSSIER / nom / f"{s.id}_{etiquette}.npz").exists()]
+        for k in range(0, len(manquants), LOT):
+            lot = manquants[k:k + LOT]
+            jours = (date.fromisoformat(a_fin) - date.fromisoformat(a_debut)).days + 1
+            cout = poids_open_meteo(len(variables), jours, len(lot))
+            if depense + cout > budget:
+                arret = arret or f"budget atteint avant {nom} {etiquette}"
                 break
+            try:
+                reponses = requete_open_meteo(http, url, lot, variables, a_debut, a_fin)
+            except Exception as e:
+                arret = f"{nom} {etiquette} : {type(e).__name__} {str(e)[:200]}"
+                break
+            depense += cout
+            for s, rep in zip(lot, reponses):
+                temps, series = vers_series(rep, variables)
+                enregistrer_npz(DOSSIER / nom / f"{s.id}_{etiquette}.npz", temps, series)
+            time.sleep(2.0)
         if arret:
             break
 
