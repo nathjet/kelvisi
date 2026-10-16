@@ -77,11 +77,12 @@ dans l'eau (Davies-Colley). Le moteur additionne les sources d'atténuation :
 | Composante | Calcul |
 | --- | --- |
 | Eau claire | Constante |
-| Fond habituel du spot | Déduit de la visibilité typique par temps calme (région et type de fond) |
-| Brassage | Vitesse de l'eau au fond sous les vagues (théorie linéaire), combinée au courant, comparée au seuil de remise en suspension du fond ; effet retard de 18 h (sable) à 60 h (vase) ; sable des petits fonds voisins |
+| Fond habituel du spot | Visibilité typique par temps calme, calée sur le satellite pour chaque point de référence ; un lieu libre ou un spot privé reprend celle du point de référence le plus proche (moins de 25 km), sinon celle de la façade |
+| Brassage | Vitesse de l'eau au fond sous les vagues (théorie linéaire), combinée au courant, comparée au seuil de remise en suspension du fond ; effet retard de 18 h (sable) à 60 h (vase) ; sable des petits fonds voisins ; sensibilité à la houle propre à chaque point (calée sur le satellite) |
 | Rivières | Débit Hub'Eau rapporté au débit habituel (médiane depuis 2021), avec délai d'arrivée et poids propres à chaque point |
 | Pluie | Cumul récent avec mémoire de 36 h |
-| Plancton | Chlorophylle satellite si disponible, sinon valeurs saisonnières par façade |
+| Saison | À houle égale, eau plus chargée en hiver en Manche et en Atlantique (facteur calé sur le satellite, maximum début janvier) |
+| Plancton | Valeurs saisonnières par façade (la chlorophylle satellite, faussée par les sédiments près des côtes, n'est pas utilisée) |
 | Satellite | La dernière image recale le modèle ; son poids diminue en 3 jours |
 
 L'abri du spot (orientation, ouverture) filtre la houle. La marée module les
@@ -89,11 +90,35 @@ composantes côtières (eau plus claire autour de la pleine mer, vives-eaux
 plus brassées) ; elle est ignorée en Méditerranée. La lumière donne la
 visibilité ressentie. Les seuils de couleur sont propres à chaque façade.
 
-Toutes les constantes sont dans `prevision/parametres.py`. Celles marquées
-« À CALER » sont des ordres de grandeur à ajuster : d'abord sur l'historique
-satellite (`prevision/calage.py`, validé sur données simulées), puis sur les
-retours terrain de la bêta (`prevision/calibrage.py`, appliqué
-automatiquement point par point).
+Toutes les constantes sont dans `prevision/parametres.py`. Le brassage, la
+pluie, les rivières, la marée, la saison et les valeurs de chaque point de
+référence sont calés sur l'historique satellite (voir « Calage » ci-dessous).
+Les valeurs encore marquées « À CALER » (conversion turbidité en mètres,
+plancton) le seront avec les retours terrain de la bêta
+(`prevision/calibrage.py`, appliqué automatiquement point par point).
+
+### Calage sur le satellite
+
+Le workflow « Calage » (`outils/historique.py`) rassemble pour les 46 points
+les images satellite depuis 2022 et la météo marine, la pluie et les débits
+des mêmes jours, sur la branche `historique`. `outils/caler.py` recalcule
+ensuite la turbidité que le modèle aurait prévue, la compare aux images, cale
+les réglages sur le début de l'historique et vérifie le résultat sur la fin,
+jamais vue pendant le calage (`--appliquer` écrit les valeurs retenues).
+Rapport complet : `calage/resultat.json`.
+
+Premier calage (octobre 2026, images de janvier 2025 à octobre 2026, 39 points,
+3 753 images) ; erreur typique sur la turbidité, période de vérification :
+
+| Prévision | 1 jour après une image | 2 à 3 jours | 4 à 7 jours |
+| --- | --- | --- | --- |
+| Eau identique à la dernière image | 38 % | 46 % | 66 % |
+| Modèle calé, recalé sur la dernière image | 36 % | 34 % | 39 % |
+
+Sans image récente, le modèle calé fait 42 % d'erreur typique, contre 118 %
+avant calage et 58 % pour une simple moyenne de chaque point. Aux Glénan et à
+Palombaggia, le fond de sable clair peu profond fausse la turbidité satellite :
+le satellite y est ignoré.
 
 ## Organisation
 
@@ -129,11 +154,11 @@ python outils/calculer_previsions.py                 # prévisions réelles (ré
 python -m http.server -d app 8000                    # puis http://localhost:8000
 ```
 
-## État au 15 octobre 2026
+## État au 17 octobre 2026
 
 | Élément | État |
 | --- | --- |
-| Modèle, créneaux, explications, calibrage, classement | Codé, testé (104 tests Python) |
+| Modèle, créneaux, explications, calibrage, classement | Codé, testé (113 tests Python), calé sur le satellite |
 | Open-Meteo | Lancé sur l'API réelle : 46 points calculés sans erreur |
 | Hub'Eau | Lancé sur l'API réelle : 6 stations lues, rattachées à 11 points |
 | Interface | Testée automatiquement en mobile et grand écran (32 étapes) |
@@ -147,9 +172,10 @@ python -m http.server -d app 8000                    # puis http://localhost:800
 
 Limites connues :
 
-- Par mer calme, sans satellite, la prévision plafonne à la visibilité
-  habituelle du secteur (19 m en Méditerranée) : seul le satellite verra les
-  variations fines.
+- La conversion de la turbidité en mètres de visibilité n'est pas encore
+  vérifiée sur le terrain : les retours de la bêta la régleront.
+- Le satellite ne voit rien par temps couvert, et rien à moins d'environ
+  300 m de certains caps (Ouessant, Belle-Île, Campomoro, côte Vermeille).
 - Les horaires de marée viennent d'un modèle à maille de 8 km : indicatifs.
 - La carte des profondeurs (environ 100 m de résolution) ne sert pas à
   naviguer.

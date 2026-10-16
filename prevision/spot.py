@@ -43,6 +43,8 @@ class Spot:
     visibilite_calme_m: float | None = None
     sensibilite_maree: float | None = None
     sensibilite_pluie: float = 0.3
+    sensibilite_houle: float = 1.0      # réaction de l'eau à la houle (calée sur le satellite)
+    satellite: bool = True              # faux si un fond clair peu profond fausse la turbidité satellite
     facteur_courant: float = 1.0
     stations: list[StationRiviere] = field(default_factory=list)
     prive: bool = False
@@ -57,6 +59,8 @@ class Spot:
             raise ValueError("Coordonnées hors limites")
         if self.profondeur_m <= 0:
             raise ValueError("La profondeur doit être positive")
+        if self.sensibilite_houle < 0:
+            raise ValueError("La sensibilité à la houle doit être positive")
         if not 0 < self.ouverture_deg <= 180:
             raise ValueError("L'ouverture doit être comprise entre 0 et 180 degrés")
         self.orientation_deg = self.orientation_deg % 360.0

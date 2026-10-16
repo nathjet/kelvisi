@@ -11,7 +11,8 @@ RACINE = Path(__file__).resolve().parent.parent
 
 def test_valeurs_par_defaut():
     spot = fabriquer_spot(region="mediterranee", fond="roche")
-    assert spot.visibilite_calme == pytest.approx(20.0 * P.FACTEUR_CALME_FOND["roche"])
+    assert spot.visibilite_calme == pytest.approx(P.REGIONS["mediterranee"]["visibilite_calme_m"] * P.FACTEUR_CALME_FOND["roche"])
+    assert spot.sensibilite_houle == 1.0 and spot.satellite
     assert spot.sensibilite_maree_effective == 0.0
     assert spot.part_sable == P.FONDS["roche"]["part_sable"]
 

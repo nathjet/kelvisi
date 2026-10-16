@@ -69,7 +69,7 @@ def calculer(spot: Spot, cond: Conditions, satellite: ObservationSatellite | Non
     effet_vives_eaux = 1 + R.EFFET_MARNAGE * sens_maree * (rapport - 1)
     source = R.ALPHA_BRASSAGE * (exces_local + exces_bord) * np.maximum(effet_vives_eaux, 0.5)
     charge = _memoire(source, fond["tau_h"] * R.FACTEUR_TAU)
-    c_brassage = R.C_BRASSAGE_MAX * (1 - np.exp(-charge / R.C_BRASSAGE_MAX))
+    c_brassage = spot.sensibilite_houle * R.C_BRASSAGE_MAX * (1 - np.exp(-charge / R.C_BRASSAGE_MAX))
 
     # --- 4. Rivières --------------------------------------------------------------
     c_fluvial = np.zeros(n)
@@ -91,20 +91,21 @@ def calculer(spot: Spot, cond: Conditions, satellite: ObservationSatellite | Non
     c_pluie = R.DELTA_PLUIE * spot.sensibilite_pluie * np.maximum(0.0, cumul - R.SEUIL_PLUIE_MM) / 10
 
     # --- 6. Plancton --------------------------------------------------------------
+    # Valeurs saisonnières par façade. La chlorophylle satellite n'est pas utilisée : près des
+    # côtes, les sédiments la faussent (le calage d'octobre 2026 la trouve maximale en hiver,
+    # à l'inverse des vraies floraisons de printemps), et la turbidité satellite tient déjà
+    # compte des particules, plancton compris.
     mois = _mois(t)
     c_plancton = np.array(region["plancton_mensuel"])[mois - 1]
-    if satellite is not None and satellite.chlorophylle_mg_m3 is not None:
-        c_chl = P.PLANCTON_A * max(satellite.chlorophylle_mg_m3, 0.0) ** P.PLANCTON_B
-        poids_sat = _poids_satellite(t, satellite.temps)
-        c_plancton = poids_sat * c_chl + (1 - poids_sat) * c_plancton
 
-    # --- 7. Fond habituel du spot ---------------------------------------------------
+    # --- 7. Fond habituel du spot et saison ---------------------------------------------
     c_base = np.full(n, max(P.CONSTANTE_VISIBILITE / spot.visibilite_calme - P.C_EAU, 0.0))
+    saison = facteur_saison(t, R.SAISON[spot.region])
 
     # --- 8. Assemblage ----------------------------------------------------------------
     facteur_maree = 1 - R.EFFET_PHASE_MAREE * sens_maree * phase
     cotier = facteur_maree * (c_brassage + c_fluvial + c_pluie)
-    c_modele = P.C_EAU + c_base + cotier + c_plancton
+    c_modele = P.C_EAU + saison * (c_base + cotier) + c_plancton
 
     # --- 9. Correction par la dernière image satellite --------------------------------
     correction = np.zeros(n)
@@ -128,10 +129,10 @@ def calculer(spot: Spot, cond: Conditions, satellite: ObservationSatellite | Non
 
     composantes = {
         "eau": np.full(n, P.C_EAU),
-        "fond_habituel": c_base,
-        "brassage": facteur_maree * c_brassage,
-        "rivieres": facteur_maree * c_fluvial,
-        "pluie": facteur_maree * c_pluie,
+        "fond_habituel": saison * c_base,
+        "brassage": saison * facteur_maree * c_brassage,
+        "rivieres": saison * facteur_maree * c_fluvial,
+        "pluie": saison * facteur_maree * c_pluie,
         "plancton": c_plancton,
         "satellite": correction,
     }
@@ -179,6 +180,12 @@ class Reglages:
         if nom.startswith("_"):
             raise AttributeError(nom)
         return self._remplacements.get(nom, getattr(P, nom))
+
+
+def facteur_saison(t: np.ndarray, saison: dict) -> np.ndarray:
+    """Eaux côtières plus chargées en hiver : exp(amplitude · cos(2π (jour − pic) / 365,25))."""
+    jour = (np.asarray(t, dtype=float) / 86400.0) % 365.25   # jour de l'année (approché à un jour près)
+    return np.exp(saison["amplitude"] * np.cos(2 * np.pi * (jour - saison["pic_jour"]) / 365.25))
 
 
 def _extremes_en_cache(cond: Conditions) -> list[maree.Extreme]:

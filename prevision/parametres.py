@@ -1,8 +1,10 @@
 """Constantes du modèle de prévision.
 
-Toutes les valeurs réglables sont regroupées ici. Les valeurs marquées
-« À CALER » sont des ordres de grandeur de départ : elles seront ajustées
-sur l'historique satellite puis sur les retours terrain.
+Toutes les valeurs réglables sont regroupées ici. Celles marquées « Calé sur
+le satellite » ont été ajustées sur l'historique satellite (outils/caler.py),
+ainsi que la visibilité habituelle et la sensibilité à la houle de chaque
+point de référence (spots/points.json). Celles marquées « À CALER » restent
+des ordres de grandeur : elles seront ajustées avec les retours terrain.
 """
 
 # --- Optique ---------------------------------------------------------------
@@ -33,8 +35,8 @@ RAPPORT_DEFERLEMENT = 0.78
 # brassé dérive vers le spot (m).
 PROFONDEUR_LITTORAL_M = 3.0
 
-# Poids de la frange littorale par rapport au fond du spot. À CALER.
-POIDS_LITTORAL = 0.3
+# Poids de la frange littorale par rapport au fond du spot. Calé sur le satellite (2025-01 à 2026-10).
+POIDS_LITTORAL = 3.0
 
 # Vitesse critique du sable de plage, souvent plus grossier (m/s).
 U_CRITIQUE_LITTORAL = 0.25
@@ -45,11 +47,11 @@ U_CRITIQUE_LITTORAL = 0.25
 COURANT_PRES_DU_FOND = 0.7
 
 # Coefficient de production de turbidité (m⁻¹ par heure et par unité
-# d'excès de cisaillement). À CALER.
-ALPHA_BRASSAGE = 0.003
+# d'excès de cisaillement). Calé sur le satellite (2025-01 à 2026-10).
+ALPHA_BRASSAGE = 0.00223
 
-# Plafond doux de l'atténuation due au brassage (m⁻¹).
-C_BRASSAGE_MAX = 6.0
+# Plafond doux de l'atténuation due au brassage (m⁻¹). Calé sur le satellite (2025-01 à 2026-10).
+C_BRASSAGE_MAX = 10.96
 
 # Par type de fond :
 #   vitesse critique de remise en suspension au fond (m/s),
@@ -64,7 +66,7 @@ FONDS = {
     "roche":   {"u_critique": 0.22, "erodabilite": 0.5, "tau_h": 20.0, "part_sable": 0.3},
 }
 
-# Multiplicateur commun des temps de retour au calme. À CALER.
+# Multiplicateur commun des temps de retour au calme. Calé sur le satellite (2025-01 à 2026-10).
 FACTEUR_TAU = 1.0
 
 # Atténuation résiduelle de la houle hors du secteur exposé (diffraction).
@@ -74,7 +76,8 @@ EXPOSITION_RESIDUELLE = 0.1
 
 # Effet de la phase de marée sur les composantes côtières :
 # facteur = 1 - EFFET_PHASE_MAREE * sensibilité * phase (phase = +1 à la pleine mer).
-EFFET_PHASE_MAREE = 0.25
+# Calé sur le satellite (2025-01 à 2026-10) : effet presque nul à l'échelle des pixels.
+EFFET_PHASE_MAREE = 0.01562
 
 # Effet du marnage (vives-eaux) sur le brassage.
 EFFET_MARNAGE = 0.3
@@ -84,13 +87,13 @@ MARNAGE_MINIMUM_M = 0.5
 
 # --- Rivières et pluie -------------------------------------------------------
 
-GAMMA_FLUVIAL = 0.6        # m⁻¹ par unité d'anomalie de débit. À CALER.
+GAMMA_FLUVIAL = 0.7135     # m⁻¹ par unité d'anomalie de débit. Calé sur le satellite (2025-01 à 2026-10).
 EXPOSANT_FLUVIAL = 0.7
 TAU_FLUVIAL_H = 24.0       # persistance du panache
 
 TAU_PLUIE_H = 36.0         # mémoire de la pluie
 SEUIL_PLUIE_MM = 8.0       # cumul (avec mémoire) sans effet notable
-DELTA_PLUIE = 0.35         # m⁻¹ par tranche de 10 mm au-delà du seuil. À CALER.
+DELTA_PLUIE = 0.1041       # m⁻¹ par tranche de 10 mm au-delà du seuil. Calé sur le satellite (2025-01 à 2026-10).
 
 # --- Assimilation satellite --------------------------------------------------
 
@@ -101,7 +104,7 @@ TAU_ASSIMILATION_H = 72.0
 
 REGIONS = {
     "manche": {
-        "visibilite_calme_m": 8.0,
+        "visibilite_calme_m": 2.8,
         "visibilite_max_m": 20.0,
         "sensibilite_maree": 0.6,
         # Seuils de classe (m) : mauvaise < s1 <= moyenne < s2 <= bonne < s3 <= excellente
@@ -110,19 +113,29 @@ REGIONS = {
         "plancton_mensuel": (0.05, 0.05, 0.12, 0.35, 0.35, 0.25, 0.2, 0.2, 0.15, 0.1, 0.05, 0.05),
     },
     "atlantique": {
-        "visibilite_calme_m": 10.0,
+        "visibilite_calme_m": 5.5,
         "visibilite_max_m": 25.0,
         "sensibilite_maree": 0.5,
         "seuils": (2.0, 4.0, 7.0),
         "plancton_mensuel": (0.05, 0.05, 0.12, 0.35, 0.35, 0.25, 0.2, 0.2, 0.15, 0.1, 0.05, 0.05),
     },
     "mediterranee": {
-        "visibilite_calme_m": 20.0,
+        "visibilite_calme_m": 12.4,
         "visibilite_max_m": 35.0,
         "sensibilite_maree": 0.0,
         "seuils": (4.0, 8.0, 15.0),
         "plancton_mensuel": (0.03, 0.08, 0.1, 0.08, 0.04, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03, 0.03),
     },
+}
+
+# Saison : à houle égale, les eaux côtières sont plus chargées en hiver (fines particules
+# qui restent en suspension, mer rarement calme longtemps, crues). Facteur multiplicatif
+# sur la turbidité côtière : exp(amplitude · cos(2π (jour − pic_jour) / 365,25)),
+# pic_jour compté depuis le 1er janvier. Calé sur le satellite (2025-01 à 2026-10).
+SAISON = {
+    "manche": {"amplitude": 0.45, "pic_jour": 3.8},
+    "atlantique": {"amplitude": 0.562, "pic_jour": 6.6},
+    "mediterranee": {"amplitude": 0.075, "pic_jour": 48.8},
 }
 
 # Effet du type de fond sur la visibilité par temps calme (eau de fond vaseux

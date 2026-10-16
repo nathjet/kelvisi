@@ -58,6 +58,9 @@ def description_spot(spot) -> dict:
         "profondeur_m": spot.profondeur_m, "fond": spot.fond, "notes": spot.notes,
         "rivieres": sorted({st.nom for st in spot.stations if st.nom}),
         "seuils": list(spot.params_region["seuils"]),
+        # Valeurs calées sur le satellite, reprises par le navigateur pour les lieux proches
+        "calage": ({"visibilite_calme_m": spot.visibilite_calme_m, "sensibilite_houle": spot.sensibilite_houle}
+                   if spot.visibilite_calme_m is not None else None),
     }
 
 

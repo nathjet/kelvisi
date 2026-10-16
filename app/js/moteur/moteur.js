@@ -147,6 +147,7 @@ export function spotEffectif(spot) {
     ...spot,
     ouverture_deg: spot.ouverture_deg ?? 90,
     sensibilite_pluie: spot.sensibilite_pluie ?? 0.3,
+    sensibilite_houle: spot.sensibilite_houle ?? 1,
     facteur_courant: spot.facteur_courant ?? 1,
     fondP: fond,
     regionP: region,
@@ -382,7 +383,7 @@ export function calculer(spotBrut, c, satellite = null) {
     return P.ALPHA_BRASSAGE * (local + bord) * Math.max(vivesEaux, 0.5);
   });
   const charge = memoire(source, fond.tau_h * P.FACTEUR_TAU);
-  const cBrassage = charge.map((x) => P.C_BRASSAGE_MAX * (1 - Math.exp(-x / P.C_BRASSAGE_MAX)));
+  const cBrassage = charge.map((x) => spot.sensibilite_houle * P.C_BRASSAGE_MAX * (1 - Math.exp(-x / P.C_BRASSAGE_MAX)));
 
   // Les rivières ne sont prises en compte que pour les points publics (calcul Python)
   const cFluvial = new Array(n).fill(0);
@@ -391,16 +392,15 @@ export function calculer(spotBrut, c, satellite = null) {
   const cPluie = cumul.map((x) => P.DELTA_PLUIE * spot.sensibilite_pluie * Math.max(0, x - P.SEUIL_PLUIE_MM) / 10);
 
   const poidsSat = (tsat) => t.map((x) => Math.exp(-Math.abs(x - tsat) / 3600 / P.TAU_ASSIMILATION_H));
-  let cPlancton = t.map((x) => region.plancton_mensuel[new Date(x * 1000).getUTCMonth()]);
-  if (satellite && satellite.chlorophylle_mg_m3 != null) {
-    const cChl = P.PLANCTON_A * Math.max(satellite.chlorophylle_mg_m3, 0) ** P.PLANCTON_B;
-    const w = poidsSat(satellite.temps);
-    cPlancton = cPlancton.map((x, i) => w[i] * cChl + (1 - w[i]) * x);
-  }
+  // Plancton saisonnier par façade (la chlorophylle satellite, faussée par les sédiments près des côtes, n'est pas utilisée)
+  const cPlancton = t.map((x) => region.plancton_mensuel[new Date(x * 1000).getUTCMonth()]);
 
   const cBase = Math.max(P.CONSTANTE_VISIBILITE / spot.visibilite_calme - P.C_EAU, 0);
+  // Paramètres d'une version précédente (en cache) : pas d'effet de saison
+  const saisonP = (P.SAISON || {})[spot.region] || { amplitude: 0, pic_jour: 15 };
+  const saison = t.map((x) => Math.exp(saisonP.amplitude * Math.cos(2 * Math.PI * (((x / 86400) % 365.25) - saisonP.pic_jour) / 365.25)));
   const facteurMaree = phase.map((ph) => 1 - P.EFFET_PHASE_MAREE * sens * ph);
-  const cModele = t.map((_, i) => P.C_EAU + cBase + facteurMaree[i] * (cBrassage[i] + cFluvial[i] + cPluie[i]) + cPlancton[i]);
+  const cModele = t.map((_, i) => P.C_EAU + saison[i] * (cBase + facteurMaree[i] * (cBrassage[i] + cFluvial[i] + cPluie[i])) + cPlancton[i]);
 
   let correction = new Array(n).fill(0);
   let satelliteUtilise = false;
@@ -430,10 +430,10 @@ export function calculer(spotBrut, c, satellite = null) {
     visibilite_ressentie_m: visibilite.map((v, i) => v * lumiere[i]),
     composantes: {
       eau: new Array(n).fill(P.C_EAU),
-      fond_habituel: new Array(n).fill(cBase),
-      brassage: cBrassage.map((x, i) => facteurMaree[i] * x),
-      rivieres: cFluvial.map((x, i) => facteurMaree[i] * x),
-      pluie: cPluie.map((x, i) => facteurMaree[i] * x),
+      fond_habituel: saison.map((f) => f * cBase),
+      brassage: cBrassage.map((x, i) => saison[i] * facteurMaree[i] * x),
+      rivieres: cFluvial.map((x, i) => saison[i] * facteurMaree[i] * x),
+      pluie: cPluie.map((x, i) => saison[i] * facteurMaree[i] * x),
       plancton: cPlancton,
       satellite: correction,
     },

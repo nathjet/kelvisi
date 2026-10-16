@@ -37,8 +37,9 @@ def series_simulees():
 
 @pytest.fixture(scope="module")
 def resultat():
+    # La saison réelle est celle de parametres.py : on ne la recale pas ici (150 jours ne suffisent pas)
     apprentissage, test = separer(series_simulees())
-    return caler(apprentissage, test)
+    return caler(apprentissage, test, saison=False)
 
 
 def test_l_erreur_baisse_jusqu_au_bruit_de_mesure(resultat):
@@ -71,3 +72,17 @@ def test_sans_observation():
 def test_reglage_inconnu_refuse():
     with pytest.raises(ValueError):
         modele.calculer(fabriquer_spot(), calme(DEBUT), reglages={"N_EXISTE_PAS": 1})
+
+
+def test_retrouve_la_sensibilite_a_la_houle():
+    rng = np.random.default_rng(3)
+    series = []
+    for k, sensibilite in enumerate((0.5, 2.0)):
+        spot = fabriquer_spot(id=f"s{k}", fond="sable", profondeur_m=6)
+        cond = saison_agitee(DEBUT, jours=150, graine=k + 10)
+        vraie = turbidite_modele(replace(spot, visibilite_calme_m=8.0, sensibilite_houle=sensibilite), cond)
+        obs = [ObservationSatellite(int(cond.temps[i]), float(vraie[i] * rng.lognormal(0, 0.1)))
+               for i in range(11, len(cond), 24) if rng.random() < 0.5]
+        series.append(SerieCalage(spot, cond, obs))
+    res = caler(series, parametres=("FACTEUR_TAU",), saison=False)
+    assert res.sensibilites_houle["s1"] / res.sensibilites_houle["s0"] == pytest.approx(4.0, rel=0.3)

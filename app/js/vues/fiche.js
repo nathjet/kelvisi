@@ -345,6 +345,8 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
     ? `<p class="note">${meta.retours.nombre_7_jours} retour${meta.retours.nombre_7_jours > 1 ? "s" : ""} terrain ces 7 derniers jours${meta.retours.dernier ? `, dernier : ${metres(meta.retours.dernier.visibilite_m)} m (${dateHeure(meta.retours.dernier.date)})` : ""}.</p>` : "";
   const corrige = prevision.calibrage && prevision.calibrage.rapports > 0
     ? `<p class="note">Prévision corrigée d'après ${prevision.calibrage.rapports >= 2 ? "les retours terrain" : "un retour terrain"} (facteur ${String(prevision.calibrage.facteur).replace(".", ",")}).</p>` : "";
+  const reference = prevision.reference
+    ? `<p class="note">Eau habituelle et réaction à la houle reprises du point Kelvisi ${echapper(prevision.reference.nom)}, à ${prevision.reference.distance_km} km (calées sur le satellite).</p>` : "";
   const sat = prevision.satellite?.utilise
     ? `<p class="note">Recalée sur l'image satellite ${prevision.satellite.age_jours < 1 ? "du jour" : `d'il y a ${Math.round(prevision.satellite.age_jours)} jour${Math.round(prevision.satellite.age_jours) > 1 ? "s" : ""}`} (Copernicus Marine).</p>` : "";
 
@@ -363,7 +365,7 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
       ${cr ? `<div class="encart creneau"><strong class="etiquette">Meilleur créneau</strong><span class="grand chiffres">de ${heure(cr.debut)} à ${heure(cr.fin)}</span><span>${metres(cr.visibilite_m)} m en moyenne sur le créneau</span></div>`
         : `<div class="encart alerte">Aucun créneau conseillé ce jour-là.</div>`}
       ${jour.conseil_maree || tendance ? `<p class="note">${[jour.conseil_maree, tendance].filter(Boolean).join(" ")}</p>` : ""}
-      ${retours}${corrige}${sat}
+      ${retours}${corrige}${sat}${reference}
       ${meta.notes ? `<p class="encart info">${echapper(meta.notes)}</p>` : ""}
       ${meta.rivieres?.length ? `<p class="note">Débit suivi en temps réel : ${meta.rivieres.map(echapper).join(", ")} (Hub'Eau).</p>` : ""}
       ${cible.type === "point" && spot && !spot.estime ? `<p class="encart info">Profondeur et orientation non trouvées pour ce lieu : vérifie les réglages plus bas.</p>` : ""}

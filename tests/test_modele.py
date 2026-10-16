@@ -76,7 +76,7 @@ def test_fortes_pluies(debut, spot_sable):
     series = dict(base.series)
     series["pluie"] = pluie
     cond = Conditions(temps=base.temps, series=series)
-    assert vis(spot_sable, cond)[55] < 0.9 * vis(spot_sable, base)[55]
+    assert vis(spot_sable, cond)[55] < 0.97 * vis(spot_sable, base)[55]
 
 
 def test_satellite_eau_trouble(debut, spot_sable):
@@ -103,11 +103,34 @@ def test_image_satellite_trop_ancienne_ignoree(debut, spot_sable):
     assert not res.satellite_utilise
 
 
-def test_chlorophylle_satellite(debut, spot_sable):
+def test_chlorophylle_satellite_ignoree(debut, spot_sable):
+    # Près des côtes, la chlorophylle satellite est faussée par les sédiments : elle ne change rien
     cond = calme(debut)
     t_obs = int(cond.temps[24])
     bloom = vis(spot_sable, cond, ObservationSatellite(temps=t_obs, chlorophylle_mg_m3=15.0))
-    assert bloom[30] < vis(spot_sable, cond)[30]
+    assert np.allclose(bloom, vis(spot_sable, cond))
+
+
+def test_eaux_plus_chargees_en_hiver(spot_sable):
+    from datetime import datetime, timezone
+
+    saison = {**P.SAISON, "atlantique": {"amplitude": 0.5, "pic_jour": 15.0}}
+    janvier = calme(int(datetime(2026, 1, 15, tzinfo=timezone.utc).timestamp()))
+    juillet = calme(int(datetime(2026, 7, 16, tzinfo=timezone.utc).timestamp()))
+    def fond(cond, reglages):
+        return modele.calculer(spot_sable, cond, reglages=reglages).composantes["fond_habituel"]
+
+    assert fond(janvier, {"SAISON": saison}).mean() == pytest.approx(np.exp(0.5) * fond(juillet, {"SAISON": saison}).mean() * np.exp(0.5), rel=0.01)
+    # Amplitude nulle : aucun effet
+    sans = {r: {"amplitude": 0.0, "pic_jour": 15.0} for r in P.SAISON}
+    assert np.allclose(fond(janvier, {"SAISON": sans}), fond(juillet, {"SAISON": sans}))
+
+
+def test_sensibilite_a_la_houle(debut):
+    cond = coup_de_houle(debut)
+    sensible = modele.calculer(fabriquer_spot(sensibilite_houle=3.0), cond).composantes["brassage"]
+    abrite = modele.calculer(fabriquer_spot(sensibilite_houle=0.3), cond).composantes["brassage"]
+    assert sensible.max() > 5 * abrite.max()
 
 
 def test_mediterranee_sans_effet_de_maree(debut):

@@ -121,7 +121,8 @@ def recuperer(spots, maintenant: int, jours: int = 5, ouvrir=_ouvrir) -> dict:
     fin = datetime.fromtimestamp(maintenant, timezone.utc).strftime("%Y-%m-%dT23:59:59")
     resultat, erreurs = {}, {}
     for nom_bassin, jeu in JEUX.items():
-        groupe = [s for s in spots if bassin(s) == nom_bassin]
+        # Points où un fond clair peu profond fausse la mesure : satellite ignoré
+        groupe = [s for s in spots if bassin(s) == nom_bassin and getattr(s, "satellite", True)]
         if not groupe:
             continue
         try:

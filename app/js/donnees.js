@@ -5,8 +5,11 @@ import { definirParametres, prevoir } from "./moteur/moteur.js";
 import { recupererConditions } from "./moteur/openmeteo.js";
 import { lire, ecrire } from "./stockage.js";
 import { CONFIG } from "./config.js";
+import { distanceKm } from "./format.js";
 
 const DUREE_CACHE_METEO_S = 3600;
+// Distance maximale pour reprendre les valeurs calées d'un point de référence (km)
+const RAYON_REFERENCE_KM = 25;
 
 let resume = null;
 const details = new Map();
@@ -73,10 +76,27 @@ function nettoyerCacheMeteo() {
   }
 }
 
+// Point de référence le plus proche (même façade) dont la visibilité habituelle et la réaction
+// à la houle ont été calées sur le satellite, à moins de RAYON_REFERENCE_KM.
+export function referenceProche(lat, lon, region) {
+  let meilleur = null;
+  for (const p of resume?.points || []) {
+    if (!p.calage || p.region !== region) continue;
+    const d = distanceKm(lat, lon, p.lat, p.lon);
+    if (d <= RAYON_REFERENCE_KM && (!meilleur || d < meilleur.distance_km)) meilleur = { id: p.id, nom: p.nom, distance_km: d, ...p.calage };
+  }
+  return meilleur;
+}
+
 // Prévision d'un lieu décrit comme un spot (lat, lon, region, orientation_deg, ouverture_deg, profondeur_m, fond)
 export async function previsionLieu(spot, { rapports = [], forcer = false, signal } = {}) {
   const { conditions, recu_le, horsLigne } = await conditionsLieu(spot.lat, spot.lon, { forcer, signal });
   const maintenant = Math.floor(Date.now() / 1000);
-  const prevision = prevoir(spot, conditions, Math.max(maintenant, conditions.temps[0]), { rapports, jours: 3, fuseau: CONFIG.fuseau });
+  const reference = spot.visibilite_calme_m == null ? referenceProche(spot.lat, spot.lon, spot.region) : null;
+  const calcule = reference
+    ? { ...spot, visibilite_calme_m: reference.visibilite_calme_m, sensibilite_houle: reference.sensibilite_houle }
+    : spot;
+  const prevision = prevoir(calcule, conditions, Math.max(maintenant, conditions.temps[0]), { rapports, jours: 3, fuseau: CONFIG.fuseau });
+  prevision.reference = reference ? { nom: reference.nom, distance_km: Math.round(reference.distance_km) } : null;
   return { prevision, recu_le, horsLigne };
 }

@@ -213,6 +213,23 @@ souci, les prévisions sont publiées sans satellite : rien ne bloque.
 La page « Sources » affiche automatiquement la mention obligatoire
 « Generated using E.U. Copernicus Marine Service Information ».
 
+### Recaler le modèle
+
+Les réglages du modèle sont calés sur l'historique satellite (voir le README,
+section « Calage sur le satellite »). Pour refaire le calage avec des données
+plus récentes :
+
+1. **Actions > Calage > Run workflow**, étape `collecter`. Chaque lancement
+   ajoute des années d'historique ; Open-Meteo gratuit limite le nombre
+   d'appels par jour, d'où un budget de 2 000 à 4 000 appels par lancement et
+   au plus un ou deux lancements par jour.
+2. Puis, sur un ordinateur avec le dépôt : récupérer la branche `historique`
+   dans un dossier `historique/` et lancer
+   `python outils/caler.py --appliquer` (compter
+   une dizaine de minutes). Les valeurs retenues sont écrites dans
+   `prevision/parametres.py` et `spots/points.json`, le rapport dans
+   `calage/resultat.json`.
+
 ## 8. Plus tard : nom de domaine
 
 Quand tu auras réservé `kelvisi.fr` (ou autre) :
@@ -269,6 +286,7 @@ depuis « Mes spots » avant le changement et les réimporter après).
 | Fonds de carte en ligne (OpenFreeMap, vue aérienne IGN, profondeurs EMODnet) | À vérifier à l'étape 4 : ces serveurs n'étaient pas joignables pendant le développement |
 | Recherche de lieux (IGN) et profondeur au point (EMODnet) depuis un téléphone | À vérifier à l'étape 4, pour la même raison |
 | Satellite Copernicus | En service sur le vrai service : 27 points sur 46 recalés au premier passage (16 octobre 2026) |
+| Calage du modèle sur le satellite | Fait sur janvier 2025 à octobre 2026 (3 753 images) et vérifié sur une période mise de côté ; à refaire avec 2022 à 2024 |
 | Comptes (inscription, connexion, mot de passe oublié, profil, synchronisation, suppression) | Testés de bout en bout avec un faux serveur ; schéma testé sur un vrai PostgreSQL ; à vérifier sur ton projet après l'étape 6 |
 | Profondeurs du Shom lues au point et direction du large | Vérifiées dans Chromium sur les vraies cartes du Shom (Bretagne, Provence, Pays basque, Normandie, Corse) |
-| Réglages du modèle (« À CALER ») | Ordres de grandeur de la littérature ; seront ajustés avec le satellite et les retours de la bêta |
+| Conversion turbidité en mètres, plancton (« À CALER ») | Ordres de grandeur de la littérature ; seront ajustés avec les retours de la bêta |

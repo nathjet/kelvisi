@@ -58,6 +58,8 @@ def preparer_cas():
             coup_de_houle(debut, marnage=0.3, direction_houle=160), debut + 86400)
     ajouter("manche, marée", fabriquer_spot(region="manche", sensibilite_maree=0.9), saison_agitee(debut, jours=12, graine=3, marnage=8), debut + 5 * 86400, jours=4)
     ajouter("calme", fabriquer_spot(), calme(debut, jours=6, marnage=3.0), debut + 2 * 86400)
+    ajouter("sensible à la houle, hiver", fabriquer_spot(region="manche", sensibilite_houle=4.5, visibilite_calme_m=3.2),
+            coup_de_houle(1_767_225_600), 1_767_225_600 + 86400)
     sat = ObservationSatellite(temps=debut + 86400 + 11 * 3600, turbidite_fnu=4.0, chlorophylle_mg_m3=3.0)
     ajouter("satellite", fabriquer_spot(), coup_de_houle(debut), debut + 2 * 86400, satellite=sat)
     rapports = [Rapport(debut + 86400 - k * 7200, visibilite_m=4.0 + (k % 3), utilisateur=f"u{k % 4}", prevision_m=3.0) for k in range(9)]

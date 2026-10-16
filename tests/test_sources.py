@@ -124,7 +124,10 @@ def test_satellite_via_jeux_simules(monkeypatch):
         coords = {"time": jours, "latitude": lats, "longitude": lons}
         return xr.Dataset({"TUR": (("time", "latitude", "longitude"), tur), "CHL": (("time", "latitude", "longitude"), chl)}, coords=coords)
 
-    sat = copernicus.recuperer([groix, sete, ouessant], 1_791_590_400, ouvrir=ouvrir)
+    glenan = next(s for s in spots if s.id == "ref-glenan")
+    assert not glenan.satellite, "fond clair peu profond : satellite écarté"
+    sat = copernicus.recuperer([groix, sete, ouessant, glenan], 1_791_590_400, ouvrir=ouvrir)
+    assert all("ref-glenan" not in g for _, _, g in demandes), "les Glénan ne sont pas demandées au satellite"
     assert "ref-groix" in sat["observations"] and "med" in sat["erreurs"]
     assert "ref-ouessant" not in sat["observations"], "aucun pixel autour d'Ouessant dans l'image factice"
     obs = sat["observations"]["ref-groix"]

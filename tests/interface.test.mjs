@@ -321,6 +321,7 @@ await etape("clic en mer puis prévision d'un lieu libre", async () => {
   assert.match(texte(panneau()), /Lune/);
   assert.ok(panneau().querySelector("#partager"), "lieu libre partageable");
   assert.ok(!panneau().querySelector("#favori"), "pas de favori pour un lieu libre");
+  assert.match(texte(panneau()), /reprises du point Kelvisi Quiberon, côte sauvage, à \d+ km/, "valeurs calées du point de référence voisin");
 });
 
 await etape("réglage puis enregistrement du lieu comme spot privé", async () => {
