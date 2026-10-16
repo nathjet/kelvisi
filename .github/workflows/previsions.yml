@@ -25,11 +25,10 @@ jobs:
       # Satellite facultatif : sans ces deux secrets, l'étape est simplement sautée
       COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
       COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
-      # Identifiants de jeux satellite, à renseigner seulement s'ils changent (Settings > Variables)
-      KELVISI_SAT_ATL_TRANSP: ${{ vars.KELVISI_SAT_ATL_TRANSP }}
-      KELVISI_SAT_ATL_PLANCTON: ${{ vars.KELVISI_SAT_ATL_PLANCTON }}
-      KELVISI_SAT_MED_TRANSP: ${{ vars.KELVISI_SAT_MED_TRANSP }}
-      KELVISI_SAT_MED_PLANCTON: ${{ vars.KELVISI_SAT_MED_PLANCTON }}
+      # Identifiants des jeux satellite, à renseigner seulement s'ils changent (Settings > Variables)
+      KELVISI_SAT_NWS: ${{ vars.KELVISI_SAT_NWS }}
+      KELVISI_SAT_IBI: ${{ vars.KELVISI_SAT_IBI }}
+      KELVISI_SAT_MED: ${{ vars.KELVISI_SAT_MED }}
     environment:
       name: github-pages
       url: ${{ steps.deploiement.outputs.page_url }}

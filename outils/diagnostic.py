@@ -12,6 +12,9 @@ from __future__ import annotations
 import os
 import re
 import sys
+from pathlib import Path as _Chemin
+
+sys.path.insert(0, str(_Chemin(__file__).resolve().parent.parent))
 import traceback
 
 import requests
@@ -250,22 +253,23 @@ def copernicus():
 
     from datetime import datetime, timedelta, timezone
 
+    from prevision.sources import copernicus as cop
+
     fin = datetime.now(timezone.utc)
-    debut = fin - timedelta(days=6)
-    lat, lon = POINT
-    essais = [(os.environ.get("KELVISI_SAT_ATL_TRANSP") or "cmems_obs-oc_atl_bgc-transp_nrt_l3-olci-300m_P1D", "SPM"),
-              (os.environ.get("KELVISI_SAT_ATL_PLANCTON") or "cmems_obs-oc_atl_bgc-plankton_nrt_l3-olci-300m_P1D", "CHL")]
+    debut = fin - timedelta(days=8)
     lignes = []
-    for jeu, var in essais:
+    for nom, (lat, lon) in {"ibi": (47.6208, -3.4523), "nws": (48.46, -5.1268), "med": (43.1608, 5.6029)}.items():
+        jeu = cop.JEUX[nom]
         try:
-            ds = copernicusmarine.open_dataset(dataset_id=jeu, variables=[var], minimum_longitude=lon - 0.05, maximum_longitude=lon + 0.05,
-                                               minimum_latitude=lat - 0.05, maximum_latitude=lat + 0.05,
+            ds = copernicusmarine.open_dataset(dataset_id=jeu, variables=["TUR", "CHL"], minimum_longitude=lon - 0.02, maximum_longitude=lon + 0.02,
+                                               minimum_latitude=lat - 0.02, maximum_latitude=lat + 0.02,
                                                start_datetime=debut.strftime("%Y-%m-%dT00:00:00"), end_datetime=fin.strftime("%Y-%m-%dT23:59:59"))
-            da = ds[var].load()
-            valides = da.notnull().sum(dim=[d for d in da.dims if d != "time"]).values.tolist()
-            lignes.append(f"{jeu} {var} : dims {dict(da.sizes)}, pixels valides par jour {valides}, médiane {float(da.median()):.3f}")
+            tur = ds["TUR"].load()
+            valides = tur.notnull().sum(dim=[d for d in tur.dims if d != "time"]).values.tolist()
+            dates = [str(x)[:10] for x in tur["time"].values]
+            lignes.append(f"{nom} {jeu} : {dict(tur.sizes)} ; pixels valides par jour {list(zip(dates, valides))} ; turbidité médiane {float(tur.median()):.2f} FNU")
         except Exception as e:
-            lignes.append(f"{jeu} {var} : {type(e).__name__} {str(e)[:300]}")
+            lignes.append(f"{nom} {jeu} : {type(e).__name__} {str(e)[:300]}")
     annoter("Copernicus donnees", lignes)
 
 

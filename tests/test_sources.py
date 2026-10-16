@@ -97,7 +97,7 @@ def test_extraction_satellite_nuageuse():
 
 
 def test_satellite_via_jeux_simules(monkeypatch):
-    """Chaîne complète du satellite avec des jeux de données factices (le service réel n'a pas pu être testé)."""
+    """Chaîne complète du satellite avec des jeux de données factices au format des produits HR."""
     xr = pytest.importorskip("xarray")
     from prevision import charger_spots
     from pathlib import Path
@@ -105,24 +105,33 @@ def test_satellite_via_jeux_simules(monkeypatch):
     spots = charger_spots(Path(__file__).resolve().parent.parent / "spots" / "points.json")
     groix = next(s for s in spots if s.id == "ref-groix")
     sete = next(s for s in spots if s.id == "ref-sete")
+    ouessant = next(s for s in spots if s.id == "ref-ouessant")
+    assert (copernicus.bassin(groix), copernicus.bassin(ouessant), copernicus.bassin(sete)) == ("ibi", "nws", "med")
     jours = np.array(["2026-10-12", "2026-10-13", "2026-10-14"], dtype="datetime64[ns]")
+    demandes = []
 
-    def ouvrir(dataset_id, variable, groupe, debut, fin):
-        if "med" in dataset_id:
+    def ouvrir(dataset_id, variables, groupe, debut, fin):
+        demandes.append((dataset_id, tuple(variables), tuple(s.id for s in groupe)))
+        if "_med_" in dataset_id:
             raise ConnectionError("bassin indisponible")
-        lats = np.arange(groix.lat - 0.02, groix.lat + 0.0201, 0.0027)[::-1]  # latitudes décroissantes, comme les produits L3
-        lons = np.arange(groix.lon - 0.02, groix.lon + 0.0201, 0.0027)
-        valeurs = np.full((3, len(lats), len(lons)), 2.0 if variable == "SPM" else 0.5)
-        valeurs[2] = np.nan  # dernier jour couvert de nuages
-        valeurs[1] *= 3
-        return xr.Dataset({variable: (("time", "latitude", "longitude"), valeurs)},
-                          coords={"time": jours, "latitude": lats, "longitude": lons})
+        lats = np.arange(groix.lat - 0.01, groix.lat + 0.01001, 0.000926)[::-1]  # latitudes décroissantes, comme les produits L3
+        lons = np.arange(groix.lon - 0.01, groix.lon + 0.01001, 0.00132)
+        forme = (3, len(lats), len(lons))
+        tur, chl = np.full(forme, 2.0), np.full(forme, 0.5)
+        tur[2] = chl[2] = np.nan  # dernier jour couvert de nuages
+        tur[1] *= 3
+        chl[1] *= 3
+        coords = {"time": jours, "latitude": lats, "longitude": lons}
+        return xr.Dataset({"TUR": (("time", "latitude", "longitude"), tur), "CHL": (("time", "latitude", "longitude"), chl)}, coords=coords)
 
-    sat = copernicus.recuperer([groix, sete], 1_791_590_400, ouvrir=ouvrir)
-    assert set(sat["observations"]) == {"ref-groix"} and "med" in sat["erreurs"]
+    sat = copernicus.recuperer([groix, sete, ouessant], 1_791_590_400, ouvrir=ouvrir)
+    assert "ref-groix" in sat["observations"] and "med" in sat["erreurs"]
+    assert "ref-ouessant" not in sat["observations"], "aucun pixel autour d'Ouessant dans l'image factice"
     obs = sat["observations"]["ref-groix"]
     assert obs.turbidite_fnu == pytest.approx(6.0) and obs.chlorophylle_mg_m3 == pytest.approx(1.5)
     assert obs.temps % 86400 == 10.5 * 3600 and obs.temps // 86400 == np.datetime64("2026-10-13", "D").astype(int)
+    assert all(v == ("TUR", "CHL") for _, v, _ in demandes), "turbidité et chlorophylle lues ensemble"
+    assert {d for d, _, _ in demandes} == set(copernicus.JEUX.values())
 
 
 def test_satellite_desactive_sans_identifiants(monkeypatch):

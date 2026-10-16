@@ -253,7 +253,7 @@ export function afficherMonCompte(zone, ctx) {
   const rendre = (profil, horsLigne = false) => {
     zone.innerHTML = `<button type="button" class="retour" data-retour>← Infos</button>
       <div class="entete-fiche"><h1 class="titre-vue">Mon compte</h1>
-        <p>${echapper(u.email)}${profil?.cree_le ? ` · inscrit ${dateHeure(profil.cree_le).replace(/,? \d.*$/, "")}` : ""}</p></div>
+        <p>${echapper(u.email)}${profil?.cree_le ? ` · inscrit le ${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" }).format(new Date(profil.cree_le))}` : ""}</p></div>
       ${horsLigne ? '<p class="encart info">Hors connexion : les modifications seront possibles au retour du réseau.</p>' : ""}
       <form class="bloc formulaire" novalidate data-form="profil">
         <h2 class="titre-bloc">Mon profil</h2>
