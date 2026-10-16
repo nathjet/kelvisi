@@ -13,7 +13,7 @@ Variables d'environnement facultatives :
   OPEN_METEO_CLE                       clé Open-Meteo (usage commercial)
   SUPABASE_URL, SUPABASE_SERVICE_KEY   lecture des retours terrain pour corriger chaque point
   COPERNICUSMARINE_SERVICE_USERNAME,
-  COPERNICUSMARINE_SERVICE_PASSWORD    correction par satellite (non testée, voir prevision/sources/copernicus.py)
+  COPERNICUSMARINE_SERVICE_PASSWORD    correction par satellite (voir prevision/sources/copernicus.py)
 
 Les débits des rivières (Hub'Eau) sont lus sans clé. Toute source facultative
 en panne est ignorée : les prévisions sont publiées sans elle.
@@ -70,6 +70,22 @@ def parametres_publics() -> dict:
             return [convertir(x) for x in v]
         return v
     return {nom: convertir(getattr(P, nom)) for nom in dir(P) if nom.isupper()}
+
+
+BILAN: list[str] = []
+
+
+def noter(ligne: str) -> None:
+    """Affiche une ligne et la garde pour le résumé visible dans GitHub Actions."""
+    print(ligne, flush=True)
+    BILAN.append(ligne)
+
+
+def publier_bilan() -> None:
+    """Annotation GitHub (onglet Actions) reprenant le bilan du passage, sans aucune donnée personnelle."""
+    if os.environ.get("GITHUB_ACTIONS") and BILAN:
+        texte = "\n".join(BILAN)[:3800].replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+        print(f"::notice title=Bilan du calcul::{texte}", flush=True)
 
 
 def ajouter_debits(spots, conditions, telecharger=hubeau.telecharger) -> dict[str, str]:
@@ -271,44 +287,51 @@ def main():
     etat_rivieres = ajouter_debits(spots, conditions)
     if etat_rivieres:
         en_panne = [c for c, e in etat_rivieres.items() if e != "ok"]
-        print(f"Rivières : {len(etat_rivieres) - len(en_panne)} stations lues"
+        noter(f"Rivières : {len(etat_rivieres) - len(en_panne)} stations lues"
               + (f", indisponibles : {', '.join(en_panne)}" if en_panne else ""))
 
     satellites = {}
     if copernicus.identifiants_presents():
+        t0 = time.time()
         try:
             sat = copernicus.recuperer(spots, maintenant)
             satellites = sat["observations"]
-            print(f"Satellite : {len(satellites)} points avec une image exploitable")
+            ages = sorted((maintenant - o.temps) / 86400 for o in satellites.values())
+            noter(f"Satellite : {len(satellites)} points sur {len(spots)} avec une image exploitable"
+                  + (f" (la plus récente il y a {ages[0]:.1f} j, la plus ancienne {ages[-1]:.1f} j)" if ages else "")
+                  + f", en {time.time() - t0:.0f} s")
             for b, e in sat["erreurs"].items():
-                print(f"  satellite indisponible ({b}) : {e}")
+                noter(f"  satellite indisponible ({b}) : {str(e)[:300]}")
         except Exception as e:
-            print(f"Satellite indisponible ({type(e).__name__}) : prévisions sans satellite")
+            noter(f"Satellite indisponible ({type(e).__name__}) : prévisions sans satellite")
+    else:
+        noter("Satellite : identifiants Copernicus absents, étape sautée")
 
     rapports = {}
     url, cle = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_SERVICE_KEY")
     if url and cle:
         try:
             rapports = lire_retours_supabase(url, cle, maintenant)
-            print(f"Retours terrain lus : {sum(len(v) for v in rapports.values())}")
+            noter(f"Retours terrain lus : {sum(len(v) for v in rapports.values())}")
         except Exception as e:
-            print(f"Retours terrain indisponibles ({type(e).__name__}) : prévisions sans correction")
+            noter(f"Retours terrain indisponibles ({type(e).__name__}) : prévisions sans correction")
         # Une fois par jour : effacement des comptes inactifs depuis 3 ans (durée annoncée aux utilisateurs)
         if datetime.fromtimestamp(maintenant, timezone.utc).hour == 3:
             try:
                 n = purger_comptes_inactifs(url, cle)
-                print(f"Comptes inactifs supprimés : {n}")
+                noter(f"Comptes inactifs supprimés : {n}")
             except Exception as e:
-                print(f"Purge des comptes inactifs impossible ({type(e).__name__})")
+                noter(f"Purge des comptes inactifs impossible ({type(e).__name__})")
 
     sorties = construire(spots, conditions, maintenant, rapports, args.jours, satellites)
     resume = sorties["resume"]
     if any(e == "ok" for e in etat_rivieres.values()):
         resume["sources"].insert(1, "Hub'Eau")
     ecrire(Path(args.sortie), sorties)
-    print(f"{len(resume['points'])} points calculés en {time.time() - debut:.0f} s, {len(resume['erreurs'])} en erreur")
+    noter(f"{len(resume['points'])} points calculés en {time.time() - debut:.0f} s, {len(resume['erreurs'])} en erreur")
     for e in resume["erreurs"]:
-        print(f"  {e['id']} : {e['erreur']}")
+        noter(f"  {e['id']} : {e['erreur']}")
+    publier_bilan()
     if not resume["points"]:
         sys.exit("Aucun point calculé : publication annulée")
 

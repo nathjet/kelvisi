@@ -1,4 +1,4 @@
-"""Connecteur Copernicus Marine : turbidité et chlorophylle satellite (Sentinel-3, 300 m).
+"""Connecteur Copernicus Marine : turbidité et chlorophylle satellite (Sentinel-2 et Sentinel-3, environ 100 m).
 
 Étape FACULTATIVE du calcul horaire : elle ne tourne que si les identifiants
 Copernicus Marine sont fournis (variables d'environnement
