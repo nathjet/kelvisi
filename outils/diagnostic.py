@@ -338,6 +338,59 @@ def secrets():
     annoter("Secrets", lignes)
 
 
+def supabase_parcours():
+    """Vraie inscription d'essai sur le projet : profil, spot privé, favori, retour, puis suppression du compte."""
+    import time
+    from pathlib import Path
+
+    texte = (Path(__file__).resolve().parent.parent / "app" / "js" / "config.js").read_text(encoding="utf-8")
+    url = re.search(r'supabaseUrl: "([^"]*)"', texte).group(1).rstrip("/")
+    cle = re.search(r'supabaseCleAnon: "([^"]*)"', texte).group(1)
+    secrete = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+    pub = {"apikey": cle, "Content-Type": "application/json"}
+    lignes = []
+    email = f"diagnostic-{int(time.time())}@kelvisi-test.fr"
+    try:
+        r = requests.post(f"{url}/auth/v1/signup", headers=pub, timeout=30, json={
+            "email": email, "password": "Essai-kelvisi-2026",
+            "data": {"prenom": "Essai", "departement": "29", "pratiques": ["chasse"], "tranche_age": "25-34", "accord_emails": False}})
+        d = r.json()
+        lignes.append(f"inscription : HTTP {r.status_code}, session {'oui' if d.get('access_token') else 'non'} {'' if r.ok else r.text[:200]}")
+        jeton = d.get("access_token")
+        if not jeton:
+            raise RuntimeError("pas de session après inscription")
+        moi = d["user"]["id"]
+        auth = {**pub, "Authorization": f"Bearer {jeton}"}
+        r = requests.get(f"{url}/rest/v1/profils?id=eq.{moi}&select=prenom,departement,pratiques,tranche_age,accord_emails", headers=auth, timeout=30)
+        lignes.append(f"profil créé : HTTP {r.status_code} {r.text[:200]}")
+        r = requests.post(f"{url}/rest/v1/spots_prives?on_conflict=proprietaire,id", timeout=30,
+                          headers={**auth, "Prefer": "resolution=merge-duplicates,return=minimal"},
+                          json=[{"id": "prive-essai", "proprietaire": moi, "nom": "Essai", "lat": 47.49, "lon": -3.2, "region": "atlantique",
+                                 "orientation_deg": 270, "ouverture_deg": 90, "profondeur_m": 8, "fond": "roche"}])
+        lignes.append(f"spot privé enregistré : HTTP {r.status_code} {r.text[:150]}")
+        r = requests.get(f"{url}/rest/v1/spots_prives?select=id,nom", headers=auth, timeout=30)
+        lignes.append(f"spot privé relu : HTTP {r.status_code} {r.text[:150]}")
+        r = requests.get(f"{url}/rest/v1/spots_prives?select=id", headers=pub, timeout=30)
+        lignes.append(f"spot privé sans compte (doit être refusé) : HTTP {r.status_code}")
+        r = requests.post(f"{url}/rest/v1/favoris?on_conflict=proprietaire,point_id", timeout=30,
+                          headers={**auth, "Prefer": "resolution=ignore-duplicates,return=minimal"}, json=[{"proprietaire": moi, "point_id": "ref-groix"}])
+        lignes.append(f"favori : HTTP {r.status_code} {r.text[:150]}")
+        r = requests.post(f"{url}/rest/v1/rapports", timeout=30, headers={**auth, "Prefer": "return=minimal"},
+                          json={"spot_id": "diagnostic-essai", "visibilite_m": 5, "observe_le": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "appareil": "diagnostic", "version": "1"})
+        lignes.append(f"retour terrain : HTTP {r.status_code} {r.text[:150]}")
+        r = requests.post(f"{url}/rest/v1/rpc/supprimer_mon_compte", headers=auth, json={}, timeout=30)
+        lignes.append(f"suppression du compte : HTTP {r.status_code} {r.text[:150]}")
+        r = requests.post(f"{url}/auth/v1/token?grant_type=password", headers=pub, timeout=30, json={"email": email, "password": "Essai-kelvisi-2026"})
+        lignes.append(f"connexion après suppression (doit échouer) : HTTP {r.status_code}")
+    except Exception as e:
+        lignes.append(f"arrêt : {type(e).__name__} {e}")
+    if secrete:
+        h = {"apikey": secrete} if secrete.startswith("sb_") else {"apikey": secrete, "Authorization": f"Bearer {secrete}"}
+        r = requests.delete(f"{url}/rest/v1/rapports?spot_id=eq.diagnostic-essai", headers=h, timeout=30)
+        lignes.append(f"nettoyage du retour d'essai : HTTP {r.status_code}")
+    annoter("Parcours Supabase", lignes)
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:
