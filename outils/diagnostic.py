@@ -317,6 +317,27 @@ def supabase_projet():
     annoter("Projet Supabase", lignes)
 
 
+def secrets():
+    """Présence des secrets attendus (jamais leur valeur) et nature de la clé Supabase."""
+    lignes = []
+    for nom in ["SUPABASE_URL", "SUPABASE_SERVICE_KEY", "COPERNICUSMARINE_SERVICE_USERNAME", "COPERNICUSMARINE_SERVICE_PASSWORD"]:
+        v = os.environ.get(nom, "")
+        nature = ""
+        if v and nom == "SUPABASE_SERVICE_KEY":
+            nature = " (clé secrète sb_secret)" if v.startswith("sb_secret_") else " (clé publique : il faut la clé secrète)" if v.startswith("sb_publishable_") else " (ancienne clé JWT)" if v.startswith("eyJ") else " (format inattendu)"
+        if v and nom == "SUPABASE_URL":
+            nature = " (adresse https://…supabase.co)" if re.match(r"^https://[a-z0-9]+\.supabase\.co/?$", v.strip()) else " (format inattendu : espace ou caractère en trop ?)"
+        lignes.append(f"{nom} : {'présent' + nature if v else 'ABSENT'}")
+    autres = [k.replace("CANDIDAT_", "") for k, v in os.environ.items() if k.startswith("CANDIDAT_") and v]
+    lignes.append(f"secrets aux noms voisins trouvés : {autres or 'aucun'}")
+    url, cle = os.environ.get("SUPABASE_URL", "").strip(), os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+    if url and cle:
+        entetes = {"apikey": cle} if cle.startswith("sb_") else {"apikey": cle, "Authorization": f"Bearer {cle}"}
+        r = requests.get(url.rstrip("/") + "/rest/v1/rapports?select=id&limit=1", headers=entetes, timeout=30)
+        lignes.append(f"lecture des retours avec la clé secrète : HTTP {r.status_code}")
+    annoter("Secrets", lignes)
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:
