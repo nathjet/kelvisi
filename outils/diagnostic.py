@@ -420,6 +420,27 @@ def copernicus_catalogue():
     annoter("Catalogue Copernicus", [f"{len(lignes)} lignes", *hr[:40]])
 
 
+def copernicus_identifiants():
+    """Forme des identifiants Copernicus (jamais leur valeur) et essai de connexion, brut puis nettoyé."""
+    import copernicusmarine
+
+    u = os.environ.get("COPERNICUSMARINE_SERVICE_USERNAME", "")
+    m = os.environ.get("COPERNICUSMARINE_SERVICE_PASSWORD", "")
+    def forme(v, nom):
+        return (f"{nom} : {len(v.strip())} caractères utiles, espaces ou retours à la ligne aux extrémités : "
+                f"{'OUI' if v != v.strip() else 'non'}, contient @ : {'OUI' if '@' in v else 'non'}, "
+                f"caractères non ASCII : {'OUI' if any(ord(c) > 127 for c in v) else 'non'}, "
+                f"guillemets : {'OUI' if any(c in v for c in '\"\'«»') else 'non'}")
+    lignes = [forme(u, "identifiant"), forme(m, "mot de passe") + f", 12 caractères ou plus : {'oui' if len(m.strip()) >= 12 else 'NON'}"]
+    for nom, (uu, mm) in {"tel quel": (u, m), "nettoyé": (u.strip(), m.strip())}.items():
+        try:
+            ok = copernicusmarine.login(username=uu, password=mm, force_overwrite=True, check_credentials_valid=True)
+            lignes.append(f"connexion {nom} : {'ACCEPTÉE' if ok else 'refusée'}")
+        except Exception as e:
+            lignes.append(f"connexion {nom} : {type(e).__name__} {str(e)[:200]}")
+    annoter("Identifiants Copernicus", lignes)
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:
