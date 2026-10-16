@@ -1,0 +1,64 @@
+# Collecte l'historique (satellite, vagues, marée, pluie, débits) qui sert à caler le modèle.
+# Lancement manuel. Les données sont gardées sur la branche « historique » ; chaque
+# lancement reprend là où le précédent s'est arrêté.
+name: Calage
+
+on:
+  workflow_dispatch:
+    inputs:
+      etape:
+        description: "sonder ou collecter"
+        required: true
+        default: "collecter"
+      budget:
+        description: "Appels Open-Meteo au plus pour ce lancement"
+        required: false
+        default: "4000"
+
+permissions:
+  contents: write   # publie les données sur la branche « historique »
+
+concurrency:
+  group: calage
+  cancel-in-progress: false
+
+jobs:
+  historique:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+      COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+      KELVISI_SAT_NWS: ${{ vars.KELVISI_SAT_NWS }}
+      KELVISI_SAT_IBI: ${{ vars.KELVISI_SAT_IBI }}
+      KELVISI_SAT_MED: ${{ vars.KELVISI_SAT_MED }}
+      OPEN_METEO_CLE: ${{ secrets.OPEN_METEO_CLE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer
+        run: pip install -r requirements.txt copernicusmarine
+      - name: Reprendre les données déjà collectées
+        run: |
+          if git ls-remote --exit-code --heads origin historique >/dev/null; then
+            git fetch -q --depth 1 origin historique
+            mkdir -p historique
+            git --work-tree=historique checkout origin/historique -- .
+            git reset -q
+          fi
+      - name: Collecter
+        env:
+          ETAPE: ${{ github.event.inputs.etape }}
+          BUDGET: ${{ github.event.inputs.budget }}
+        run: python outils/historique.py "$ETAPE" --budget "${BUDGET:-4000}"
+      - name: Publier sur la branche « historique »
+        if: always() && github.event.inputs.etape == 'collecter'
+        run: |
+          [ -d historique ] || exit 0
+          cd historique
+          git init -q -b historique
+          git -c user.name="calage" -c user.email="calage@users.noreply.github.com" add -A
+          git -c user.name="calage" -c user.email="calage@users.noreply.github.com" commit -q -m "Historique $GITHUB_RUN_ID"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" historique
