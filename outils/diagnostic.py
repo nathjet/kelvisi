@@ -391,6 +391,31 @@ def supabase_parcours():
     annoter("Parcours Supabase", lignes)
 
 
+def copernicus_catalogue():
+    """Catalogue complet des produits de couleur de l'eau (sans identifiants), dans diag/copernicus_catalogue.txt."""
+    import copernicusmarine
+    from pathlib import Path
+
+    Path(SORTIE).mkdir(exist_ok=True)
+    lignes = []
+    cat = copernicusmarine.describe(contains=["OCEANCOLOUR"], disable_progress_bar=True)
+    for p in cat.products:
+        for ds in p.datasets:
+            for v in ds.versions:
+                for part in v.parts:
+                    for svc in part.services:
+                        variables = sorted({var.short_name for var in svc.variables})
+                        coords = []
+                        for var in svc.variables[:1]:
+                            for c in var.coordinates:
+                                if c.coordinate_id in ("time", "latitude", "longitude"):
+                                    coords.append(f"{c.coordinate_id}[{getattr(c, 'minimum_value', None)}..{getattr(c, 'maximum_value', None)} pas {getattr(c, 'step', None)}]")
+                        lignes.append(f"{p.product_id} | {ds.dataset_id} | {v.label} | {part.name} | {svc.service_name} | {variables} | {' '.join(coords)}")
+    Path(SORTIE, "copernicus_catalogue.txt").write_text("\n".join(lignes), encoding="utf-8")
+    hr = sorted({l.split(" | ")[1] for l in lignes if "_hr" in l.lower() or "-hr" in l.lower()})
+    annoter("Catalogue Copernicus", [f"{len(lignes)} lignes", *hr[:40]])
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:
