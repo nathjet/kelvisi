@@ -166,6 +166,10 @@ async function etape(nom, f) {
   }
 }
 
+// Ce parcours teste l'appli sans comptes (tests/comptes.test.mjs teste les comptes)
+const { CONFIG: CONFIG_DEPART } = await import(pathToFileURL(join(APP, "js", "config.js")).href);
+CONFIG_DEPART.comptesOuverts = false;
+
 // Cartes des fonds du Shom : images synthétiques peintes avec les palettes du Shom (mer à l'ouest de -3.16)
 const bathy = await import(pathToFileURL(join(APP, "js", "bathymetrie.js")).href);
 bathy.definirLecteurImage(async (url) => {

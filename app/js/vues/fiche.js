@@ -142,8 +142,10 @@ function conditions(prevision, jour, meta) {
 function momentDuRetour(prevision, quand) {
   const toutes = [...(prevision.historique || []), ...prevision.heures];
   const maintenant = Date.now() / 1000;
-  const aujourdHui = prevision.heures[0]?.heure.slice(0, 10);
-  const veille = aujourdHui ? new Date(Date.parse(`${aujourdHui}T12:00:00Z`) - 86400000).toISOString().slice(0, 10) : null;
+  // Dates du jour et de la veille à l'heure de Paris, d'après l'horloge (pas d'après les prévisions)
+  const jourParis = (ms) => new Date(ms).toLocaleDateString("fr-CA", { timeZone: CONFIG.fuseau || "Europe/Paris" });
+  const aujourdHui = jourParis(Date.now());
+  const veille = jourParis(Date.now() - 86400000);
   let cible = null;
   if (quand === "matin") cible = toutes.find((h) => h.heure.startsWith(`${aujourdHui}T09:`));
   if (quand === "hier") cible = toutes.find((h) => veille && h.heure.startsWith(`${veille}T15:`));

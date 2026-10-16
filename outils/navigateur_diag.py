@@ -60,7 +60,31 @@ async def main():
         page.on("response", lambda r: shom.append(f"{r.status} {r.headers.get('content-type')} {r.url[:200]}") if "data.shom.fr" in r.url and "GetMap" in r.url and "WIDTH=256" in r.url else None)
 
         await page.goto(f"http://127.0.0.1:{PORT}/#/carte")
-        await page.wait_for_timeout(9000)
+        await page.wait_for_timeout(4000)
+
+        # Comptes ouverts : vraie inscription d'essai par l'écran d'accueil (compte supprimé à la fin)
+        compte_essai = False
+        if await page.is_visible("#ecran-compte"):
+            import time
+            await page.screenshot(path=str(SORTIE / "nav_compte_inscription.png"))
+            ecran = page.locator("#ecran-compte")
+            await ecran.locator('input[name="email"]').fill(f"diagnostic-nav-{int(time.time())}@kelvisi-test.fr")
+            await ecran.locator('input[name="mot_de_passe"]').fill("Essai-kelvisi-2026")
+            await ecran.locator('input[name="prenom"]').fill("Essai")
+            await ecran.locator('input[name="departement"]').fill("56")
+            await ecran.locator('input[name="pratiques"][value="chasse"]').check()
+            await ecran.locator('select[name="tranche_age"]').select_option("25-34")
+            await ecran.locator('input[name="cgu"]').check()
+            await ecran.locator('button[type="submit"]').click()
+            try:
+                await page.wait_for_selector("#ecran-compte", state="hidden", timeout=15000)
+                resultats["inscription"] = "réussie, écran fermé"
+                compte_essai = True
+            except Exception:
+                resultats["inscription"] = "écran toujours affiché : " + (await ecran.inner_text())[:300]
+                await page.screenshot(path=str(SORTIE / "nav_compte_echec.png"))
+
+        await page.wait_for_timeout(6000)
         await page.screenshot(path=str(SORTIE / "nav_carte_plan.png"))
 
         # Profondeurs du Shom lues dans la page (vraies images, vrai décodage)
@@ -102,6 +126,18 @@ async def main():
         await page.goto(f"http://127.0.0.1:{PORT}/#/point/47.47/-3.17")
         await page.wait_for_timeout(9000)
         await page.screenshot(path=str(SORTIE / "nav_fiche_lieu.png"), full_page=True)
+
+        if compte_essai:
+            await page.goto(f"http://127.0.0.1:{PORT}/#/compte")
+            await page.wait_for_timeout(3000)
+            await page.screenshot(path=str(SORTIE / "nav_mon_compte.png"))
+            await page.click("[data-supprimer]")
+            await page.click("[data-oui]")
+            try:
+                await page.wait_for_selector("#ecran-compte", state="visible", timeout=15000)
+                resultats["suppression_compte"] = "réussie, retour à l'écran d'accueil"
+            except Exception:
+                resultats["suppression_compte"] = "échec"
 
         resultats["erreurs"] = erreurs[:40]
         resultats["tuiles_shom"] = shom[:12]

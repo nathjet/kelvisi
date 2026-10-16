@@ -13,7 +13,7 @@ export const CONFIG = {
   // Interrupteur des comptes : true rend l'inscription obligatoire pour tout le monde.
   // À passer à true seulement quand le projet Supabase est prêt (GUIDE.md, étape 6, a à c) :
   // sinon les inscriptions échoueraient et plus personne ne pourrait utiliser l'appli.
-  comptesOuverts: false,
+  comptesOuverts: true,
 
   // Fuseau d'affichage des heures
   fuseau: "Europe/Paris",
