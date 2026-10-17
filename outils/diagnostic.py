@@ -20,6 +20,7 @@ import traceback
 import requests
 
 ORIGINE = "https://nathjet.github.io"
+SORTIE = _Chemin(__file__).resolve().parent.parent / "diag"
 POINT = (47.4892, -3.1565)  # Quiberon, côte sauvage
 
 
@@ -439,6 +440,59 @@ def copernicus_identifiants():
         except Exception as e:
             lignes.append(f"connexion {nom} : {type(e).__name__} {str(e)[:200]}")
     annoter("Identifiants Copernicus", lignes)
+
+
+def satellite_rayons():
+    """Points sans image satellite : pixels d'eau disponibles selon le rayon autour du point (fichier diag/satellite_rayons.json)."""
+    import json
+    from pathlib import Path
+
+    import copernicusmarine
+    import numpy as np
+
+    from prevision import charger_spots
+    from prevision.sources import copernicus as cop
+
+    Path(SORTIE).mkdir(exist_ok=True)
+    spots = {s.id: s for s in charger_spots(Path(__file__).resolve().parent.parent / "spots" / "points.json")}
+    ids = ["ref-ouessant", "ref-belle-ile", "ref-campomoro", "ref-cote-vermeille", "ref-baleines", "ref-quiberon"]
+    rayons = [300, 500, 800, 1200, 2000]
+    lignes, sortie = [], {}
+    for pid in ids:
+        s = spots[pid]
+        m = 0.025
+        try:
+            ds = copernicusmarine.open_dataset(
+                dataset_id=cop.JEUX[cop.bassin(s)], variables=["TUR"],
+                minimum_longitude=s.lon - m * 1.5, maximum_longitude=s.lon + m * 1.5,
+                minimum_latitude=s.lat - m, maximum_latitude=s.lat + m,
+                start_datetime="2025-01-01T00:00:00", end_datetime="2026-10-15T23:59:59")
+            tur = ds["TUR"].load()
+            v = tur.values
+            d = cop.distances_m(s.lat, s.lon, tur["latitude"].values, tur["longitude"].values)
+            eau = np.isfinite(v).any(axis=0)  # pixel vu au moins une fois : de l'eau
+            res = {}
+            for r in rayons:
+                disque = d <= r
+                n_eau = int((eau & disque).sum())
+                valides = np.isfinite(v[:, disque])
+                part_tous = valides.mean(axis=1) if disque.any() else np.zeros(len(v))
+                part_eau = valides[:, eau[disque]].mean(axis=1) if n_eau else np.zeros(len(v))
+                jours_30_tous = int((part_tous >= 0.3).sum())
+                jours_50_eau = int((part_eau >= 0.5).sum()) if n_eau else 0
+                med = float(np.nanmedian(v[:, disque & eau])) if n_eau else None
+                res[r] = {"pixels": int(disque.sum()), "pixels_eau": n_eau, "jours_30pct_tous": jours_30_tous,
+                          "jours_50pct_eau": jours_50_eau, "turbidite_mediane": None if med is None else round(med, 2)}
+            # Pixel d'eau le plus proche
+            dist_eau = float(d[eau].min()) if eau.any() else None
+            sortie[pid] = {"rayons": res, "eau_la_plus_proche_m": dist_eau, "jours": int(v.shape[0])}
+            lignes.append(f"{pid} : eau la plus proche à {dist_eau if dist_eau is None else round(dist_eau)} m ; "
+                          + " ; ".join(f"{r} m : {x['pixels_eau']}/{x['pixels']} px d'eau, {x['jours_30pct_tous']} j (règle actuelle), "
+                                       f"{x['jours_50pct_eau']} j (50 % de l'eau), méd. {x['turbidite_mediane']}" for r, x in res.items()))
+        except Exception as e:
+            lignes.append(f"{pid} : {type(e).__name__} {str(e)[:200]}")
+    Path(SORTIE, "satellite_rayons.json").write_text(json.dumps(sortie, indent=1), encoding="utf-8")
+    annoter("Rayons satellite", lignes)
 
 
 def main():
