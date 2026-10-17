@@ -102,6 +102,22 @@ async def main():
             except Exception as e:
                 resultats[nom + "_lieu"] = f"erreur {e}"
 
+        # Nouveaux points : profondeur et direction du large estimées comme pour un lieu libre (Shom d'abord)
+        a_estimer = RACINE / "spots" / "candidats_places.json"
+        if a_estimer.exists():
+            estimations = []
+            for c in json.loads(a_estimer.read_text(encoding="utf-8")):
+                try:
+                    e = await page.evaluate(
+                        """async ([lat, lon]) => { const m = await import('./js/profondeur.js'); const r = await m.estimerLieu(lat, lon);
+                           return r && { profondeur_m: r.profondeur_m, orientation_deg: r.orientation_deg, ouverture_deg: r.ouverture_deg, source: r.source,
+                                         terre: (r.mesures || []).some((x) => x.terre) }; }""", [c["lat"], c["lon"]])
+                except Exception as ex:
+                    e = {"erreur": str(ex)[:200]}
+                estimations.append({**c, "estimation": e})
+            (SORTIE / "estimations.json").write_text(json.dumps(estimations, ensure_ascii=False, indent=1), encoding="utf-8")
+            resultats["estimations"] = f"{len(estimations)} points estimés"
+
         # Recherche de lieux (Géoplateforme)
         try:
             resultats["recherche"] = await page.evaluate(
