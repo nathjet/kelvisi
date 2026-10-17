@@ -16,6 +16,7 @@ import { effacerDonneesLocales, synchroniser } from "./synchro.js";
 import { afficherEcranCompte, afficherMonCompte, masquerEcranCompte } from "./vues/compte.js";
 import { NOM_CLASSE, dateHeure, decrireMesure, distanceKm, echapper, heure, jourCourt, metres } from "./format.js";
 import { meilleureMesure, profondeursAuPoint } from "./bathymetrie.js";
+import { tranchesLegende } from "./relief-rendu.js";
 
 const large = window.matchMedia("(min-width: 960px)");
 const panneau = document.getElementById("panneau");
@@ -459,7 +460,18 @@ function lierComptes(lien) {
 
 // --- Démarrage ----------------------------------------------------------------------------------
 
+// Échelle des teintes de la carte des profondeurs (mêmes couleurs que le relief dessiné)
+function remplirEchelleProfondeurs() {
+  const el = document.getElementById("echelle-profondeurs");
+  if (!el || el.childElementCount) return;
+  const tranches = tranchesLegende();
+  const graduees = new Set([0, 5, 10, 20, 30, 50, 100]);
+  el.innerHTML = tranches.map((t) => `<i style="background:rgb(${t.couleur.join(",")})" title="${t.a === null ? `plus de ${t.de} m` : `${t.de} à ${t.a} m`}"></i>`).join("")
+    + tranches.map((t, k) => (graduees.has(t.de) ? `<b style="left:${((100 * k) / tranches.length).toFixed(2)}%">${t.de === 100 ? "100 m" : t.de}</b>` : "")).join("");
+}
+
 function lierOutilsCarte() {
+  remplirEchelleProfondeurs();
   const fond = document.getElementById("fond-carte");
   const couches = { aerien: Boolean(prefs.aerien), profondeurs: Boolean(prefs.profondeurs) };
   const appliquer = () => {

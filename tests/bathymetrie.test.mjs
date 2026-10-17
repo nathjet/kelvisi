@@ -4,8 +4,8 @@
 
 import assert from "node:assert/strict";
 import {
-  SOURCES, couleurPour, decoderCouleur, definirLecteurImage, grilleAutour, meilleureMesure, orientationDepuisGrille,
-  profondeursAuPoint, COUCHES_CARTE, urlTuileShom,
+  SOURCES, couleurPour, couvre, croise, decoderCouleur, definirLecteurImage, grilleAutour, meilleureMesure, orientationDepuisGrille,
+  profondeursAuPoint,
 } from "../app/js/bathymetrie.js";
 
 const etapes = [];
@@ -19,8 +19,15 @@ async function etape(nom, f) {
   }
 }
 
-// Fond synthétique : la mer est à l'ouest de la longitude -3.15, de plus en plus profonde vers l'ouest
-const fond = (lat, lon) => (lon < -3.15 ? Math.min(60, 4 + (-3.15 - lon) * 400) : -8);
+// Fond synthétique : en Atlantique, la mer est à l'ouest de la longitude -3.15, de plus en plus profonde
+// vers l'ouest ; en Méditerranée, au sud de la latitude 43.30.
+const fond = (lat, lon) => {
+  if (lon > 0) return lat < 43.3 ? Math.min(60, 4 + (43.3 - lat) * 400) : -8;
+  return lon < -3.15 ? Math.min(60, 4 + (-3.15 - lon) * 400) : -8;
+};
+// Comme sur le vrai service : la façade Atlantique n'a rien en Méditerranée, et (pour le test) le
+// relevé laser du Finistère n'a rien du tout
+const vide = (source, lat, lon) => (source.couche.startsWith("MNT_ATL100m") && lon > 0 && lat < 44.6) || source.couche.startsWith("LITTO3D_FINISTR");
 function image(url) {
   const q = new URL(url).searchParams;
   const [s, o, n, e] = q.get("BBOX").split(",").map(Number);
@@ -31,6 +38,7 @@ function image(url) {
     for (let x = 0; x < taille; x++) {
       const lat = n - ((y + 0.5) / taille) * (n - s);
       const lon = o + ((x + 0.5) / taille) * (e - o);
+      if (vide(source, lat, lon)) continue;
       // Décalage de référence : le laser mesure depuis le niveau moyen, 3 m au-dessus des plus basses mers
       let d = fond(lat, lon);
       if (source.reference === "moyen" && d > 0) d += 3;
@@ -95,13 +103,25 @@ await etape("direction du large et ouverture tirées de la carte de façade", as
   assert.ok(o.ouverture_deg >= 135 && o.ouverture_deg <= 180, `ouverture ${o.ouverture_deg}`);
 });
 
-await etape("tuiles de la carte : une couche par source, laser au-dessus, chacune limitée à sa zone", async () => {
-  const noms = COUCHES_CARTE.map((c) => c.couche);
-  assert.ok(noms.indexOf("LITTO3D_BZH_2018_2021_PYR_3857_WMSR") > noms.indexOf("MNT_COTIER_MORBIHAN_TANDEM_20m_PBMA_3857_WMSR"));
-  assert.ok(!noms.some((c) => c.startsWith("MNT_ATL100m") || c.includes("_4326_")), "ni façade ni couche géographique");
-  const u = new URL(urlTuileShom(noms[0]).replace("{bbox-epsg-3857}", "0,0,1,1"));
-  assert.equal(u.searchParams.get("LAYERS"), noms[0]);
-  assert.ok(COUCHES_CARTE.every((c) => c.zone.length === 4));
+await etape("golfe du Lion : la façade Méditerranée, sans demande inutile à la façade Atlantique", async () => {
+  demandes.length = 0;
+  const mesures = await profondeursAuPoint(43.275, 3.51);
+  const facade = mesures.find((m) => m.type === "facade");
+  assert.equal(facade?.source, "MNT de façade golfe du Lion - Côte d'Azur");
+  assert.ok(Math.abs(facade.profondeur_m - 14) <= 1.5, `façade ${facade.profondeur_m}`);
+  assert.ok(!demandes.some((u) => u.includes("MNT_ATL100m")), "façade Atlantique non demandée");
+  const atl = SOURCES.find((s) => s.couche.startsWith("MNT_ATL100m"));
+  assert.ok(!couvre(atl, 43.275, 3.51) && couvre(atl, 47.47, -3.17));
+  assert.ok(croise(atl, [3.4, 43.2, 3.6, 43.4]) === false && croise(atl, [-3.2, 47.4, -3.1, 47.5]));
+  // Direction du large lue sur la bonne carte : la mer est au sud
+  const o = orientationDepuisGrille(await grilleAutour(43.29, 3.51));
+  assert.ok(o.orientation_deg > 150 && o.orientation_deg < 210, `orientation ${o.orientation_deg}`);
+});
+
+await etape("deux sources du même type qui se chevauchent : la suivante prend le relais", async () => {
+  // Dans le Finistère sud, le relevé du Finistère (vide ici) puis celui de la Bretagne
+  const laser = (await profondeursAuPoint(47.8, -3.5)).find((m) => m.type === "laser");
+  assert.equal(laser?.source, "Litto3D Bretagne");
 });
 
 console.log(`Bathymétrie\n${etapes.join("\n")}`);

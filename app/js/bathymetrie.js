@@ -31,27 +31,35 @@ export const SOURCES = [
   { couche: "MNT_COTIER_GIRONDE_AVAL_20m_PBMA_3857_WMSR", nom: "MNT côtier de l'estuaire de la Gironde", type: "cotier", palette: "cotier", zone: [-1.509, 45.183, -0.649, 45.76], pas: 20, reference: "pbma", max: 85 },
   { couche: "MNT_COTIER_ARCACHON_HOMONIM_20m_PBMA_3857_WMSR", nom: "MNT côtier d'Arcachon", type: "cotier", palette: "cotier", zone: [-1.41, 44.43, -0.95, 45.19], pas: 20, reference: "pbma", max: 85 },
   { couche: "MNT_COTIER_DETROIT_PDC_20m_PBMA_WMSR_3857", nom: "MNT côtier du Pas-de-Calais", type: "cotier", palette: "cotier", zone: [0.834, 50.5, 2.544, 51.334], pas: 20, reference: "pbma", max: 85 },
-  { couche: "MNT_ATL100m_HOMONIM_PBMA_3857_WMSR", nom: "MNT de façade Manche-Atlantique", type: "facade", palette: "facade", zone: [-6.0, 43.249, 5.851, 52.901], pas: 100, reference: "pbma", max: 3000 },
+  // Son emprise déborde sur le golfe du Lion, où elle n'a aucune donnée : zone exclue
+  { couche: "MNT_ATL100m_HOMONIM_PBMA_3857_WMSR", nom: "MNT de façade Manche-Atlantique", type: "facade", palette: "facade", zone: [-6.0, 43.249, 5.851, 52.901], exclure: [0, 40, 11, 44.6], pas: 100, reference: "pbma", max: 3000 },
   { couche: "MNT_MED100m_GDL_CA_HOMONIM_PBMA_3857_WMSR", nom: "MNT de façade golfe du Lion - Côte d'Azur", type: "facade", palette: "facade", zone: [2.9, 41.7, 7.901, 44.401], pas: 100, reference: "pbma", max: 3000 },
   { couche: "MNT_MED100m_CORSE_HOMONIM_PBMA_3857_WMSR", nom: "MNT de façade de la Corse", type: "facade", palette: "facade", zone: [7.699, 40.7, 10.4, 43.7], pas: 100, reference: "pbma", max: 3000 },
 ];
 
-// Couches affichées sur la carte « Profondeurs » au-dessus d'EMODnet, de la moins à la plus précise.
-// Le Shom refuse les demandes qui mélangent plusieurs couches : une source de tuiles par couche,
-// limitée à sa zone. (La couche du golfe normand-breton n'existe qu'en coordonnées géographiques :
-// elle sert seulement à la lecture au point.)
-export const COUCHES_CARTE = SOURCES.filter((s) => s.type !== "facade" && !s.couche.includes("_4326_")).reverse();
-
-export function urlTuileShom(couche) {
-  return `${WMS}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${couche}&STYLES=&CRS=EPSG:3857`
-    + "&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true";
-}
+export const WMS_SHOM = WMS;
 
 const dans = (z, lat, lon) => lon >= z[0] && lon <= z[2] && lat >= z[1] && lat <= z[3];
+
+// La source a-t-elle des données à cet endroit (zone, moins la partie exclue) ?
+export const couvre = (s, lat, lon) => dans(s.zone, lat, lon) && !(s.exclure && dans(s.exclure, lat, lon));
+
+// La source peut-elle avoir des données dans ce rectangle [ouest, sud, est, nord] ?
+export function croise(s, [o, su, e, n]) {
+  const z = s.zone;
+  if (e < z[0] || o > z[2] || n < z[1] || su > z[3]) return false;
+  const x = s.exclure;
+  return !(x && o >= x[0] && e <= x[2] && su >= x[1] && n <= x[3]);
+}
 
 // --- Couleur vers profondeur ------------------------------------------------------------------------
 
 const tables = new Map();
+// Palette en table : profondeurs, couleurs et couleurs normées (une entrée tous les 1/40 d'intervalle)
+export function tablePalette(nom) {
+  return table(nom);
+}
+
 function table(nom) {
   if (tables.has(nom)) return tables.get(nom);
   const { arrets, ombre } = PALETTES[nom];
@@ -159,22 +167,26 @@ const memoire = new Map();
 export async function profondeursAuPoint(lat, lon, { signal } = {}) {
   const cle = `${lat.toFixed(5)},${lon.toFixed(5)}`;
   if (memoire.has(cle)) return memoire.get(cle);
-  const choisies = [];
-  const types = new Set();
+  // Par type, les sources dans l'ordre : si la première n'a rien ici (emprises qui se chevauchent),
+  // la suivante est essayée.
+  const parType = new Map();
   for (const s of SOURCES) {
-    if (types.has(s.type) || !dans(s.zone, lat, lon)) continue;
-    types.add(s.type);
-    choisies.push(s);
+    if (!couvre(s, lat, lon)) continue;
+    if (!parType.has(s.type)) parType.set(s.type, []);
+    parType.get(s.type).push(s);
   }
-  const lectures = await Promise.all(choisies.map(async (s) => {
-    try {
-      return { s, p: await lireSource(s, lat, lon, signal) };
-    } catch (e) {
-      if (e.name === "AbortError") throw e;
-      return { s, p: null };
+  const lectures = await Promise.all([...parType.values()].map(async (liste) => {
+    for (const s of liste) {
+      try {
+        const p = await lireSource(s, lat, lon, signal);
+        if (p !== null) return { s, p };
+      } catch (e) {
+        if (e.name === "AbortError") throw e;
+      }
     }
+    return null;
   }));
-  const mesures = lectures.filter((l) => l.p !== null).map(({ s, p }) => ({
+  const mesures = lectures.filter(Boolean).map(({ s, p }) => ({
     source: s.nom, type: s.type, precision_m: s.pas, reference: s.reference,
     terre: p <= 0,
     au_moins: p > 0 && p >= s.max - 0.5,
@@ -238,20 +250,30 @@ export function orientationDepuisGrille({ grille, rayonM, taille }) {
 // Carte des profondeurs (modèle de façade à 100 m) autour d'un point : grille de profondeurs,
 // null à terre ou sans donnée. Sert à trouver la direction du large et l'abri du lieu.
 export async function grilleAutour(lat, lon, { rayonM = 2500, taille = 51, signal } = {}) {
-  const source = SOURCES.find((s) => s.type === "facade" && dans(s.zone, lat, lon));
-  if (!source) return null;
-  const img = await lecteur(urlImage(source.couche, lat, lon, rayonM, taille), signal);
-  const grille = [];
-  for (let y = 0; y < img.hauteur; y++) {
-    const ligne = [];
-    for (let x = 0; x < img.largeur; x++) {
-      const i = (y * img.largeur + x) * 4;
-      const p = img.pixels;
-      if (p[i + 3] < 200) { ligne.push(null); continue; }
-      const { profondeur, ecart } = decoderCouleur([p[i], p[i + 1], p[i + 2]], source.palette);
-      ligne.push(ecart <= 30 && profondeur > 0 ? profondeur : (ecart <= 30 ? 0 : null));
+  let meilleure = null;
+  for (const source of SOURCES.filter((s) => s.type === "facade" && couvre(s, lat, lon))) {
+    const img = await lecteur(urlImage(source.couche, lat, lon, rayonM, taille), signal);
+    const grille = [];
+    let lues = 0;
+    for (let y = 0; y < img.hauteur; y++) {
+      const ligne = [];
+      for (let x = 0; x < img.largeur; x++) {
+        const i = (y * img.largeur + x) * 4;
+        const p = img.pixels;
+        if (p[i + 3] < 200) { ligne.push(null); continue; }
+        const { profondeur, ecart } = decoderCouleur([p[i], p[i + 1], p[i + 2]], source.palette);
+        const v = ecart <= 30 && profondeur > 0 ? profondeur : (ecart <= 30 ? 0 : null);
+        if (v !== null) lues++;
+        ligne.push(v);
+      }
+      grille.push(ligne);
     }
-    grille.push(ligne);
+    const g = { grille, rayonM, taille: img.largeur, lues };
+    if (!meilleure || lues > meilleure.lues) meilleure = g;
+    // Une carte bien remplie suffit ; sinon la suivante (emprises qui se chevauchent)
+    if (lues >= (img.largeur * img.hauteur) / 4) break;
   }
-  return { grille, rayonM, taille: img.largeur };
+  if (!meilleure) return null;
+  const { lues, ...g } = meilleure;
+  return g;
 }

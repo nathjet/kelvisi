@@ -39,16 +39,18 @@ jobs:
           pip install requests numpy
           if [ -n "$COPERNICUSMARINE_SERVICE_USERNAME" ]; then pip install copernicusmarine; fi
       - name: Diagnostic
-        if: github.event.inputs.tests != 'navigateur'
+        if: ${{ !contains(github.event.inputs.tests, 'navigateur') }}
         env:
           TESTS: ${{ github.event.inputs.tests }}
         run: python outils/diagnostic.py $TESTS
       - name: Navigateur réel (captures et lectures dans la page)
         if: contains(github.event.inputs.tests, 'navigateur')
+        env:
+          TESTS: ${{ github.event.inputs.tests }}
         run: |
           pip install playwright
           python -m playwright install --with-deps chromium
-          python outils/navigateur_diag.py
+          python outils/navigateur_diag.py $TESTS
       - name: Publier les fichiers de diagnostic
         run: |
           if [ -d diag ]; then

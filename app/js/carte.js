@@ -1,11 +1,17 @@
-// Carte : fond OpenFreeMap, vue aérienne IGN, profondeurs (EMODnet, et près des côtes Shom), repères des spots.
+// Carte : fond OpenFreeMap, vue aérienne IGN, profondeurs (EMODnet de loin, relief du Shom redessiné
+// près des côtes), repères des spots.
 
-import { COUCHES_CARTE, urlTuileShom } from "./bathymetrie.js";
+import { TAILLE_TUILE, URL_TUILES, installerRelief } from "./relief.js";
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 const TUILES_IGN = "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}";
 const TUILES_EMODNET = "https://tiles.emodnet-bathymetry.eu/latest/mean_atlas_land/web_mercator/{z}/{x}/{y}.png";
 const ZOOM_NOMBRES = 6.3;
+// Relief du Shom à partir de ce zoom ; EMODnet (toute l'Europe, moins précis) en dessous
+const ZOOM_RELIEF = 7;
+// Zones couvertes par les modèles du Shom (Manche, Atlantique, Méditerranée, Corse)
+const EMPRISE_SHOM = [-6.0, 40.7, 10.4, 52.9];
+let reliefDisponible = false;
 
 // Fond de secours si le fond OpenFreeMap ne répond pas : trait de côte simplifié (Natural Earth)
 const STYLE_SECOURS = {
@@ -34,6 +40,7 @@ export function creerCarte(conteneur, options) {
     conteneur.innerHTML = '<div class="carte-absente"><p>La carte n\'a pas pu se charger. Vérifie ta connexion, la liste « Où aller ? » reste disponible.</p></div>';
     return null;
   }
+  if (!reliefDisponible) reliefDisponible = installerRelief(window.maplibregl);
   carte = new window.maplibregl.Map({
     container: conteneur,
     style: STYLE,
@@ -98,27 +105,30 @@ function ajouterCouches() {
   }
   if (!carte.getSource("emodnet")) {
     carte.addSource("emodnet", { type: "raster", tiles: [TUILES_EMODNET], tileSize: 256, maxzoom: 12, attribution: "Profondeurs EMODnet Bathymetry" });
-    carte.addLayer({ id: "couche-profondeurs", type: "raster", source: "emodnet", paint: { "raster-opacity": 0.78 }, layout: { visibility: "none" } }, premiereCoucheTexte());
+    carte.addLayer({
+      id: "couche-profondeurs", type: "raster", source: "emodnet", ...(reliefDisponible ? { maxzoom: ZOOM_RELIEF } : {}),
+      paint: { "raster-opacity": 0.78 }, layout: { visibility: "none" },
+    }, premiereCoucheTexte());
   }
-  // Près des côtes : relevés laser Litto3D (au mètre) et modèles côtiers du Shom, à partir du zoom 10.
-  // Une source par couche, limitée à sa zone : aucune tuile n'est demandée ailleurs.
-  COUCHES_CARTE.forEach((c, i) => {
-    if (carte.getSource(`shom-${i}`)) return;
-    carte.addSource(`shom-${i}`, {
-      type: "raster", tiles: [urlTuileShom(c.couche)], tileSize: 256, minzoom: 10, maxzoom: 18, bounds: c.zone,
-      attribution: "Profondeurs côtières © Shom, Litto3D® Shom-IGN",
+  // Relief sous-marin : les modèles du Shom (laser Litto3D, modèles côtiers et de façade) relus et
+  // redessinés en tranches de profondeur, isobathes et relief éclairé (voir relief-rendu.js).
+  if (reliefDisponible && !carte.getSource("relief")) {
+    carte.addSource("relief", {
+      type: "raster", tiles: [URL_TUILES], tileSize: TAILLE_TUILE, minzoom: ZOOM_RELIEF - 1, maxzoom: 15, bounds: EMPRISE_SHOM,
+      attribution: "Relief sous-marin d'après le Shom (Litto3D® Shom-IGN, MNT côtiers et de façade)",
     });
-    carte.addLayer({ id: `couche-shom-${i}`, type: "raster", source: `shom-${i}`, minzoom: 10, paint: { "raster-opacity": 0.9 }, layout: { visibility: "none" } }, premiereCoucheTexte());
-  });
+    carte.addLayer({
+      id: "couche-relief", type: "raster", source: "relief", minzoom: ZOOM_RELIEF,
+      paint: { "raster-fade-duration": 150 }, layout: { visibility: "none" },
+    }, premiereCoucheTexte());
+  }
 }
 
 function appliquerCouches() {
   if (!carte || !carte.getLayer("couche-aerien")) return;
   carte.setLayoutProperty("couche-aerien", "visibility", couches.aerien ? "visible" : "none");
   carte.setLayoutProperty("couche-profondeurs", "visibility", couches.profondeurs ? "visible" : "none");
-  COUCHES_CARTE.forEach((_, i) => {
-    if (carte.getLayer(`couche-shom-${i}`)) carte.setLayoutProperty(`couche-shom-${i}`, "visibility", couches.profondeurs ? "visible" : "none");
-  });
+  if (carte.getLayer("couche-relief")) carte.setLayoutProperty("couche-relief", "visibility", couches.profondeurs ? "visible" : "none");
 }
 
 export function definirCouches(nouvelles) {

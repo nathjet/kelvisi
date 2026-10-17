@@ -48,7 +48,10 @@
         <div class="legende-carte" id="legende-carte">
           <span><i style="background:var(--v-mauvaise)"></i>Mauvaise</span><span><i style="background:var(--v-moyenne)"></i>Moyenne</span>
           <span><i style="background:var(--v-bonne)"></i>Bonne</span><span><i style="background:var(--v-excellente)"></i>Excellente</span>
-          <span id="legende-profondeurs" hidden>Zoome sur la côte pour les relevés du Shom, touche la mer pour lire la profondeur. Ne pas naviguer avec.</span>
+          <div id="legende-profondeurs" class="legende-profondeurs" hidden>
+            <div class="echelle-profondeurs" id="echelle-profondeurs" role="img" aria-label="Échelle des profondeurs : de clair (0 m) à foncé (plus de 100 m)"></div>
+            <span>Un trait tous les 5 m ; traits serrés : tombant. Touche la mer pour la profondeur exacte. Ne pas naviguer avec.</span>
+          </div>
         </div>
       </div>
       <div class="fiche-rapide" id="fiche-rapide" hidden></div>

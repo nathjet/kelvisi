@@ -42,6 +42,78 @@ def annoter(titre, lignes):
     print(f"::notice title={titre}::{texte}", flush=True)
 
 
+VUES_RELIEF = {
+    "quiberon": (47.50, -3.15, 14),
+    "crozon": (48.27, -4.61, 14),
+    "marseille": (43.205, 5.37, 14),
+    "glenan": (47.72, -4.0, 13),
+    "chausey": (48.87, -1.83, 12.5),
+    "bonifacio": (41.38, 9.17, 12.5),
+    "bretagne_sud": (47.55, -3.4, 9),
+}
+
+
+async def relief():
+    """Carte « Profondeurs » redessinée : captures dans un vrai navigateur, temps de calcul des tuiles,
+    tuiles brutes enregistrées en PNG (dossier diag/relief/)."""
+    import base64
+    import math
+    import time
+
+    from playwright.async_api import async_playwright
+
+    (SORTIE / "relief").mkdir(parents=True, exist_ok=True)
+    serveur()
+    resultats = {}
+    async with async_playwright() as p:
+        navigateur = await p.chromium.launch()
+        ctx = await navigateur.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        page = await ctx.new_page()
+        erreurs, shom = [], []
+        page.on("pageerror", lambda e: erreurs.append(str(e)))
+        page.on("console", lambda m: erreurs.append(f"console {m.type}: {m.text}") if m.type in ("error", "warning") and "GPU stall" not in m.text else None)
+        page.on("response", lambda r: shom.append(r.url) if "data.shom.fr" in r.url else None)
+        await page.goto(f"http://127.0.0.1:{PORT}/#/carte")
+        await page.wait_for_timeout(5000)
+        # Écran de compte masqué : seule la carte nous intéresse ici
+        await page.evaluate("() => { const e = document.getElementById('ecran-compte'); if (e) e.hidden = true; }")
+        await page.click('[data-profondeurs]')
+
+        # Tuiles calculées directement (par le worker), chronométrées
+        def tuile(lat, lon, z):
+            n = 2 ** z
+            x = int((lon + 180) / 360 * n)
+            y = int((1 - math.log(math.tan(math.radians(lat)) + 1 / math.cos(math.radians(lat))) / math.pi) / 2 * n)
+            return z, x, y
+        temps = {}
+        for nom, (lat, lon, zoom) in VUES_RELIEF.items():
+            z, x, y = tuile(lat, lon, int(zoom) - 1)
+            try:
+                r = await page.evaluate("""async ([z, x, y]) => { const m = await import('./js/relief.js');
+                    const t0 = performance.now(); const png = await m.tuileRelief(z, x, y);
+                    const b = new Uint8Array(png); let s = ''; for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode(...b.subarray(i, i + 8192));
+                    return { ms: Math.round(performance.now() - t0), octets: b.length, png: btoa(s) }; }""", [z, x, y])
+                (SORTIE / "relief" / f"tuile_{nom}_{z}_{x}_{y}.png").write_bytes(base64.b64decode(r["png"]))
+                temps[nom] = f"tuile {z}/{x}/{y} : {r['ms']} ms, {r['octets']} octets"
+            except Exception as e:
+                temps[nom] = f"erreur {str(e)[:300]}"
+        resultats["tuiles"] = temps
+        resultats["travailleur"] = await page.evaluate("() => typeof Worker !== 'undefined' && typeof OffscreenCanvas !== 'undefined'")
+
+        # Captures de la carte
+        for nom, (lat, lon, zoom) in VUES_RELIEF.items():
+            avant = len(shom)
+            t0 = time.time()
+            await page.evaluate("""async ([lat, lon, z]) => { const c = await import('./js/carte.js'); c.voler(lat, lon, z); }""", [lat, lon, zoom])
+            await page.wait_for_timeout(15000)
+            await page.screenshot(path=str(SORTIE / "relief" / f"carte_{nom}.png"))
+            resultats[f"carte_{nom}"] = f"{len(shom) - avant} images du Shom en {round(time.time() - t0)} s"
+        resultats["erreurs"] = erreurs[:40]
+        await navigateur.close()
+    (SORTIE / "relief" / "navigateur_relief.json").write_text(json.dumps(resultats, ensure_ascii=False, indent=1), encoding="utf-8")
+    annoter("Relief dans le navigateur", [f"{k} : {json.dumps(v, ensure_ascii=False)[:600]}" for k, v in resultats.items()])
+
+
 async def main():
     from playwright.async_api import async_playwright
 
@@ -178,4 +250,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import sys
+
+    SORTIE.mkdir(exist_ok=True)
+    asyncio.run(relief() if "relief" in sys.argv[1:] else main())

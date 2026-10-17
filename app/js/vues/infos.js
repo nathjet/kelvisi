@@ -21,6 +21,7 @@ const PAGES = {
         <li>La marée : en Manche et en Atlantique, l'eau est souvent plus claire autour de la pleine mer, et les vives-eaux brassent davantage.</li>
         <li>Les fortes pluies, qui apportent de l'eau trouble, et le plancton selon la saison.</li>
         <li>Les crues des grands fleuves (Seine, Loire, Vilaine, Adour, Rhône, Var), mesurées en temps réel, pour les points Kelvisi proches de leur embouchure.</li>
+        <li>Les images satellite de la turbidité (Copernicus Marine), quand le ciel est dégagé : la dernière image recale la prévision, et son effet s'efface en trois jours.</li>
         <li>La lumière, pour la visibilité ressentie (ciel couvert, soleil bas).</li>
       </ul>
       <h2>Lire la prévision</h2>
@@ -30,12 +31,20 @@ const PAGES = {
         <li>Les couleurs vont de « mauvaise » à « excellente ». Les seuils ne sont pas les mêmes en Méditerranée, où l'eau est plus claire.</li>
         <li>Seuls les créneaux entre le lever et le coucher du soleil sont proposés : la chasse de nuit est interdite.</li>
       </ul>
+      <h2>Lire la carte des profondeurs</h2>
+      <ul>
+        <li>Plus la teinte est foncée, plus c'est profond (échelle sous les boutons de la carte).</li>
+        <li>Un trait tous les 5 m jusqu'à 20 m, puis à 30, 50 et 100 m ; les traits plus foncés marquent 10, 20, 30, 50 et 100 m.</li>
+        <li>Le relief est éclairé du nord-ouest : des traits serrés et une ombre marquée signalent un tombant, une tache claire au milieu d'une teinte foncée un haut-fond ou un banc.</li>
+        <li>Près des côtes de Bretagne, de Nouvelle-Aquitaine, d'Occitanie et de Provence, le relevé laser du Shom montre chaque tête de roche. Ailleurs, le modèle à 100 m ne montre que les grandes formes.</li>
+        <li>Touche la mer pour lire la profondeur exacte du point.</li>
+      </ul>
       <h2>Limites de cette version bêta</h2>
       <ul>
-        <li>Les réglages du modèle sont des ordres de grandeur. Ils seront ajustés avec les observations satellite puis avec vos retours terrain.</li>
-        <li>Par mer calme, la prévision plafonne à la visibilité habituelle du secteur : elle ne voit pas encore les variations fines qu'apportera le satellite.</li>
+        <li>Le modèle est calé sur environ 5 300 images satellite de 2024 à 2026. Le passage de la turbidité aux mètres de visibilité reste à vérifier avec vos retours terrain.</li>
+        <li>Par temps couvert, le satellite ne voit rien : la prévision repose alors sur le modèle seul, moins précis.</li>
         <li>Les horaires de marée et le courant viennent d'un modèle à maille de 8 km : ce sont des indications, pas des horaires officiels.</li>
-        <li>La profondeur d'un lieu vient des cartes du Shom : relevés laser Litto3D au mètre près en Bretagne, Nouvelle-Aquitaine, Occitanie et Provence, modèles à 20 m ou 100 m ailleurs. Kelvisi lit la valeur sur la couleur de ces cartes : compte environ un mètre d'incertitude. Elles ne servent pas à naviguer.</li>
+        <li>Les profondeurs viennent des cartes du Shom, lues sur leurs couleurs : compte environ un mètre d'incertitude. Elles sont mesurées sous le niveau moyen de la mer pour le relevé laser, sous les plus basses mers ailleurs, d'où un écart de quelques mètres en limite des relevés laser en Manche et en Atlantique. Elles ne servent pas à naviguer.</li>
       </ul>
       <p>Chaque retour « Tu y étais ? » aide à corriger la prévision du point concerné.</p>`,
   },
@@ -71,7 +80,7 @@ const PAGES = {
         <li>Fond de carte : <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>, © OpenMapTiles, © contributeurs OpenStreetMap.</li>
         <li>Vue aérienne et recherche de lieux : Géoplateforme de l'IGN (Licence Ouverte).</li>
         <li>Profondeurs près des côtes : <a href="https://data.shom.fr" target="_blank" rel="noopener">Shom</a> (Licence Ouverte) : Litto3D® Shom-IGN, MNT côtiers et MNT de façade (projet Homonim).</li>
-        <li>Profondeurs au large : <a href="https://emodnet.ec.europa.eu/en/bathymetry" target="_blank" rel="noopener">EMODnet Bathymetry</a>, réseau européen d'observation marine.</li>
+        <li>Profondeurs en vue lointaine et hors des zones du Shom : <a href="https://emodnet.ec.europa.eu/en/bathymetry" target="_blank" rel="noopener">EMODnet Bathymetry</a>, réseau européen d'observation marine.</li>
         <li>Comptes et données des utilisateurs : Supabase, serveurs dans l'Union européenne.</li>
         <li>Fond de carte de secours : trait de côte Natural Earth (domaine public).</li>
         <li>Carte interactive : MapLibre GL JS (licence BSD).</li>

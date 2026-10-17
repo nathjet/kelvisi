@@ -121,7 +121,11 @@ const html = readFileSync(join(APP, "index.html"), "utf8").replace(/<script[^>]*
 const dom = new JSDOM(html, { url: "https://kelvisi.test/", pretendToBeVisual: true });
 const w = dom.window;
 w.matchMedia = (q) => ({ matches: grand && /min-width/.test(q), media: q, addEventListener() {}, removeEventListener() {} });
-w.maplibregl = { Map: FausseCarte, Marker: FauxRepere, NavigationControl: class {}, GeolocateControl: class {}, ScaleControl: class {} };
+const protocoles = {};
+w.maplibregl = {
+  Map: FausseCarte, Marker: FauxRepere, NavigationControl: class {}, GeolocateControl: class {}, ScaleControl: class {},
+  addProtocol(nom, f) { protocoles[nom] = f; },
+};
 w.fetch = fauxFetch;
 w.scrollTo = () => {};
 w.navigator.geolocation = { getCurrentPosition: (ok) => ok({ coords: { latitude: 47.48, longitude: -3.12 } }) };
@@ -414,6 +418,17 @@ await etape("couches de la carte", async () => {
   assert.equal(carte.couches["couche-aerien"].visibilite, "visible");
   assert.equal(carte.couches["couche-profondeurs"].visibilite, "visible");
   assert.ok(!d.getElementById("legende-profondeurs").hidden);
+  // Relief du Shom redessiné de près, EMODnet seulement de loin ; échelle des teintes dans la légende
+  assert.equal(carte.couches["couche-relief"].visibilite, "visible");
+  assert.equal(carte.couches["couche-profondeurs"].maxzoom, carte.couches["couche-relief"].minzoom);
+  assert.match(carte.sources.relief.tiles[0], /^kelvisi-relief:\/\//);
+  assert.equal(typeof protocoles["kelvisi-relief"], "function");
+  assert.equal(d.querySelectorAll("#echelle-profondeurs i").length, 12);
+  assert.deepEqual([...d.querySelectorAll("#echelle-profondeurs b")].map((b) => b.textContent), ["0", "5", "10", "20", "30", "50", "100 m"]);
+  d.querySelector("#fond-carte [data-profondeurs]").click();
+  assert.equal(carte.couches["couche-relief"].visibilite, "none");
+  assert.ok(d.getElementById("legende-profondeurs").hidden);
+  d.querySelector("#fond-carte [data-profondeurs]").click();
 });
 
 await etape("pages d'information", async () => {
