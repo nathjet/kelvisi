@@ -192,7 +192,8 @@
     "ouverture_deg": 100,
     "profondeur_m": 15,
     "fond": "roche",
-    "notes": "Parc naturel marin d'Iroise. Courants violents."
+    "notes": "Parc naturel marin d'Iroise. Courants violents.",
+    "rayon_satellite_m": 800
   },
   {
     "id": "ref-saint-mathieu",
@@ -292,7 +293,8 @@
         "delai_h": 72,
         "nom": "Loire"
       }
-    ]
+    ],
+    "rayon_satellite_m": 800
   },
   {
     "id": "ref-le-croisic",
@@ -370,7 +372,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 5,
     "fond": "roche",
-    "notes": "Platiers, eaux souvent chargées."
+    "notes": "Platiers, eaux souvent chargées.",
+    "rayon_satellite_m": 800
   },
   {
     "id": "ref-chassiron",
@@ -476,7 +479,8 @@
     "ouverture_deg": 80,
     "profondeur_m": 10,
     "fond": "roche",
-    "notes": "Réserve naturelle de Cerbère-Banyuls à proximité : ne pas publier comme spot de chasse sans vérifier la réglementation."
+    "notes": "Réserve naturelle de Cerbère-Banyuls à proximité : ne pas publier comme spot de chasse sans vérifier la réglementation.",
+    "rayon_satellite_m": 800
   },
   {
     "id": "ref-sete",
@@ -696,7 +700,8 @@
     "orientation_deg": 330,
     "ouverture_deg": 80,
     "profondeur_m": 12,
-    "fond": "roche"
+    "fond": "roche",
+    "rayon_satellite_m": 800
   },
   {
     "id": "ref-palombaggia",

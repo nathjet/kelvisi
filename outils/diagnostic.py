@@ -20,7 +20,6 @@ import traceback
 import requests
 
 ORIGINE = "https://nathjet.github.io"
-SORTIE = _Chemin(__file__).resolve().parent.parent / "diag"
 POINT = (47.4892, -3.1565)  # Quiberon, côte sauvage
 
 

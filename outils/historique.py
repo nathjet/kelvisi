@@ -164,23 +164,23 @@ def satellite_du_point(spot, debut: str, fin: str) -> list[list]:
     import copernicusmarine
 
     jeu = copernicus.JEUX[copernicus.bassin(spot)]
-    m = copernicus.MARGE_DEG
+    m_lat, m_lon = copernicus.marges(spot)
     ds = copernicusmarine.open_dataset(
         dataset_id=jeu, variables=[copernicus.VARIABLE_TURBIDITE, copernicus.VARIABLE_CHL],
-        minimum_longitude=spot.lon - m, maximum_longitude=spot.lon + m,
-        minimum_latitude=spot.lat - m, maximum_latitude=spot.lat + m,
+        minimum_longitude=spot.lon - m_lon, maximum_longitude=spot.lon + m_lon,
+        minimum_latitude=spot.lat - m_lat, maximum_latitude=spot.lat + m_lat,
         start_datetime=f"{debut}T00:00:00", end_datetime=f"{fin}T23:59:59",
     )
     tur = ds[copernicus.VARIABLE_TURBIDITE].load()
     chl = ds[copernicus.VARIABLE_CHL].load()
     lats, lons = tur["latitude"].values, tur["longitude"].values
     d = copernicus.distances_m(spot.lat, spot.lon, lats, lons)
-    proches = d <= copernicus.RAYON_M
+    proches = d <= copernicus.rayon(spot)
     temps = tur["time"].values.astype("datetime64[s]").astype(np.int64)
     sortie = []
     for k in range(len(temps)):
         obs = copernicus.extraire_au_spot(int(temps[k] - temps[k] % 86400 + copernicus.HEURE_PASSAGE_UTC * 3600),
-                                          tur.values[k], chl.values[k], d, rayon_m=copernicus.RAYON_M)
+                                          tur.values[k], chl.values[k], d, rayon_m=copernicus.rayon(spot))
         if obs is None:
             continue
         part = float(np.isfinite(tur.values[k][proches]).mean()) if proches.any() else 0.0
@@ -209,7 +209,7 @@ def enregistrer_npz(chemin: Path, temps: np.ndarray, series: dict) -> None:
     np.savez_compressed(chemin, temps=temps, **series)
 
 
-def collecter(budget: float, debut: str) -> None:
+def collecter(budget: float, debut: str, refaire_satellite: tuple[str, ...] = ()) -> None:
     import requests
 
     spots = charger_spots(RACINE / "spots" / "points.json")
@@ -245,7 +245,7 @@ def collecter(budget: float, debut: str) -> None:
         faits = 0
         for s in spots:
             chemin = DOSSIER / "satellite" / f"{s.id}.json"
-            if chemin.exists():
+            if chemin.exists() and s.id not in refaire_satellite:
                 continue
             try:
                 obs = satellite_du_point(s, debut, date.today().isoformat())
@@ -305,12 +305,13 @@ def main():
     p.add_argument("etape", choices=["sonder", "collecter"])
     p.add_argument("--budget", type=float, default=4000)
     p.add_argument("--debut", default=DEBUT)
+    p.add_argument("--refaire-satellite", default="", help="points dont les images sont à télécharger de nouveau (séparés par des virgules)")
     a = p.parse_args()
     DOSSIER.mkdir(exist_ok=True)
     if a.etape == "sonder":
         sonder()
     else:
-        collecter(a.budget, a.debut)
+        collecter(a.budget, a.debut, tuple(x for x in a.refaire_satellite.split(",") if x))
 
 
 if __name__ == "__main__":

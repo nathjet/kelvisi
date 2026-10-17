@@ -14,6 +14,10 @@ on:
         description: "Appels Open-Meteo au plus pour ce lancement"
         required: false
         default: "4000"
+      refaire_satellite:
+        description: "Points dont les images satellite sont à télécharger de nouveau (séparés par des virgules)"
+        required: false
+        default: ""
 
 permissions:
   contents: write   # publie les données sur la branche « historique »
@@ -52,7 +56,8 @@ jobs:
         env:
           ETAPE: ${{ github.event.inputs.etape }}
           BUDGET: ${{ github.event.inputs.budget }}
-        run: python outils/historique.py "$ETAPE" --budget "${BUDGET:-4000}"
+          REFAIRE: ${{ github.event.inputs.refaire_satellite }}
+        run: python outils/historique.py "$ETAPE" --budget "${BUDGET:-4000}" --refaire-satellite "$REFAIRE"
       - name: Publier sur la branche « historique »
         if: always() && github.event.inputs.etape == 'collecter'
         run: |

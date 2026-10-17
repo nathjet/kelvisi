@@ -147,3 +147,22 @@ def test_adresses_open_meteo():
     marine, meteo = openmeteo.adresses("cle-secrete")
     assert marine == "https://customer-marine-api.open-meteo.com/v1/marine"
     assert meteo == "https://customer-api.open-meteo.com/v1/forecast"
+
+
+def test_rayon_satellite_elargi_pour_un_point_pres_des_terres():
+    from dataclasses import replace
+
+    from conftest import fabriquer_spot
+
+    spot = fabriquer_spot(lat=47.34, lon=-3.25)
+    lats = np.arange(spot.lat - 0.012, spot.lat + 0.0121, 0.000926)
+    lons = np.arange(spot.lon - 0.015, spot.lon + 0.0151, 0.00132)
+    d = copernicus.distances_m(spot.lat, spot.lon, lats, lons)
+    tur = np.where(d > 350, 1.5, np.nan)[None, :, :]  # terres (pas de valeur) jusqu'à 350 m du point
+    jours = np.array([T0 - T0 % 86400])
+    assert copernicus.derniere_observation(spot, jours, lats, lons, tur, None) is None
+    large = replace(spot, rayon_satellite_m=800)
+    obs = copernicus.derniere_observation(large, jours, lats, lons, tur, None)
+    assert obs is not None and obs.turbidite_fnu == pytest.approx(1.5)
+    m_lat, m_lon = copernicus.marges(large)
+    assert m_lat * 111_320 > 800 and m_lon * 111_320 * np.cos(np.radians(spot.lat)) > 800

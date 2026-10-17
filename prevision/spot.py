@@ -45,6 +45,7 @@ class Spot:
     sensibilite_pluie: float = 0.3
     sensibilite_houle: float = 1.0      # réaction de l'eau à la houle (calée sur le satellite)
     satellite: bool = True              # faux si un fond clair peu profond fausse la turbidité satellite
+    rayon_satellite_m: float = 300.0    # pixels satellite pris en compte autour du point
     facteur_courant: float = 1.0
     stations: list[StationRiviere] = field(default_factory=list)
     prive: bool = False

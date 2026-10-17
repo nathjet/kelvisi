@@ -59,8 +59,19 @@ VARIABLE_TURBIDITE = "TUR"
 VARIABLE_CHL = "CHL"
 FNU_PAR_SPM = 1.0             # la turbidité est déjà en FNU : pas de conversion
 HEURE_PASSAGE_UTC = 10.5      # Sentinel-2 et Sentinel-3 survolent la France vers 10 h 30 UTC
-RAYON_M = 300.0               # trois pixels d'environ 100 m autour du point
+RAYON_M = 300.0               # trois pixels d'environ 100 m autour du point (rayon par défaut)
 MARGE_DEG = 0.01
+
+
+def rayon(spot) -> float:
+    """Rayon des pixels pris en compte : plus large pour un point que le masque des terres du satellite tient à distance."""
+    return float(getattr(spot, "rayon_satellite_m", RAYON_M) or RAYON_M)
+
+
+def marges(spot) -> tuple[float, float]:
+    """Demi-côtés (degrés de latitude, de longitude) de la zone découpée autour du point."""
+    r = rayon(spot) * 1.2
+    return (max(MARGE_DEG, r / 111_320.0), max(MARGE_DEG, r / (111_320.0 * np.cos(np.radians(spot.lat)))))
 
 
 def identifiants_presents() -> bool:
@@ -91,7 +102,7 @@ def derniere_observation(spot, temps_jours: np.ndarray, lats: np.ndarray, lons: 
     d = distances_m(spot.lat, spot.lon, lats, lons)
     for k in range(len(temps_jours) - 1, -1, -1):
         obs = extraire_au_spot(int(temps_jours[k] + HEURE_PASSAGE_UTC * 3600), turbidite[k],
-                               None if chlorophylle is None else chlorophylle[k], d, rayon_m=RAYON_M)
+                               None if chlorophylle is None else chlorophylle[k], d, rayon_m=rayon(spot))
         if obs is not None:
             return obs
     return None
@@ -102,8 +113,8 @@ def _ouvrir(dataset_id: str, variables: list[str], spots, debut: str, fin: str):
 
     return copernicusmarine.open_dataset(
         dataset_id=dataset_id, variables=variables,
-        minimum_longitude=min(s.lon for s in spots) - MARGE_DEG, maximum_longitude=max(s.lon for s in spots) + MARGE_DEG,
-        minimum_latitude=min(s.lat for s in spots) - MARGE_DEG, maximum_latitude=max(s.lat for s in spots) + MARGE_DEG,
+        minimum_longitude=min(s.lon - marges(s)[1] for s in spots), maximum_longitude=max(s.lon + marges(s)[1] for s in spots),
+        minimum_latitude=min(s.lat - marges(s)[0] for s in spots), maximum_latitude=max(s.lat + marges(s)[0] for s in spots),
         start_datetime=debut, end_datetime=fin,
     )
 
@@ -138,8 +149,9 @@ def recuperer(spots, maintenant: int, jours: int = 5, ouvrir=_ouvrir) -> dict:
 
 def _au_spot(spot, ds) -> ObservationSatellite | None:
     """Découpe autour du point puis cherche la dernière image valable."""
-    zone = dict(latitude=slice(spot.lat - MARGE_DEG, spot.lat + MARGE_DEG),
-                longitude=slice(spot.lon - MARGE_DEG, spot.lon + MARGE_DEG))
+    m_lat, m_lon = marges(spot)
+    zone = dict(latitude=slice(spot.lat - m_lat, spot.lat + m_lat),
+                longitude=slice(spot.lon - m_lon, spot.lon + m_lon))
     ds = ds.sortby("latitude")
     t = ds[VARIABLE_TURBIDITE].sel(**zone).load()
     if t.size == 0:
