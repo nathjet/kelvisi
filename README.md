@@ -13,7 +13,8 @@ Atlantique, Méditerranée, Corse). Version bêta, gratuite, sans compte.
   et favoris synchronisés entre appareils et visibles par leur seul
   propriétaire ; page « Mon compte » (profil, mot de passe, export des
   données, suppression). Liste des clients exportable depuis Supabase.
-- **Carte** des 46 points Kelvisi, colorés selon la visibilité du jour choisi,
+- **Carte** des 97 points Kelvisi et des spots partagés par les utilisateurs,
+  colorés selon la visibilité du jour choisi,
   avec trois fonds : plan, vue aérienne IGN, profondeurs (Shom près des
   côtes, dont les relevés laser Litto3D au mètre ; EMODnet au large).
 - **Profondeur au point** lue sur les cartes du Shom (relevé laser, modèle
@@ -22,8 +23,13 @@ Atlantique, Méditerranée, Corse). Version bêta, gratuite, sans compte.
   la carte de façade du Shom.
 - **Recherche de lieux** (plage, pointe, commune) avec la Géoplateforme IGN,
   puis prévision calculée sur place pour ce lieu.
+- **« Où aller ? »** : recherche d'une ville, d'une plage ou d'un spot par son
+  nom, ou « Autour de moi », puis les spots du rayon choisi classés du plus
+  clair au plus trouble.
+- **Spots partagés** : un utilisateur peut proposer un de ses spots à tous ;
+  il apparaît après validation par l'éditeur, sans le nom de son auteur.
 - **Clic en mer** n'importe où : profondeur et orientation estimées
-  automatiquement (EMODnet), prévision du lieu, réglages modifiables.
+  automatiquement (Shom, sinon EMODnet), prévision du lieu, réglages modifiables.
 - **Fiche d'un spot** : visibilité attendue, fourchette et confiance, meilleur
   créneau de jour, explication en une phrase, tendance, alerte de sécurité,
   heure par heure, houle au spot, vent (de terre ou de mer, en nœuds ou km/h),
@@ -99,7 +105,7 @@ plancton) le seront avec les retours terrain de la bêta
 
 ### Calage sur le satellite
 
-Le workflow « Calage » (`outils/historique.py`) rassemble pour les 46 points
+Le workflow « Calage » (`outils/historique.py`) rassemble pour les points Kelvisi
 les images satellite depuis 2022 et la météo marine, la pluie et les débits
 des mêmes jours, sur la branche `historique`. `outils/caler.py` recalcule
 ensuite la turbidité que le modèle aurait prévue, la compare aux images, cale
@@ -137,7 +143,7 @@ app/                    application publiée (HTML, CSS, JavaScript, données)
   sw.js                 fonctionnement hors connexion
 prevision/              moteur Python
   sources/              Open-Meteo, Hub'Eau, Copernicus
-spots/points.json       les 46 points Kelvisi (et leurs rivières)
+spots/points.json       les 97 points Kelvisi (et leurs rivières)
 outils/
   calculer_previsions.py  calcul horaire de tous les points
   prevoir_spot.py         prévision d'un seul spot, en ligne de commande
@@ -163,7 +169,7 @@ python -m http.server -d app 8000                    # puis http://localhost:800
 | Élément | État |
 | --- | --- |
 | Modèle, créneaux, explications, calibrage, classement | Codé, testé (113 tests Python), calé sur le satellite |
-| Open-Meteo | Lancé sur l'API réelle : 46 points calculés sans erreur |
+| Open-Meteo | Lancé sur l'API réelle : 97 points calculés sans erreur |
 | Hub'Eau | Lancé sur l'API réelle : 6 stations lues, rattachées à 11 points |
 | Interface | Testée automatiquement en mobile et grand écran (32 étapes) |
 | Carte | Vérifiée dans Chromium (mobile et ordinateur) avec le fond de secours |

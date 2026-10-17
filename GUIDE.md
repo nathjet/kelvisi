@@ -312,7 +312,7 @@ depuis « Mes spots » avant le changement et les réimporter après).
 
 | Élément | État |
 | --- | --- |
-| Calcul des prévisions avec la vraie météo Open-Meteo (46 points) | Lancé avec succès sur les vraies données |
+| Calcul des prévisions avec la vraie météo Open-Meteo (97 points) | Lancé avec succès sur les vraies données |
 | Débits des rivières Hub'Eau (Seine, Loire, Vilaine, Adour, Rhône, Var) | Lancé avec succès sur les vraies données |
 | Interface (navigation, fiches, recherche, spots privés, retours) | Testée automatiquement, version mobile et ordinateur |
 | Même résultat entre le calcul du navigateur et celui du serveur | Vérifié automatiquement |
