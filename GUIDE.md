@@ -96,8 +96,10 @@ affichent `[… à compléter]` tant que ces deux informations manquent.
    ```
 3. **Commit changes**. Le site se republie tout seul en quelques minutes.
 
-Conseil : crée une adresse dédiée (par exemple `kelvisi.contact@…`) plutôt
-que ton adresse personnelle, puisqu'elle sera publique.
+Fait le 17 octobre 2026 avec ton adresse Gmail. Quand tu auras une adresse
+dédiée (par exemple `contact@kelvisi.fr`), remplace simplement `contact` de
+la même façon : elle est publique, mieux vaut ne pas y laisser ton adresse
+personnelle trop longtemps.
 
 ## 6. Comptes et base clients (Supabase)
 

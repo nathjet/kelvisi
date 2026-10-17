@@ -401,7 +401,10 @@ await etape("pages d'information", async () => {
     await aller(`#/infos/${page}`);
     assert.ok(panneau().querySelector(".page-infos h1"), page);
   }
-  assert.match(texte(panneau()), /adresse de contact à compléter/);
+  assert.doesNotMatch(texte(panneau()), /à compléter/, "mentions légales remplies");
+  assert.ok(panneau().querySelector('a[href^="mailto:"]'), "adresse de contact cliquable");
+  await aller("#/infos/mentions");
+  assert.match(texte(panneau()), /Nathan Gloaguen/);
 });
 
 await etape("unité du vent", async () => {

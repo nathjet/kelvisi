@@ -159,7 +159,7 @@ const PAGES = {
     resume: "Un bug, une idée, un spot qui se trompe",
     contenu: () => `
       <p>Kelvisi est en bêta : tes retours décident de la suite. Un bug, une prévision à côté, une fonction qui manque ?</p>
-      <p>Écris à : <strong style="user-select:all">${aCompleter(CONFIG.contact, "adresse de contact")}</strong></p>
+      <p>Écris à : ${CONFIG.contact ? `<a href="mailto:${encodeURIComponent(CONFIG.contact)}?subject=${encodeURIComponent("Avis sur Kelvisi")}"><strong style="user-select:all">${echapper(CONFIG.contact)}</strong></a>` : aCompleter("", "adresse de contact")}</p>
       <p>Pour une prévision qui se trompe, le plus utile est d'utiliser « Tu y étais ? » sur la fiche du spot : ton retour corrige directement le modèle.</p>`,
   },
 };

@@ -2,8 +2,8 @@
 
 export const CONFIG = {
   // Nom (ou raison sociale) de l'éditeur et adresse de contact, affichés dans les mentions légales
-  editeur: "",
-  contact: "",
+  editeur: "Nathan Gloaguen",
+  contact: "gloaguennathan2901@gmail.com",
 
   // Comptes Kelvisi : projet Supabase, adresse et clé publique « publishable » (faite pour être
   // publique). Jamais la clé secrète ici : elle va uniquement dans les secrets GitHub.
