@@ -6,14 +6,16 @@ import { grilleAutour, meilleureMesure, orientationDepuisGrille, profondeursAuPo
 
 const URL = "https://rest.emodnet-bathymetry.eu/depth_sample";
 
-// Profondeur moyenne (m, positive en mer) au point, ou null à terre ou en cas d'échec
+// Profondeur moyenne (m, positive en mer) au point, ou null à terre ou en cas d'échec.
+// EMODnet donne une altitude : négative sous la mer (vérifié en octobre 2026 : -35 m au large de
+// Quiberon, +35 m à Rennes).
 export async function profondeurAuPoint(lat, lon, signal) {
   const geom = `POINT(${lon.toFixed(3)} ${lat.toFixed(3)})`;
   try {
     const r = await fetch(`${URL}?geom=${encodeURIComponent(geom)}`, { signal });
     if (!r.ok) return null;
     const d = await r.json();
-    const v = Number(d.avg);
+    const v = d.avg === null || d.avg === undefined ? NaN : -Number(d.avg);
     return Number.isFinite(v) && v > 0 ? v : null;
   } catch (e) {
     if (e.name === "AbortError") throw e;

@@ -536,34 +536,40 @@ def placer_points():
         a = math.radians(azimut)
         return (lat + metres * math.cos(a) / 111_320.0, lon + metres * math.sin(a) / (111_320.0 * math.cos(math.radians(lat))))
 
+    directions = [k * 22.5 for k in range(16)]
+
+    def large_et_ouverture(lat, lon):
+        rayons = {d: [profondeur(*deplacer(lat, lon, d, m)) for m in (800, 1500)] for d in directions}
+        def score(d):
+            return sum(rayons[(d + k * 22.5) % 360][1] or 0 for k in (-1, 0, 1))
+        orientation = max(directions, key=score) if any(r[1] for r in rayons.values()) else None
+        ouverture = max(45, min(180, 22.5 * sum(1 for d in directions if rayons[d][0] is not None)))
+        return orientation, ouverture
+
     def traiter(c):
         lat, lon = c["lat"], c["lon"]
         p0 = profondeur(lat, lon)
-        directions = [k * 22.5 for k in range(16)]
-        rayons = {}
-        for d in directions:
-            rayons[d] = [profondeur(*deplacer(lat, lon, d, m)) for m in (400, 800, 1500)]
-        au_large = [d for d in directions if rayons[d][2] is not None]
-        if au_large:
-            # Direction du large : la plus profonde à 1,5 km, lissée avec ses deux voisines
-            def score(d):
-                vals = [rayons[(d + k * 22.5) % 360][2] or 0 for k in (-1, 0, 1)]
-                return sum(vals)
-            orientation = max(directions, key=score)
-        else:
-            orientation = c.get("orientation_deg", 270)
-        ouverture = max(45, min(180, 22.5 * sum(1 for d in directions if rayons[d][1] is not None)))
         lat2, lon2, p2, deplace = lat, lon, p0, 0
-        if p0 is None or not 5 <= p0 <= 16:
-            for m in range(100, 3100, 100):
-                la, lo = deplacer(lat, lon, orientation, m)
-                p = profondeur(la, lo)
-                if p is not None and 6 <= p <= 15:
-                    lat2, lon2, p2, deplace = la, lo, p, m
+        if p0 is None or not 5 <= p0 <= 18:
+            # Le point d'eau le plus proche entre 5 et 18 m, dans toutes les directions, à 1,5 km au plus
+            trouve = None
+            for m in (150, 300, 500, 750, 1000, 1400):
+                essais = []
+                for d in directions:
+                    la, lo = deplacer(lat, lon, d, m)
+                    pr = profondeur(la, lo)
+                    if pr is not None and 5 <= pr <= 18:
+                        essais.append((abs(pr - 10), la, lo, pr))
+                if essais:
+                    trouve = min(essais)
+                    deplace = m
                     break
+            if trouve:
+                _, lat2, lon2, p2 = trouve
+        orientation, ouverture = large_et_ouverture(lat2, lon2)
         return {"id": c["id"], "nom": c["nom"], "depart": [lat, lon], "profondeur_depart": p0, "lat": round(lat2, 4), "lon": round(lon2, 4),
                 "profondeur": p2, "deplace_m": deplace, "orientation_deg": orientation, "orientation_prevue": c.get("orientation_deg"),
-                "ouverture_deg": ouverture, "eau_a_800m": [d for d in directions if rayons[d][1] is not None]}
+                "ouverture_deg": ouverture}
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         resultats = list(pool.map(traiter, candidats))

@@ -70,8 +70,8 @@ async function fauxFetch(entree, options = {}) {
   if (url.includes("rest.emodnet-bathymetry.eu")) {
     const m = decodeURIComponent(url).match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
     const lon = Number(m[1]);
-    // La mer est à l'ouest de -3.16 : le large est donc vers l'ouest
-    return json({ avg: lon < -3.16 ? 4 + (-3.16 - lon) * 300 : -12 });
+    // La mer est à l'ouest de -3.16 : le large est donc vers l'ouest (EMODnet : altitude négative sous la mer)
+    return json({ avg: lon < -3.16 ? -(4 + (-3.16 - lon) * 300) : 12 });
   }
   if (url.includes("data.geopf.fr/geocodage")) {
     const poi = url.includes("index=poi");
