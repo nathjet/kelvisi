@@ -509,17 +509,28 @@ def placer_points():
     Path(SORTIE).mkdir(exist_ok=True)
     http = requests.Session()
 
-    def profondeur(lat, lon):
+    def altitude(lat, lon):
         for _ in range(3):
             try:
                 r = http.get("https://rest.emodnet-bathymetry.eu/depth_sample",
                              params={"geom": f"POINT({lon:.5f} {lat:.5f})"}, timeout=30)
                 if r.status_code == 200:
                     v = r.json().get("avg")
-                    return float(v) if v is not None and float(v) > 0 else None
+                    return None if v is None else float(v)
             except Exception:
                 pass
         return None
+
+    # Convention vérifiée sur deux points connus : large de Quiberon (mer) et Rennes (terre)
+    temoins = {"mer, large de Quiberon": altitude(47.45, -3.25), "terre, Rennes": altitude(48.11, -1.68)}
+    signe = -1.0 if (temoins["mer, large de Quiberon"] or 0) < 0 else 1.0
+
+    def profondeur(lat, lon):
+        v = altitude(lat, lon)
+        if v is None:
+            return None
+        d = signe * v
+        return d if d > 0 else None
 
     def deplacer(lat, lon, azimut, metres):
         a = math.radians(azimut)
@@ -557,6 +568,7 @@ def placer_points():
     with ThreadPoolExecutor(max_workers=8) as pool:
         resultats = list(pool.map(traiter, candidats))
     Path(SORTIE, "points_places.json").write_text(json.dumps(resultats, ensure_ascii=False, indent=1), encoding="utf-8")
+    annoter("EMODnet : convention", [f"{k} : {v}" for k, v in temoins.items()] + [f"profondeur = {signe:+.0f} × avg"])
     annoter("Placement des nouveaux points", [
         f"{r['id']} : {r['profondeur_depart']} m -> {r['profondeur']} m ({r['deplace_m']} m), large {r['orientation_deg']}° (prévu {r['orientation_prevue']}°), ouverture {r['ouverture_deg']}°"
         for r in resultats])
