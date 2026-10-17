@@ -107,18 +107,22 @@ les réglages sur le début de l'historique et vérifie le résultat sur la fin,
 jamais vue pendant le calage (`--appliquer` écrit les valeurs retenues).
 Rapport complet : `calage/resultat.json`.
 
-Premier calage (octobre 2026, images de janvier 2025 à octobre 2026, 39 points,
-3 753 images) ; erreur typique sur la turbidité, période de vérification :
+Calage d'octobre 2026 (images de janvier 2024 à octobre 2026, 44 points,
+5 307 images) ; erreur typique sur la turbidité pendant la période de
+vérification :
 
 | Prévision | 1 jour après une image | 2 à 3 jours | 4 à 7 jours |
 | --- | --- | --- | --- |
-| Eau identique à la dernière image | 38 % | 46 % | 66 % |
-| Modèle calé, recalé sur la dernière image | 36 % | 34 % | 39 % |
+| Eau identique à la dernière image | 38 % | 48 % | 65 % |
+| Modèle calé, recalé sur la dernière image | 35 % | 35 % | 41 % |
 
-Sans image récente, le modèle calé fait 42 % d'erreur typique, contre 118 %
-avant calage et 58 % pour une simple moyenne de chaque point. Aux Glénan et à
-Palombaggia, le fond de sable clair peu profond fausse la turbidité satellite :
-le satellite y est ignoré.
+Sans image récente, le modèle calé fait 42 % d'erreur typique, contre 58 %
+pour une simple moyenne de chaque point (et 118 % avec les réglages
+d'origine). Aux Glénan et à Palombaggia, le fond de sable clair peu profond
+fausse la turbidité satellite : le satellite y est ignoré. À Ouessant,
+Belle-Île, Campomoro, sur la côte Vermeille et aux Baleines, le masque des
+terres du satellite s'arrête à 140-380 m du point : les pixels sont pris
+dans un rayon de 800 m au lieu de 300 m.
 
 ## Organisation
 
@@ -174,8 +178,8 @@ Limites connues :
 
 - La conversion de la turbidité en mètres de visibilité n'est pas encore
   vérifiée sur le terrain : les retours de la bêta la régleront.
-- Le satellite ne voit rien par temps couvert, et rien à moins d'environ
-  300 m de certains caps (Ouessant, Belle-Île, Campomoro, côte Vermeille).
+- Le satellite ne voit rien par temps couvert : environ la moitié des points
+  ont une image de moins de 5 jours à un instant donné.
 - Les horaires de marée viennent d'un modèle à maille de 8 km : indicatifs.
 - La carte des profondeurs (environ 100 m de résolution) ne sert pas à
   naviguer.

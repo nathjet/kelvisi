@@ -35,9 +35,24 @@ def series_simulees():
     return series
 
 
+# Constantes figées pendant ces tests, pour qu'ils ne dépendent pas du dernier calage réel
+CONSTANTES_DU_TEST = {"POIDS_LITTORAL": 0.3, "C_BRASSAGE_MAX": 6.0, "DELTA_PLUIE": 0.35, "GAMMA_FLUVIAL": 0.6,
+                      "EFFET_PHASE_MAREE": 0.25, "ALPHA_BRASSAGE": 0.003, "FACTEUR_TAU": 1.0,
+                      "SAISON": {r: {"amplitude": 0.0, "pic_jour": 15.0} for r in ("manche", "atlantique", "mediterranee")}}
+
+
+@pytest.fixture(scope="module", autouse=True)
+def constantes_figees():
+    from prevision import parametres as P
+
+    with pytest.MonkeyPatch.context() as m:
+        for nom, valeur in CONSTANTES_DU_TEST.items():
+            m.setattr(P, nom, valeur)
+        yield
+
+
 @pytest.fixture(scope="module")
-def resultat():
-    # La saison réelle est celle de parametres.py : on ne la recale pas ici (150 jours ne suffisent pas)
+def resultat(constantes_figees):
     apprentissage, test = separer(series_simulees())
     return caler(apprentissage, test, saison=False)
 

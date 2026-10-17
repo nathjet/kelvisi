@@ -122,6 +122,10 @@ def test_appliquer_ecrit_les_valeurs(tmp_path):
     assert espace["REGIONS"]["atlantique"]["visibilite_calme_m"] == avant["REGIONS"]["atlantique"]["visibilite_calme_m"]  # inchangée
     assert espace["REGIONS"]["mediterranee"]["visibilite_calme_m"] == 12.1
     assert "Calé sur le satellite (2025-01 à 2026-10)" in parametres.read_text(encoding="utf-8")
+    # Un nouveau calage remplace la période indiquée, sans doublon
+    appliquer(res, {}, "2022-01 à 2026-10", parametres, points)
+    texte = parametres.read_text(encoding="utf-8")
+    assert "2025-01 à 2026-10" not in texte and texte.count("pic_jour compté depuis le 1er janvier. Calé sur le satellite (2022-01 à 2026-10).") == 1
     pts = json.loads(points.read_text(encoding="utf-8"))
     assert pts[0]["visibilite_calme_m"] == 3.5 and pts[0]["sensibilite_houle"] == 2.35
     assert "visibilite_calme_m" not in pts[2] and "sensibilite_houle" not in pts[1]

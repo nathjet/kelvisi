@@ -231,22 +231,23 @@ def appliquer(res, regions: dict, periode: str, parametres: Path, points: Path) 
     """Écrit les valeurs retenues dans prevision/parametres.py et spots/points.json."""
     import re
 
+    note = f"Calé sur le satellite ({periode})"
+    ancienne_note = re.compile(r"À CALER|Calé sur le satellite \([^)]*\)")
     lignes = parametres.read_text(encoding="utf-8").split("\n")
     for nom, valeur in res.reglages.items():
         k = next(i for i, l in enumerate(lignes) if re.match(rf"^{nom}\s*=", l))
         lignes[k] = re.sub(rf"^({nom}\s*=\s*)[0-9.eE+-]+", lambda m: m.group(1) + _chiffres(valeur), lignes[k])
-        lignes[k] = lignes[k].replace("À CALER.", f"Calé sur le satellite ({periode}).")
+        lignes[k] = ancienne_note.sub(note, lignes[k])
         j = k - 1
         while j >= 0 and lignes[j].startswith("#"):
-            lignes[j] = lignes[j].replace("À CALER.", f"Calé sur le satellite ({periode}).")
+            lignes[j] = ancienne_note.sub(note, lignes[j])
             j -= 1
     texte = "\n".join(lignes)
     bloc = "SAISON = {\n" + "".join(
         f'    "{r}": {{"amplitude": {_chiffres(v["amplitude"], 3)}, "pic_jour": {_chiffres(v["pic_jour"], 4)}}},\n'
         for r, v in res.saisons.items()) + "}"
     texte = re.sub(r"SAISON = \{\n.*?\n\}", lambda m: bloc, texte, count=1, flags=re.S)
-    texte = texte.replace("sur la turbidité côtière : exp(amplitude · cos(2π (jour − pic_jour) / 365,25)),\n# pic_jour compté depuis le 1er janvier.",
-                          f"sur la turbidité côtière : exp(amplitude · cos(2π (jour − pic_jour) / 365,25)),\n# pic_jour compté depuis le 1er janvier. Calé sur le satellite ({periode}).")
+    texte = re.sub(r"# pic_jour compté depuis le 1er janvier\..*", f"# pic_jour compté depuis le 1er janvier. {note}.", texte, count=1)
     for r, v in regions.items():
         texte = re.sub(rf'("{r}": \{{\n\s*"visibilite_calme_m": )[0-9.]+', lambda m: m.group(1) + f"{v['calee']:.1f}", texte, count=1)
     parametres.write_text(texte, encoding="utf-8")
