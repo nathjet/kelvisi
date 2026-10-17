@@ -2,7 +2,7 @@
 
 Prévision de la visibilité sous l'eau, en mètres, heure par heure sur trois
 jours, pour la chasse sous-marine sur les côtes françaises (Manche,
-Atlantique, Méditerranée, Corse). Version bêta, gratuite, sans compte.
+Atlantique, Méditerranée, Corse). Version bêta gratuite, avec un compte.
 
 **Pour mettre l'application en ligne : voir [GUIDE.md](GUIDE.md).**
 
@@ -14,9 +14,13 @@ Atlantique, Méditerranée, Corse). Version bêta, gratuite, sans compte.
   propriétaire ; page « Mon compte » (profil, mot de passe, export des
   données, suppression). Liste des clients exportable depuis Supabase.
 - **Carte** des 97 points Kelvisi et des spots partagés par les utilisateurs,
-  colorés selon la visibilité du jour choisi,
-  avec trois fonds : plan, vue aérienne IGN, profondeurs (Shom près des
-  côtes, dont les relevés laser Litto3D au mètre ; EMODnet au large).
+  colorés selon la visibilité du jour choisi, sur un fond plan ou la vue
+  aérienne IGN.
+- **Carte des profondeurs** : les modèles du Shom (relevés laser Litto3D au
+  mètre, modèles côtiers à 5-20 m, modèles de façade à 100 m) relus et
+  redessinés en tranches de profondeur, avec un trait tous les 5 m et un relief
+  éclairé du nord-ouest, pour repérer tombants, têtes de roche et bancs.
+  EMODnet en vue lointaine.
 - **Profondeur au point** lue sur les cartes du Shom (relevé laser, modèle
   côtier à 20 m, modèle de façade à 100 m), avec sa référence (niveau moyen
   ou plus basses mers) ; direction du large et abri d'un lieu calculés sur
@@ -37,11 +41,9 @@ Atlantique, Méditerranée, Corse). Version bêta, gratuite, sans compte.
   des fleuves proches, lever et coucher du soleil, phase de la Lune et période
   de vives-eaux ou mortes-eaux.
 - **Favoris** parmi les points Kelvisi, et **partage d'une prévision par lien**.
-- **Où aller ?** : classement des points par façade ou autour de soi
-  (géolocalisation, rayon réglable), sur trois jours.
-- **Mes spots** : favoris et spots privés, enregistrés sur l'appareil
-  seulement ; copie et import pour changer de téléphone. Un lieu peut être
-  proposé comme futur point Kelvisi par courriel.
+- **Mes spots** : favoris et spots privés, liés au compte et synchronisés
+  entre appareils, visibles par leur seul propriétaire ; copie et import.
+  Un lieu peut être proposé comme futur point Kelvisi par courriel.
 - **Tu y étais ?** : retour terrain en deux gestes. Il corrige la prévision du
   spot (sur l'appareil pour un spot privé, pour tout le monde sur un point
   Kelvisi si le partage Supabase est activé).
@@ -73,7 +75,11 @@ GitHub Pages : site statique app/  ──>  téléphone ou ordinateur
   par une copie JavaScript du moteur (`app/js/moteur/moteur.js`), avec la
   météo Open-Meteo du moment. Un test vérifie que les deux moteurs donnent
   exactement le même résultat.
-- Les spots privés ne quittent jamais l'appareil.
+- Les spots privés sont enregistrés dans le compte de leur propriétaire
+  (Supabase), lisibles par lui seul.
+- La carte des profondeurs est dessinée dans le navigateur, dans un worker
+  (`app/js/relief-rendu.js`) : chaque image du Shom est relue couleur par
+  couleur, puis redessinée.
 
 ## Le modèle
 
@@ -136,6 +142,7 @@ dans un rayon de 800 m au lieu de 300 m.
 app/                    application publiée (HTML, CSS, JavaScript, données)
   js/app.js             navigation, recherche, carte, fraîcheur des données
   js/carte.js           carte MapLibre, fonds, repères
+  js/relief*.js         carte des profondeurs redessinée (worker)
   js/vues/              fiche, Où aller ?, Mes spots, Infos
   js/moteur/            moteur JavaScript, Open-Meteo, EMODnet, recherche IGN
   js/config.js          réglages à compléter (éditeur, contact, Supabase)
@@ -168,12 +175,11 @@ python -m http.server -d app 8000                    # puis http://localhost:800
 
 | Élément | État |
 | --- | --- |
-| Modèle, créneaux, explications, calibrage, classement | Codé, testé (113 tests Python), calé sur le satellite |
+| Modèle, créneaux, explications, calibrage, classement | Codé, testé (116 tests Python), calé sur le satellite |
 | Open-Meteo | Lancé sur l'API réelle : 97 points calculés sans erreur |
-| Hub'Eau | Lancé sur l'API réelle : 6 stations lues, rattachées à 11 points |
-| Interface | Testée automatiquement en mobile et grand écran (32 étapes) |
-| Carte | Vérifiée dans Chromium (mobile et ordinateur) avec le fond de secours |
-| Fonds en ligne, recherche IGN, profondeurs EMODnet | Code prêt ; services non joignables depuis l'espace de développement, à vérifier en ligne |
+| Hub'Eau | Lancé sur l'API réelle : 6 stations lues, rattachées à 25 points |
+| Interface | Testée automatiquement en mobile et grand écran |
+| Carte, fonds en ligne, recherche IGN, profondeurs | Vérifiés dans un vrai navigateur sur les vrais services (workflow « Diagnostic ») |
 | Copernicus | En service depuis le 16 octobre 2026 : produits côtiers d'environ 100 m, environ 6 points sur 10 recalés à chaque passage (selon les nuages) |
 | Supabase | Projet en service : inscription, profil, spots privés, favoris, retours et suppression vérifiés sur le vrai projet |
 | Comptes | Ouverts (obligatoires) ; e-mails de mot de passe oublié en attente d'un envoi d'e-mails propre (Brevo et nom de domaine) |
@@ -187,11 +193,13 @@ Limites connues :
 - Le satellite ne voit rien par temps couvert : environ la moitié des points
   ont une image de moins de 5 jours à un instant donné.
 - Les horaires de marée viennent d'un modèle à maille de 8 km : indicatifs.
-- La carte des profondeurs (environ 100 m de résolution) ne sert pas à
-  naviguer.
+- La carte des profondeurs a une finesse inégale (relevé laser au mètre près
+  des côtes de Bretagne, Nouvelle-Aquitaine, Occitanie et Provence, 100 m
+  ailleurs), est lue sur la couleur des cartes du Shom (environ un mètre
+  d'incertitude) et ne sert pas à naviguer.
 - Les points Kelvisi sont des zones de prévision, pas des recommandations de
   spot : réserves et cantonnements sont à vérifier localement.
 
 Données : Open-Meteo (CC BY 4.0), Hub'Eau (Licence Ouverte), IGN
-Géoplateforme (Licence Ouverte), EMODnet Bathymetry, OpenFreeMap et
-OpenStreetMap (ODbL), Natural Earth, Copernicus Marine Service.
+Géoplateforme (Licence Ouverte), Shom (Licence Ouverte), EMODnet Bathymetry,
+OpenFreeMap et OpenStreetMap (ODbL), Natural Earth, Copernicus Marine Service.

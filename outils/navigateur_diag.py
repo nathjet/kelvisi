@@ -44,7 +44,7 @@ def annoter(titre, lignes):
 
 VUES_RELIEF = {
     "quiberon": (47.50, -3.15, 14),
-    "crozon": (48.27, -4.61, 14),
+    "crozon": (48.26, -4.66, 14),
     "marseille": (43.205, 5.37, 14),
     "glenan": (47.72, -4.0, 13),
     "chausey": (48.87, -1.83, 12.5),

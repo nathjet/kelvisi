@@ -316,9 +316,9 @@ depuis « Mes spots » avant le changement et les réimporter après).
 | Débits des rivières Hub'Eau (Seine, Loire, Vilaine, Adour, Rhône, Var) | Lancé avec succès sur les vraies données |
 | Interface (navigation, fiches, recherche, spots privés, retours) | Testée automatiquement, version mobile et ordinateur |
 | Même résultat entre le calcul du navigateur et celui du serveur | Vérifié automatiquement |
-| Carte dans un vrai navigateur (Chromium, téléphone et ordinateur) | Vérifiée avec le fond de secours : repères bien placés, fiche rapide, fiches |
-| Fonds de carte en ligne (OpenFreeMap, vue aérienne IGN, profondeurs EMODnet) | À vérifier à l'étape 4 : ces serveurs n'étaient pas joignables pendant le développement |
-| Recherche de lieux (IGN) et profondeur au point (EMODnet) depuis un téléphone | À vérifier à l'étape 4, pour la même raison |
+| Carte dans un vrai navigateur (Chromium, téléphone et ordinateur) | Vérifiée : repères bien placés, fiche rapide, fiches |
+| Fonds de carte en ligne (OpenFreeMap, vue aérienne IGN), carte des profondeurs redessinée | Vérifiés dans un vrai navigateur sur les vrais services (workflow « Diagnostic ») |
+| Recherche de lieux (IGN) et profondeur au point (Shom, EMODnet) | Vérifiées de la même façon |
 | Satellite Copernicus | En service sur le vrai service : 27 points sur 46 recalés au premier passage (16 octobre 2026) |
 | Calage du modèle sur le satellite | Fait sur janvier 2024 à octobre 2026 (44 points, 5 307 images) et vérifié sur une période mise de côté ; 2022 et 2023 en cours de collecte |
 | Comptes (inscription, connexion, mot de passe oublié, profil, synchronisation, suppression) | Testés de bout en bout avec un faux serveur ; schéma testé sur un vrai PostgreSQL ; à vérifier sur ton projet après l'étape 6 |

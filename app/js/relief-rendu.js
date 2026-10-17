@@ -17,7 +17,7 @@ import { SOURCES, WMS_SHOM, croise, tablePalette } from "./bathymetrie.js";
 // Tranches de profondeur (m) et leur teinte, de la plus claire (0 à 2 m) à la plus foncée (> 500 m)
 export const SEUILS = [2, 5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 200, 500];
 export const COULEURS = [
-  [214, 240, 232], [186, 230, 224], [154, 216, 220], [120, 199, 214], [92, 180, 206], [72, 160, 196],
+  [198, 236, 228], [174, 226, 223], [150, 214, 219], [120, 199, 214], [92, 180, 206], [72, 160, 196],
   [59, 141, 186], [50, 121, 173], [43, 102, 158], [37, 85, 142], [32, 69, 125], [27, 55, 108],
   [22, 42, 90], [17, 31, 72],
 ];
@@ -33,7 +33,7 @@ const AZIMUT = 315;
 const HAUTEUR = 45;
 const EXAGERATION = 6;
 const OMBRE_MIN = 0.45;
-const OMBRE_MAX = 1.55;
+const OMBRE_MAX = 1.45;
 // Luminosité moyenne des relevés laser du Shom par rapport à leur palette (mesurée sur Bretagne,
 // Pays basque, Languedoc et Provence : 0,70 à 0,82)
 const LUMIERE_LASER = 0.75;
@@ -384,7 +384,8 @@ export function rendreRelief({ taille, marge, pasSol, sortie, sources }) {
       if (s < 1) {
         r = base[0] * s; g = base[1] * s; bl = base[2] * s;
       } else {
-        const f = (s - 1) * 0.6;
+        // Versant éclairé : éclairci, sans aller jusqu'au blanc (qui se confondrait avec la terre)
+        const f = (s - 1) * 0.45;
         r = base[0] + (255 - base[0]) * f; g = base[1] + (255 - base[1]) * f; bl = base[2] + (255 - base[2]) * f;
       }
       // Isobathe entre ce pixel et son voisin de droite ou du dessous

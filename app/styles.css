@@ -447,7 +447,7 @@ select, input[type="number"], input[type="text"] {
 .echelle-profondeurs > i { flex: 1; height: 10px; width: auto; margin: 0; border-radius: 0; }
 .echelle-profondeurs > i:first-child { border-radius: 3px 0 0 3px; }
 .echelle-profondeurs > i:last-of-type { border-radius: 0 3px 3px 0; }
-.echelle-profondeurs > b { position: absolute; top: 11px; transform: translateX(-50%); font-weight: 400; font-size: 11px; line-height: 1; color: var(--discret); font-variant-numeric: tabular-nums; }
+.echelle-profondeurs > b { position: absolute; top: 11px; transform: translateX(-50%); white-space: nowrap; font-weight: 400; font-size: 11px; line-height: 1; color: var(--discret); font-variant-numeric: tabular-nums; }
 .echelle-profondeurs > b:first-of-type { transform: none; }
 .repere {
   min-width: 30px;
