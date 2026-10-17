@@ -138,6 +138,20 @@ async def main():
         await page.wait_for_timeout(6000)
         await page.screenshot(path=str(SORTIE / "nav_carte_aerien_marseille.png"))
 
+        # « Où aller ? » : recherche d'une ville (vraie Géoplateforme), puis liste autour
+        try:
+            await page.goto(f"http://127.0.0.1:{PORT}/#/liste")
+            await page.wait_for_timeout(3000)
+            await page.fill("#ou-texte", "Concarneau")
+            await page.wait_for_timeout(4000)
+            resultats["ou_aller_suggestions"] = (await page.inner_text("#ou-resultats"))[:400]
+            await page.click("#ou-resultats button:has-text('commune')")
+            await page.wait_for_timeout(1500)
+            resultats["ou_aller_liste"] = (await page.inner_text("#panneau ol.liste"))[:600]
+            await page.screenshot(path=str(SORTIE / "nav_ou_aller.png"), full_page=True)
+        except Exception as e:
+            resultats["ou_aller"] = f"erreur {e}"
+
         # Fiche d'un lieu touché en mer
         await page.goto(f"http://127.0.0.1:{PORT}/#/point/47.47/-3.17")
         await page.wait_for_timeout(9000)
