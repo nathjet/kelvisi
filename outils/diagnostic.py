@@ -580,6 +580,121 @@ def placer_points():
         for r in resultats])
 
 
+ZONES_RELIEF = {
+    "quiberon": (47.475, -3.145),
+    "crozon": (48.255, -4.62),
+    "glenan": (47.715, -3.99),
+    "marseille": (43.205, 5.345),
+    "agde": (43.275, 3.51),
+    "biarritz": (43.48, -1.565),
+    "bonifacio": (41.385, 9.165),
+    "etretat": (49.71, 0.19),
+}
+
+
+def relief():
+    """Images du Shom (et d'EMODnet) autour de quelques spots, à la résolution des données et en tuile de 256 px,
+    pour mettre au point la carte du relief sous-marin sans réseau (dossier diag/relief/)."""
+    import json
+    import math
+    import subprocess
+    import time
+    from pathlib import Path
+
+    sortie = subprocess.run(["node", "--input-type=module", "-e",
+                             "import { SOURCES } from './app/js/bathymetrie.js'; console.log(JSON.stringify(SOURCES));"],
+                            capture_output=True, text=True)
+    sources = json.loads(sortie.stdout)
+    dossier = Path(SORTIE) / "relief"
+    dossier.mkdir(parents=True, exist_ok=True)
+    url = "https://services.data.shom.fr/INSPIRE/wms/r"
+    R = 6378137.0
+    lignes, index = [], []
+
+    def merc(lat, lon):
+        return R * math.radians(lon), R * math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))
+
+    def wms(couche, bbox, n, extra=None):
+        p = {"SERVICE": "WMS", "VERSION": "1.3.0", "REQUEST": "GetMap", "LAYERS": couche, "STYLES": "",
+             "CRS": "EPSG:3857", "BBOX": ",".join(f"{v:.2f}" for v in bbox), "WIDTH": n, "HEIGHT": n,
+             "FORMAT": "image/png", "TRANSPARENT": "true", **(extra or {})}
+        t = time.time()
+        r = get(url, params=p)
+        return r, round(time.time() - t, 2)
+
+    for zone, (lat, lon) in ZONES_RELIEF.items():
+        x, y = merc(lat, lon)
+        cote_sol = 3000.0
+        cote = cote_sol / math.cos(math.radians(lat))  # côté en mètres Mercator
+        bbox = (x - cote / 2, y - cote / 2, x + cote / 2, y + cote / 2)
+        for s in sources:
+            z = s["zone"]
+            if "_4326_" in s["couche"] or not (z[0] <= lon <= z[2] and z[1] <= lat <= z[3]):
+                continue
+            natif = max(16, min(1024, round(cote_sol / s["pas"])))
+            for n in sorted({natif, 256}):
+                try:
+                    r, duree = wms(s["couche"], bbox, n)
+                    nom = f"{zone}_{s['type']}_{n}.png"
+                    if r.ok and r.headers.get("Content-Type", "").startswith("image/png"):
+                        (dossier / nom).write_bytes(r.content)
+                    index.append({"zone": zone, "couche": s["couche"], "type": s["type"], "palette": s["palette"], "pas": s["pas"],
+                                  "taille": n, "fichier": nom, "bbox_3857": bbox, "http": r.status_code, "duree_s": duree,
+                                  "octets": len(r.content), "type_mime": r.headers.get("Content-Type")})
+                    lignes.append(f"{zone} {s['type']} {n} px : HTTP {r.status_code} {len(r.content)} o en {duree} s")
+                except Exception as e:
+                    lignes.append(f"{zone} {s['type']} {n} px : {type(e).__name__} {e}")
+
+    # Le Shom accepte-t-il une palette fournie (SLD_BODY) ? On demande un dégradé gris simple.
+    sld = ('<?xml version="1.0" encoding="UTF-8"?><StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld" '
+           'xmlns:ogc="http://www.opengis.net/ogc"><NamedLayer><Name>{couche}</Name><UserStyle><FeatureTypeStyle><Rule>'
+           '<RasterSymbolizer><ColorMap type="ramp"><ColorMapEntry color="#000000" quantity="-10"/>'
+           '<ColorMapEntry color="#FFFFFF" quantity="100"/></ColorMap></RasterSymbolizer></Rule></FeatureTypeStyle>'
+           '</UserStyle></NamedLayer></StyledLayerDescriptor>')
+    lat, lon = ZONES_RELIEF["quiberon"]
+    x, y = merc(lat, lon)
+    c = 1500 / math.cos(math.radians(lat))
+    bbox = (x - c, y - c, x + c, y + c)
+    for couche in ["MNT_ATL100m_HOMONIM_PBMA_3857_WMSR", "LITTO3D_BZH_2018_2021_PYR_3857_WMSR"]:
+        try:
+            r, duree = wms(couche, bbox, 64, {"SLD_BODY": sld.replace("{couche}", couche)})
+            (dossier / f"sld_{couche}.png").write_bytes(r.content)
+            lignes.append(f"SLD_BODY {couche} : HTTP {r.status_code} {r.headers.get('Content-Type')} {len(r.content)} o {r.text[:150] if not r.ok else ''}")
+        except Exception as e:
+            lignes.append(f"SLD_BODY {couche} : {type(e).__name__} {e}")
+
+    # EMODnet : valeurs brutes (WCS) et palette fournie (WMS GeoServer)
+    lat, lon = ZONES_RELIEF["quiberon"]
+    for nom, u, p in [
+        ("wcs_capacites", "https://ows.emodnet-bathymetry.eu/wcs", {"service": "WCS", "request": "GetCapabilities", "version": "2.0.1"}),
+        ("wcs_tiff", "https://ows.emodnet-bathymetry.eu/wcs", {"service": "WCS", "request": "GetCoverage", "version": "2.0.1",
+                                                                "coverageId": "emodnet__mean", "format": "image/tiff",
+                                                                "subset": [f"Lat({lat - 0.03},{lat + 0.03})", f"Long({lon - 0.045},{lon + 0.045})"]}),
+        ("wcs_arcgrid", "https://ows.emodnet-bathymetry.eu/wcs", {"service": "WCS", "request": "GetCoverage", "version": "2.0.1",
+                                                                   "coverageId": "emodnet__mean", "format": "application/x-ogc-aaigrid",
+                                                                   "subset": [f"Lat({lat - 0.03},{lat + 0.03})", f"Long({lon - 0.045},{lon + 0.045})"]}),
+        ("wms_sld", "https://ows.emodnet-bathymetry.eu/wms", {"service": "WMS", "version": "1.1.1", "request": "GetMap", "layers": "emodnet:mean",
+                                                              "styles": "", "srs": "EPSG:4326", "bbox": f"{lon - 0.045},{lat - 0.03},{lon + 0.045},{lat + 0.03}",
+                                                              "width": 64, "height": 64, "format": "image/png",
+                                                              "sld_body": sld.replace("{couche}", "emodnet:mean")}),
+    ]:
+        try:
+            t = time.time()
+            r = get(u, params=p)
+            duree = round(time.time() - t, 2)
+            ext = {"wcs_capacites": "xml", "wcs_tiff": "tif", "wcs_arcgrid": "asc", "wms_sld": "png"}[nom]
+            (dossier / f"emodnet_{nom}.{ext}").write_bytes(r.content)
+            extrait = r.text[:200] if ("xml" in r.headers.get("Content-Type", "") or "text" in r.headers.get("Content-Type", "")) else ""
+            if nom == "wcs_capacites":
+                extrait = str(re.findall(r"<wcs:CoverageId>([^<]+)<", r.text)[:20])
+            lignes.append(f"EMODnet {nom} : HTTP {r.status_code}, {r.headers.get('Content-Type')}, {len(r.content)} o en {duree} s, CORS {cors(r)} {extrait}")
+        except Exception as e:
+            lignes.append(f"EMODnet {nom} : {type(e).__name__} {e}")
+
+    (dossier / "index.json").write_text(json.dumps(index, indent=1), encoding="utf-8")
+    annoter("Relief", lignes)
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:
