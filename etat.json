@@ -1,0 +1,13 @@
+{
+ "complet": false,
+ "debut": "2022-01-01",
+ "maj": "2026-10-17T13:06:11.871281+00:00",
+ "presents": {
+  "marine": 138,
+  "pluie": 138
+ },
+ "attendus": {
+  "marine": 485,
+  "pluie": 485
+ }
+}
