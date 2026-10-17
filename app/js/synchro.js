@@ -6,6 +6,7 @@
 
 import { lire, ecrire, supprimer } from "./stockage.js";
 import { comptesActifs, requete, utilisateur } from "./compte.js";
+import { partageDisponible } from "./communaute.js";
 
 const CLE_SPOTS = "kelvisi-spots";
 const CLE_FAVORIS = "kelvisi-favoris";
@@ -49,8 +50,20 @@ function planifier() {
 const liste = (ids) => `(${ids.map((i) => `"${String(i).replace(/"/g, "")}"`).join(",")})`;
 
 let enCours = null;
+let relancer = false;
 export function synchroniser() {
-  if (!enCours) enCours = executer().finally(() => { enCours = null; });
+  if (enCours) {
+    // Une modification faite pendant un envoi en cours partira juste après
+    relancer = true;
+    return enCours;
+  }
+  enCours = executer().finally(() => {
+    enCours = null;
+    if (relancer) {
+      relancer = false;
+      synchroniser().catch(() => {});
+    }
+  });
   return enCours;
 }
 
@@ -76,11 +89,18 @@ async function executer() {
     const locaux = new Map(lire(CLE_SPOTS, []).map((s) => [s.id, s]));
     const aEnvoyer = Object.entries(a.spots).filter(([id, op]) => op === "maj" && locaux.has(id)).map(([id]) => locaux.get(id));
     const aSupprimer = Object.entries(a.spots).filter(([, op]) => op === "suppr").map(([id]) => id);
+    // Partage des spots : seulement si la base le connaît déjà (script SQL appliqué)
+    const partage = await partageDisponible();
+    const champsEnvoyes = partage ? [...CHAMPS_SPOT, "partage"] : CHAMPS_SPOT;
+    const champsLus = partage ? [...CHAMPS_SPOT, "partage", "partage_id"] : CHAMPS_SPOT;
     if (aEnvoyer.length) {
       await requete("spots_prives?on_conflict=proprietaire,id", {
         methode: "POST",
         prefer: "resolution=merge-duplicates,return=minimal",
-        corps: aEnvoyer.map((s) => ({ ...Object.fromEntries(CHAMPS_SPOT.map((c) => [c, s[c]])), proprietaire: u.id, maj_le: s.maj_le || new Date().toISOString() })),
+        corps: aEnvoyer.map((s) => ({
+          ...Object.fromEntries(champsEnvoyes.map((c) => [c, c === "partage" ? (s.partage || "prive") : s[c]])),
+          proprietaire: u.id, maj_le: s.maj_le || new Date().toISOString(),
+        })),
       });
     }
     if (aSupprimer.length) await requete(`spots_prives?id=in.${encodeURIComponent(liste(aSupprimer))}`, { methode: "DELETE" });
@@ -103,7 +123,7 @@ async function executer() {
     ecrire(CLE_ATTENTE, apres);
 
     const [spots, favoris] = await Promise.all([
-      requete(`spots_prives?select=${CHAMPS_SPOT.join(",")}&order=cree_le.asc`),
+      requete(`spots_prives?select=${champsLus.join(",")}&order=cree_le.asc`),
       requete("favoris?select=point_id&order=cree_le.asc"),
     ]);
     // Les modifications encore en attente gardent leur version locale
@@ -130,5 +150,5 @@ async function executer() {
 
 // À la déconnexion ou au changement de compte : rien ne reste sur l'appareil
 export function effacerDonneesLocales() {
-  for (const cle of [CLE_SPOTS, CLE_FAVORIS, CLE_ATTENTE, CLE_PROPRIETAIRE, "kelvisi-retours", "kelvisi-profil"]) supprimer(cle);
+  for (const cle of [CLE_SPOTS, CLE_FAVORIS, CLE_ATTENTE, CLE_PROPRIETAIRE, "kelvisi-retours", "kelvisi-profil", "kelvisi-communaute"]) supprimer(cle);
 }

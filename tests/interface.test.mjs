@@ -200,25 +200,45 @@ await etape("démarrage et repères sur la carte", async () => {
   else assert.ok(d.body.classList.contains("route-carte"));
 });
 
-await etape("liste « Où aller ? » triée et filtrée", async () => {
+await etape("liste « Où aller ? » triée, recherche par ville ou spot", async () => {
   await aller("#/liste");
   const lignes = [...panneau().querySelectorAll(".ligne-spot")];
   assert.equal(lignes.length, resume.points.length);
   const visis = lignes.map((l) => parseFloat(l.querySelector(".visi strong").textContent.replace(",", ".")));
   assert.ok(visis.every((v, i) => i === 0 || v <= visis[i - 1] + 1e-9), "tri décroissant");
-  panneau().querySelector('[data-facade="manche"]').click();
+  assert.ok(!panneau().querySelector("[data-facade]"), "plus de choix de mer ou d'océan");
+  assert.match(texte(panneau()), /Toute la France/);
+  // Recherche : spots par leur nom, puis villes et lieux
+  const champ = panneau().querySelector("#ou-texte");
+  champ.value = "quib";
+  champ.dispatchEvent(new w.Event("input"));
+  await jusqua(() => /Quiberon\s*commune/.test(texte(panneau().querySelector("#ou-resultats"))), "villes trouvées", 3000);
+  const choix = [...panneau().querySelectorAll("#ou-resultats button")];
+  assert.match(choix[0].textContent, /Quiberon, côte sauvage.*Point Kelvisi/, "le spot d'abord");
+  choix.find((b) => /commune/.test(b.textContent)).click();
   await attendre();
-  const manche = resume.points.filter((p) => p.facade === "manche").length;
-  assert.equal(panneau().querySelectorAll(".ligne-spot").length, manche);
+  assert.match(texte(panneau()), /Autour de Quiberon/);
+  const n = panneau().querySelectorAll(".ligne-spot").length;
+  assert.ok(n > 0 && n < resume.points.length, "rayon de 60 km autour de Quiberon");
+  const distances = [...panneau().querySelectorAll(".ligne-spot .infos")].map((x) => parseFloat(x.textContent.match(/(\d+) km/)[1]));
+  assert.ok(distances.every((d) => d <= 60), "tous à moins de 60 km");
+  panneau().querySelector("#rayon").value = "200";
+  panneau().querySelector("#rayon").dispatchEvent(new w.Event("change"));
+  await attendre();
+  assert.ok(panneau().querySelectorAll(".ligne-spot").length > n, "rayon élargi");
   panneau().querySelector("#autour").click();
   await attendre();
-  assert.match(texte(panneau()), /Depuis : ma position/);
-  panneau().querySelector('[data-facade="toutes"]').click();
-  await attendre();
-  const n = panneau().querySelectorAll(".ligne-spot").length;
-  assert.ok(n > 0 && n < resume.points.length, "rayon de 100 km autour de Quiberon");
+  assert.match(texte(panneau()), /Autour de ma position/);
   panneau().querySelector("#sans-origine").click();
   await attendre();
+  assert.equal(panneau().querySelectorAll(".ligne-spot").length, resume.points.length);
+  // Un spot choisi dans la recherche ouvre sa fiche
+  const champ2 = panneau().querySelector("#ou-texte");
+  champ2.value = "groix";
+  champ2.dispatchEvent(new w.Event("input"));
+  await jusqua(() => panneau().querySelector("#ou-resultats button"), "spot trouvé", 3000);
+  panneau().querySelector("#ou-resultats button").click();
+  await jusqua(() => /#\/spot\/ref-groix/.test(w.location.hash), "fiche du spot", 3000);
 });
 
 await etape("fiche d'un point public", async () => {

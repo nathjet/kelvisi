@@ -1,4 +1,4 @@
-// Fiche d'un spot : point public, spot privé ou lieu libre touché sur la carte.
+// Fiche d'un spot : point public, spot privé, spot partagé par un utilisateur ou lieu libre touché sur la carte.
 
 import { detailPublic, pointPublic, previsionLieu } from "../donnees.js";
 import { monSpot, enregistrerSpot, supprimerSpot } from "../messpots.js";
@@ -8,6 +8,7 @@ import { profondeursAuPoint } from "../bathymetrie.js";
 import { comptesActifs } from "../compte.js";
 import { estFavori, basculerFavori } from "../favoris.js";
 import { CONFIG } from "../config.js";
+import { ETATS_PARTAGE, partageConnu, spotCommunaute } from "../communaute.js";
 import {
   NOM_CLASSE, NOM_FACADE, NOM_FOND, SECTEURS_COURTS, de, echapper, facadePour, fleche, heure, jourCourt, jourLong,
   metres, regionPour, secteur, dateHeure, vitesseVent, lune, decrireMesure,
@@ -166,6 +167,8 @@ function formulaireRetour(type, id) {
   const mes = retoursDuSpot(id).slice(-3).reverse();
   const explication = type === "prive"
     ? "Tes retours restent sur ton appareil et corrigent la prévision de ce spot."
+    : type === "communaute"
+      ? "Ton retour corrige la prévision de ce spot sur ton appareil, et il est envoyé de façon anonyme pour améliorer Kelvisi."
     : partageActif()
       ? "Ton retour est partagé de façon anonyme et sert à corriger la prévision de ce point pour tout le monde."
       : "Le partage des retours n'est pas encore activé : ton retour reste sur ton appareil.";
@@ -204,6 +207,33 @@ function reglages(spot, type) {
   </div>`;
 }
 
+function blocPartage(spot) {
+  if (!partageConnu()) return "";
+  const etat = ETATS_PARTAGE[spot.partage] ? spot.partage : "prive";
+  const e = ETATS_PARTAGE[etat];
+  const explication = {
+    prive: "Proposé à tous, il apparaîtra sur la carte des autres utilisateurs après vérification par Kelvisi : position, nom et réglages, jamais qui l'a partagé. Vérifie avant que la chasse y est autorisée (réserves, cantonnements).",
+    en_attente: "Kelvisi vérifie le spot (position, réglementation) avant de le rendre visible. Tu peux annuler à tout moment.",
+    publie: "Les autres voient sa position, son nom et ses réglages, sans ton nom. Si tu le modifies, il sera vérifié de nouveau avant de réapparaître.",
+    refuse: "Souvent parce qu'il est dans une zone réglementée ou trop proche d'un autre spot. Il reste dans tes spots, visible par toi seul.",
+  }[etat];
+  return `<div class="partage-spot" data-etat="${etat}"><span class="etiquette">Partage</span>
+      <p><strong>${e.titre}</strong></p><p class="note">${explication}</p>
+      <button class="bouton ${etat === "prive" ? "" : "secondaire"}" type="button" id="prive-partage" data-vers="${etat === "prive" ? "en_attente" : "prive"}">${e.action}</button></div>`;
+}
+
+function actionsCommunaute(spot) {
+  const signaler = CONFIG.contact
+    ? `mailto:${encodeURIComponent(CONFIG.contact)}?subject=${encodeURIComponent("Signalement d'un spot partagé")}&body=${encodeURIComponent(`Spot : ${spot.nom} (${spot.uuid})\nPosition : ${spot.lat.toFixed(5)}, ${spot.lon.toFixed(5)}\n\nProblème constaté :`)}`
+    : "";
+  return `<div class="bloc"><h2 class="titre-bloc">Spot partagé</h2>
+    <p class="note">Proposé par un utilisateur de Kelvisi et vérifié avant publication. Kelvisi ne garantit pas que la chasse y est autorisée : vérifie la réglementation locale.</p>
+    <div class="rangee"><button class="bouton" type="button" id="communaute-copier">Enregistrer dans mes spots</button>
+      ${signaler ? `<a class="bouton secondaire" href="${signaler}">Signaler ce spot</a>` : ""}</div>
+    <p class="confirmation" id="communaute-ok" hidden></p>
+  </div>`;
+}
+
 function actionsPrive(spot) {
   return `<div class="bloc"><h2 class="titre-bloc">Ce spot</h2>
     <div class="rangee"><label class="etiquette" for="prive-nom">Nom</label><input id="prive-nom" type="text" maxlength="60" value="${echapper(spot.nom)}"></div>
@@ -211,6 +241,7 @@ function actionsPrive(spot) {
       <button class="bouton danger" type="button" id="prive-supprimer">Supprimer ce spot</button></div>
     <div class="rangee" id="prive-confirmer" hidden><span>Supprimer « ${echapper(spot.nom)} » et ses retours ?</span>
       <button class="bouton danger" type="button" id="prive-oui">Oui, supprimer</button><button class="bouton secondaire" type="button" id="prive-non">Annuler</button></div>
+    ${blocPartage(spot)}
   </div>`;
 }
 
@@ -229,6 +260,13 @@ export async function afficherFiche(zone, cible, ctx) {
     } else if (cible.type === "prive") {
       spot = monSpot(cible.id);
       if (!spot) throw new Error("Ce spot n'est plus enregistré sur cet appareil.");
+      const r = await previsionLieu(spot, { rapports: rapportsPourMoteur(spot.id) });
+      prevision = r.prevision;
+      if (r.horsLigne) info = `Hors ligne : prévision calculée avec la météo reçue ${dateHeure(new Date(r.recu_le * 1000).toISOString())}.`;
+      meta = spotVersMeta(spot);
+    } else if (cible.type === "communaute") {
+      spot = spotCommunaute(cible.id);
+      if (!spot) throw new Error("Ce spot partagé n'est plus disponible.");
       const r = await previsionLieu(spot, { rapports: rapportsPourMoteur(spot.id) });
       prevision = r.prevision;
       if (r.horsLigne) info = `Hors ligne : prévision calculée avec la météo reçue ${dateHeure(new Date(r.recu_le * 1000).toISOString())}.`;
@@ -294,7 +332,9 @@ function lierRetour(zone, ctx) {
 // Lien vers la fiche, utilisable par quelqu'un d'autre (jamais pour un spot privé)
 export function lienPartage(cible, meta) {
   const base = location.href.split("#")[0];
-  return cible.type === "public" ? `${base}#/spot/${encodeURIComponent(meta.id)}` : `${base}#/point/${meta.lat.toFixed(4)}/${meta.lon.toFixed(4)}`;
+  if (cible.type === "public") return `${base}#/spot/${encodeURIComponent(meta.id)}`;
+  if (cible.type === "communaute") return `${base}#/partage/${encodeURIComponent(meta.uuid)}`;
+  return `${base}#/point/${meta.lat.toFixed(4)}/${meta.lon.toFixed(4)}`;
 }
 
 async function partager(zone, cible, meta, jour, v) {
@@ -339,7 +379,7 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
     NOM_FACADE[meta.facade] || "",
     NOM_FOND[meta.fond] || "",
     meta.profondeur_m ? `${metres(meta.profondeur_m)} m de fond` : "",
-    cible.type === "prive" ? "Mon spot" : cible.type === "point" ? "Lieu libre" : "Point Kelvisi",
+    { prive: "Mon spot", point: "Lieu libre", communaute: "Spot partagé" }[cible.type] || "Point Kelvisi",
   ].filter(Boolean).join(" · ");
   const retours = cible.type === "public" && meta.retours?.nombre_7_jours
     ? `<p class="note">${meta.retours.nombre_7_jours} retour${meta.retours.nombre_7_jours > 1 ? "s" : ""} terrain ces 7 derniers jours${meta.retours.dernier ? `, dernier : ${metres(meta.retours.dernier.visibilite_m)} m (${dateHeure(meta.retours.dernier.date)})` : ""}.</p>` : "";
@@ -377,10 +417,12 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
     <div class="bloc"><h2 class="titre-bloc">Heure par heure</h2>${graphique(prevision, jour)}</div>
     <div class="bloc"><h2 class="titre-bloc">Conditions</h2>${conditions(prevision, jour, meta)}</div>
     <div class="bloc" id="bloc-profondeur" hidden></div>
-    ${cible.type !== "public" && spot ? reglages(spot, cible.type) : ""}
+    ${(cible.type === "prive" || cible.type === "point") && spot ? reglages(spot, cible.type) : ""}
     ${formulaireRetour(cible.type, meta.id)}
     ${cible.type === "prive" && spot ? actionsPrive(spot) : ""}
-    ${cible.type !== "public" && CONFIG.contact ? `<p class="note"><a href="${lienProposition(meta, spot)}">Proposer ce lieu comme point Kelvisi</a> (tu choisis ce que tu envoies).</p>` : ""}
+    ${cible.type === "communaute" && spot ? actionsCommunaute(spot) : ""}
+    ${cible.type === "point" && partageConnu() ? '<p class="note">Enregistre ce lieu dans tes spots : tu pourras ensuite le proposer à tous les utilisateurs.</p>' : ""}
+    ${(cible.type === "prive" || cible.type === "point") && !partageConnu() && CONFIG.contact ? `<p class="note"><a href="${lienProposition(meta, spot)}">Proposer ce lieu comme point Kelvisi</a> (tu choisis ce que tu envoies).</p>` : ""}
     <p class="note">Prévision indicative : elle ne remplace pas l'observation sur place. Urgence en mer : <a href="tel:196">196</a>.</p>`;
 
   lierRetour(zone, ctx);
@@ -402,8 +444,9 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
   if (bp) bp.addEventListener("click", () => partager(zone, cible, meta, jour, v));
   lierFormulaireRetour(zone, cible, ctx, meta, prevision);
   remplirProfondeur(zone, cible, ctx, meta, prevision, jour, spot);
-  if (cible.type !== "public" && spot) lierReglages(zone, cible, ctx, spot);
+  if ((cible.type === "prive" || cible.type === "point") && spot) lierReglages(zone, cible, ctx, spot);
   if (cible.type === "prive" && spot) lierActionsPrive(zone, ctx, spot);
+  if (cible.type === "communaute" && spot) lierActionsCommunaute(zone, ctx, spot);
 }
 
 // Profondeur au point d'après le Shom : rempli dès que les mesures arrivent (souvent déjà en mémoire)
@@ -429,7 +472,7 @@ async function remplirProfondeur(zone, cible, ctx, meta, prevision, jour, spot) 
     }).join("")}</div>
     ${laser && demiMarnage >= 0.3 ? `<p class="note">Ce jour-là, la mer descend jusqu'à environ ${metres(demiMarnage)} m sous son niveau moyen : à basse mer, compte autant de moins.</p>` : ""}
     ${mesures.some((m) => m.reference === "pbma" && !m.terre) ? '<p class="note">« Plus basses mers » : c\'est la profondeur minimale, celle des cartes marines. La marée ajoute de l\'eau par-dessus.</p>' : ""}
-    ${spot && cible.type !== "public" && utilisable && Math.abs(utilisable.profondeur_m - spot.profondeur_m) >= 1 && utilisable.profondeur_m <= 40
+    ${spot && (cible.type === "prive" || cible.type === "point") && utilisable && Math.abs(utilisable.profondeur_m - spot.profondeur_m) >= 1 && utilisable.profondeur_m <= 40
       ? `<div class="rangee"><button type="button" class="bouton secondaire" id="utiliser-profondeur">Régler la prévision sur ${metres(utilisable.profondeur_m)} m</button></div>` : ""}
     <p class="note">Données Shom (licence ouverte) lues sur leurs cartes. Ne pas naviguer avec.</p>`;
   bloc.hidden = false;
@@ -465,7 +508,7 @@ function lierFormulaireRetour(zone, cible, ctx, meta, prevision) {
     }[resultat];
     ok.hidden = false;
     bouton.disabled = false;
-    if (cible.type === "prive") setTimeout(() => afficherFiche(zone, cible, ctx), 900);
+    if (cible.type === "prive" || cible.type === "communaute") setTimeout(() => afficherFiche(zone, cible, ctx), 900);
   });
 }
 
@@ -512,7 +555,28 @@ function lierReglages(zone, cible, ctx, spot) {
   }
 }
 
+function lierActionsCommunaute(zone, ctx, spot) {
+  zone.querySelector("#communaute-copier").addEventListener("click", (e) => {
+    try {
+      const { id, uuid, communaute, publie_le, ...reglages } = spot;
+      const copie = enregistrerSpot({ ...reglages, partage: "prive", partage_id: null });
+      ctx.surSpotsModifies();
+      ctx.allerA(`#/prive/${copie.id}`);
+    } catch (err) {
+      e.target.insertAdjacentHTML("afterend", `<p class="erreur">${echapper(err.message)}</p>`);
+    }
+  });
+}
+
 function lierActionsPrive(zone, ctx, spot) {
+  const partage = zone.querySelector("#prive-partage");
+  if (partage) partage.addEventListener("click", () => {
+    spot.partage = partage.dataset.vers;
+    enregistrerSpot(spot);
+    ctx.surSpotsModifies();
+    const y = zone.scrollTop;
+    afficherFiche(zone, { type: "prive", id: spot.id }, ctx).then(() => { zone.scrollTop = y; });
+  });
   zone.querySelector("#prive-renommer").addEventListener("click", () => {
     spot.nom = zone.querySelector("#prive-nom").value.trim() || spot.nom;
     enregistrerSpot(spot);

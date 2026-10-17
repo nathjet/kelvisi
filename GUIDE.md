@@ -184,6 +184,32 @@ Pour une newsletter, n'envoie qu'aux lignes où `accord_emails` vaut `true`
 désinscription dans chaque e-mail. Un utilisateur peut retirer son accord
 dans « Mon compte ».
 
+### g. Valider les spots partagés
+
+Les utilisateurs peuvent proposer un de leurs spots à tous. Il n'apparaît
+qu'après ta validation, sans le nom de son auteur.
+
+**À faire une fois** (17 octobre 2026) : **SQL Editor** > nouvelle requête >
+colle tout le fichier `supabase/schema.sql` > **Run**. Tant que ce n'est pas
+fait, le bouton de partage reste caché et tout fonctionne comme avant.
+
+**Quand un spot est proposé** : le cadre **Bilan du calcul** (onglet
+**Actions** de GitHub, passage « Prévisions et publication ») affiche
+« Spots proposés au partage, en attente de ta validation : N ».
+
+1. **SQL Editor** > `select * from admin.spots_a_valider;` > **Run**. Pour
+   chaque spot : son nom, sa position, un lien `carte` à ouvrir pour voir où
+   il est, et l'adresse de la personne qui le propose.
+2. Vérifie qu'il n'est pas dans une réserve ou une zone interdite à la
+   chasse, et que son nom est correct.
+3. **Table Editor** > `spots_prives` > filtre `partage` égal à `en_attente`,
+   puis dans la colonne `partage` remplace la valeur par `publie` (accepté)
+   ou `refuse`. Le spot apparaît (ou non) chez les autres en quelques
+   minutes.
+
+Pour retirer un spot déjà publié, mets `refuse` de la même façon. Si son
+auteur le modifie, il repasse tout seul en attente de validation.
+
 À savoir : un projet Supabase gratuit se met en pause après une semaine sans
 activité. Le calcul horaire lit la base toutes les heures, ce qui suffit en
 principe à le garder actif.
@@ -257,8 +283,14 @@ depuis « Mes spots » avant le changement et les réimporter après).
   accepter que la clé soit visible.
 - **Mentions légales** : une activité payante impose d'indiquer l'éditeur
   complet (statut, SIRET). La micro-entreprise suffit pour commencer.
-- **Paiement** : rien n'est codé pour l'instant (pas de comptes). Ce sera la
-  prochaine grosse étape.
+- **Hébergement** : GitHub Pages n'est pas autorisé pour faire tourner une
+  activité commerciale. Avant de faire payer, il faut déplacer le site
+  (Cloudflare Pages, Netlify ou un hébergeur français), ce qui prend une heure.
+- **Supabase** : la formule gratuite est permise, mais pour des clients
+  payants la formule Pro (environ 25 $ par mois) apporte les sauvegardes et
+  évite la mise en pause.
+- **Paiement** : rien n'est codé pour l'instant. Ce sera la prochaine grosse
+  étape.
 
 ## Entretien courant
 

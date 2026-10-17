@@ -10,7 +10,7 @@ RACINE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE / "outils"))
 
 from calculer_previsions import (  # noqa: E402
-    ajouter_debits, completer_previsions, construire, ecrire, facade, lire_retours_supabase, parametres_publics,
+    ajouter_debits, completer_previsions, construire, ecrire, facade, lire_retours_supabase, parametres_publics, spots_a_valider,
 )
 from prevision import charger_spots  # noqa: E402
 from prevision.donnees import Rapport  # noqa: E402
@@ -84,6 +84,30 @@ def test_lecture_supabase():
 
     retours = lire_retours_supabase("https://exemple.supabase.co", "cle", 1_792_000_000, session=Session())
     assert len(retours["ref-quiberon"]) == 1
+
+
+def test_spots_a_valider():
+    class Reponse:
+        def __init__(self, statut, plage=None):
+            self.status_code = statut
+            self.headers = {"Content-Range": plage} if plage else {}
+
+        def raise_for_status(self):
+            assert self.status_code < 400
+
+    class Session:
+        def __init__(self, reponse):
+            self.reponse = reponse
+
+        def get(self, url, params, headers, timeout):
+            assert url.endswith("/rest/v1/spots_prives") and params["partage"] == "eq.en_attente"
+            assert headers["Prefer"] == "count=exact"
+            return self.reponse
+
+    assert spots_a_valider("https://x.supabase.co", "sb_secret_x", session=Session(Reponse(206, "0-0/3"))) == 3
+    assert spots_a_valider("https://x.supabase.co", "sb_secret_x", session=Session(Reponse(200, "*/0"))) == 0
+    # Partage pas encore installé sur la base : rien à signaler
+    assert spots_a_valider("https://x.supabase.co", "sb_secret_x", session=Session(Reponse(400))) is None
 
 
 def test_rivieres_en_crue_et_station_en_panne():

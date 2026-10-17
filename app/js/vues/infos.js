@@ -100,7 +100,8 @@ const PAGES = {
       <h2>Qui y a accès</h2>
       <ul>
         <li>Tes spots privés ne sont visibles que par toi. Ni les autres utilisateurs ni l'application ne peuvent les lire.</li>
-        <li>L'éditeur de Kelvisi voit la liste des comptes (e-mail, profil, nombre de spots et de retours), mais pas l'emplacement de tes spots.</li>
+        <li>Si tu proposes un spot au partage, l'éditeur le voit avec ton adresse e-mail pour le vérifier. Une fois validé, les autres utilisateurs voient sa position, son nom et ses réglages, jamais qui l'a partagé. Tu peux le retirer à tout moment.</li>
+        <li>L'éditeur de Kelvisi voit la liste des comptes (e-mail, profil, nombre de spots et de retours), mais pas l'emplacement de tes spots privés.</li>
         <li>Hébergement de la base : Supabase, serveurs situés dans l'Union européenne. Envoi des e-mails : prestataire d'envoi d'e-mails. Aucune donnée n'est vendue ni cédée.</li>
       </ul>
       <h2>Combien de temps</h2>
@@ -140,6 +141,8 @@ const PAGES = {
       <p>Tu restes seul responsable de ta décision d'aller à l'eau, de ta sécurité et du respect de la réglementation (zones interdites, tailles, quotas, déclarations). Kelvisi ne peut être tenu responsable d'un dommage lié à l'utilisation des prévisions.</p>
       <h2>Retours terrain</h2>
       <p>Merci de signaler la visibilité que tu as réellement constatée. Les retours manifestement faux peuvent être écartés.</p>
+      <h2>Spots partagés</h2>
+      <p>Ne propose que des spots que tu as le droit de faire connaître et où la pratique est autorisée. Kelvisi vérifie chaque spot avant de le rendre visible et peut refuser ou retirer un spot (zone réglementée, doublon, nom inapproprié), sans avoir à se justifier. Un spot partagé reste lié à ton compte : il disparaît si tu le retires ou si tu supprimes ton compte. Kelvisi ne garantit pas qu'un spot partagé est autorisé ou sûr : vérifie toujours sur place.</p>
       <h2>Évolution du service</h2>
       <p>Le service peut évoluer, être interrompu ou devenir en partie payant. Les fonctions gratuites de la bêta seront annoncées avant tout changement.</p>`,
   },

@@ -153,7 +153,7 @@ export function afficherReperes(points, idChoisi) {
       el.type = "button";
       el.addEventListener("click", (e) => {
         e.stopPropagation();
-        rappels.surPoint(el.dataset.id, el.dataset.prive === "1");
+        rappels.surPoint(el.dataset.id, el.dataset.type);
       });
       r = { el, marqueur: new window.maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).addTo(carte) };
       reperes.set(p.id, r);
@@ -162,9 +162,11 @@ export function afficherReperes(points, idChoisi) {
     const el = r.el;
     el.dataset.id = p.id;
     el.dataset.prive = p.prive ? "1" : "0";
+    el.dataset.type = p.type || (p.prive ? "prive" : "public");
     // Garder les classes posées par MapLibre (positionnement absolu du repère), sinon les repères se décalent
     const classesCarte = [...el.classList].filter((c) => c.startsWith("maplibregl-"));
-    el.className = [...classesCarte, "repere", p.classe, p.prive ? "prive" : "", p.id === idChoisi ? "choisi" : ""].filter(Boolean).join(" ");
+    el.className = [...classesCarte, "repere", p.classe, p.prive ? "prive" : "", p.type === "communaute" ? "communaute" : "",
+      p.id === idChoisi ? "choisi" : ""].filter(Boolean).join(" ");
     el.textContent = p.visi === null || p.visi === undefined ? "·" : String(p.visi).replace(".", ",");
     el.setAttribute("aria-label", `${p.nom} : ${p.visi === null || p.visi === undefined ? "prévision à calculer" : `${String(p.visi).replace(".", ",")} m`}`);
   }

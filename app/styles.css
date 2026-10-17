@@ -168,6 +168,8 @@ a { color: inherit; }
 .resultats button:hover, .resultats button:focus-visible { background: var(--surface-2); }
 .resultats .detail { font-size: 13px; color: var(--discret); }
 .resultats .message { padding: 8px 10px; color: var(--discret); font-size: 14px; }
+.recherche-ou { display: block; margin: 12px 0 10px; z-index: 5; }
+.recherche-ou .resultats { z-index: 6; }
 .fraicheur { font-size: 12px; color: var(--discret); white-space: nowrap; }
 @media (max-width: 599px) { .fraicheur { display: none; } }
 
@@ -454,6 +456,9 @@ select, input[type="number"], input[type="text"] {
   text-align: center;
 }
 .repere.prive { border-color: var(--bouee); border-radius: 5px; }
+.repere.communaute { border-style: dashed; border-radius: 5px; }
+.partage-spot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--ligne); }
+.partage-spot p { margin: 4px 0; }
 .repere.choisi { outline: 3px solid var(--encre); outline-offset: 1px; }
 .repere.mauvaise { background: var(--v-mauvaise); }
 .repere.moyenne { background: var(--v-moyenne); }

@@ -23,6 +23,7 @@ const COQUILLE = [
   "js/retours.js",
   "js/stockage.js",
   "js/synchro.js",
+  "js/communaute.js",
   "js/moteur/moteur.js",
   "js/moteur/openmeteo.js",
   "js/vues/compte.js",

@@ -8,6 +8,7 @@ import { afficherFiche } from "./vues/fiche.js";
 import { afficherMesSpots } from "./vues/messpots.js";
 import { afficherInfos } from "./vues/infos.js";
 import { mesSpots } from "./messpots.js";
+import { chargerCommunaute, idCommunaute, oublierCommunaute, spotCommunaute, spotsCommunaute } from "./communaute.js";
 import { rapportsPourMoteur, renvoyerEnAttente } from "./retours.js";
 import { lire, ecrire } from "./stockage.js";
 import { comptesActifs, lireProfil, session, traiterLienRecu } from "./compte.js";
@@ -24,8 +25,7 @@ const bandeau = document.getElementById("bandeau");
 const prefs = lire("kelvisi-reglages", {});
 const etat = {
   jour: 0,
-  facade: prefs.facade || "toutes",
-  rayon: prefs.rayon || 100,
+  rayon: [15, 30, 60, 100, 200].includes(prefs.rayon) ? prefs.rayon : 60,
   origine: null,
   selection: null,
   route: null,
@@ -43,6 +43,7 @@ const ctx = {
   memoriser,
   surJour: () => { majJoursCarte(); majReperes(); },
   surSpotsModifies: () => { calculerMesSpots(); majReperes(); },
+  calculerProches: (origine, rayon) => calculerCommunauteProches(origine, rayon),
   voirSurCarte: (lat, lon, id) => {
     etat.selection = id;
     if (!large.matches) allerA("#/carte");
@@ -52,7 +53,7 @@ const ctx = {
 };
 
 function memoriser() {
-  ecrire("kelvisi-reglages", { facade: etat.facade, rayon: etat.rayon });
+  ecrire("kelvisi-reglages", { ...lire("kelvisi-reglages", {}), rayon: etat.rayon });
 }
 
 // --- Navigation -----------------------------------------------------------------------------
@@ -75,6 +76,7 @@ function lireRoute() {
     case "liste": return { nom: "liste" };
     case "spot": return { nom: "fiche", cible: { type: "public", id: a } };
     case "prive": return { nom: "fiche", cible: { type: "prive", id: a } };
+    case "partage": return { nom: "fiche", cible: { type: "communaute", id: idCommunaute(a) } };
     case "point": {
       const lat = Number(a), lon = Number(b);
       if (Number.isFinite(lat) && Number.isFinite(lon)) return { nom: "fiche", cible: { type: "point", lat, lon } };
@@ -96,7 +98,7 @@ function naviguer() {
   if (pile.length > 30) pile.shift();
 
   // Un seul onglet actif : la fiche d'un point Kelvisi dépend de « Où aller ? », celle d'un lieu libre de la carte
-  const onglet = route.nom === "fiche" ? { prive: "mes-spots", point: "carte", public: "liste" }[route.cible.type]
+  const onglet = route.nom === "fiche" ? { prive: "mes-spots", point: "carte", public: "liste", communaute: "carte" }[route.cible.type]
     : route.nom === "compte" ? "infos" : route.nom;
   document.querySelectorAll(".onglets a").forEach((a) => {
     if (a.dataset.onglet === onglet) a.setAttribute("aria-current", "page");
@@ -113,6 +115,7 @@ function naviguer() {
       break;
     case "liste":
       afficherListe(panneau, ctx);
+      if (etat.origine) calculerCommunauteProches(etat.origine, etat.rayon);
       break;
     case "mes-spots":
       afficherMesSpots(panneau, ctx);
@@ -147,14 +150,15 @@ function pointsCarte() {
     const visi = j.meilleur_creneau ? j.meilleur_creneau.visibilite_m : j.visibilite_moyenne_m;
     return { id: p.id, nom: p.nom, lat: p.lat, lon: p.lon, visi, classe: j.classe, prive: false };
   });
-  for (const s of mesSpots()) {
-    const pr = previsionsPrivees.get(s.id);
+  const visiDuJour = (pr) => {
     const j = pr ? pr.jours[Math.min(etat.jour, pr.jours.length - 1)] : null;
-    points.push({
-      id: s.id, nom: s.nom, lat: s.lat, lon: s.lon, prive: true,
-      visi: j ? (j.meilleur_creneau ? j.meilleur_creneau.visibilite_m : j.visibilite_moyenne_m) : null,
-      classe: j ? j.classe : "",
-    });
+    return { visi: j ? (j.meilleur_creneau ? j.meilleur_creneau.visibilite_m : j.visibilite_moyenne_m) : null, classe: j ? j.classe : "" };
+  };
+  for (const s of mesSpots()) {
+    points.push({ id: s.id, nom: s.nom, lat: s.lat, lon: s.lon, prive: true, type: "prive", ...visiDuJour(previsionsPrivees.get(s.id)) });
+  }
+  for (const s of spotsCommunaute(mesSpots().map((x) => x.partage_id))) {
+    points.push({ id: s.id, nom: s.nom, lat: s.lat, lon: s.lon, prive: false, type: "communaute", ...visiDuJour(previsionsPrivees.get(s.id)) });
   }
   return points;
 }
@@ -201,13 +205,22 @@ function lierAllers(zone) {
   zone.querySelectorAll("[data-aller]").forEach((b) => b.addEventListener("click", () => allerA(b.dataset.aller)));
 }
 
-function surPoint(id, prive) {
+function surPoint(id, type) {
   etat.selection = id;
   majReperes();
+  const lienCommunaute = () => `#/partage/${encodeURIComponent(spotCommunaute(id)?.uuid || "")}`;
   if (large.matches) {
-    allerA(prive ? `#/prive/${id}` : `#/spot/${id}`);
+    allerA(type === "prive" ? `#/prive/${id}` : type === "communaute" ? lienCommunaute() : `#/spot/${id}`);
     return;
   }
+  if (type === "communaute") {
+    const s = spotCommunaute(id);
+    const pr = previsionsPrivees.get(id);
+    const j = pr ? pr.jours[Math.min(etat.jour, pr.jours.length - 1)] : null;
+    ouvrirFicheRapide({ titre: `<strong>${echapper(s ? s.nom : "Spot partagé")}</strong><br><span class="note">Spot partagé</span>`, corps: resumeJour(j, lienCommunaute()) }, lierAllers);
+    return;
+  }
+  const prive = type === "prive";
   if (prive) {
     const s = mesSpots().find((x) => x.id === id);
     const pr = previsionsPrivees.get(id);
@@ -318,6 +331,7 @@ function initialiserRecherche() {
         ${listeProches(r.lat, r.lon)}`,
     }, lierAllers);
     if (large.matches && etat.route?.nom === "liste") afficherListe(panneau, ctx);
+    calculerCommunauteProches(etat.origine, etat.rayon);
   }
 }
 
@@ -349,6 +363,38 @@ async function calculerMesSpots() {
   }
 }
 
+// Spots partagés proches d'un point de départ : calculés dans le navigateur (10 au plus à la fois)
+let prochesEnCours = false;
+async function calculerCommunauteProches(origine, rayon) {
+  if (prochesEnCours || !origine) return;
+  prochesEnCours = true;
+  try {
+    const aCalculer = spotsCommunaute(mesSpots().map((x) => x.partage_id))
+      .map((s) => ({ s, d: distanceKm(origine.lat, origine.lon, s.lat, s.lon) }))
+      .filter(({ s, d }) => d <= rayon && !previsionsPrivees.has(s.id))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 10);
+    for (const { s } of aCalculer) {
+      try {
+        const { prevision } = await previsionLieu(s, { rapports: rapportsPourMoteur(s.id) });
+        previsionsPrivees.set(s.id, prevision);
+      } catch (e) {
+        /* sans réseau : le spot reste « à calculer » */
+      }
+    }
+    if (aCalculer.length) {
+      majReperes();
+      if (etat.route?.nom === "liste" || (etat.route?.nom === "carte" && large.matches)) {
+        const y = panneau.scrollTop;
+        afficherListe(panneau, ctx);
+        panneau.scrollTop = y;
+      }
+    }
+  } finally {
+    prochesEnCours = false;
+  }
+}
+
 // --- Fraîcheur et connexion ---------------------------------------------------------------------
 
 function majFraicheur() {
@@ -375,6 +421,7 @@ function annoncer(texte) {
 
 async function surConnexion() {
   masquerEcranCompte();
+  await chargerCommunaute().catch(() => {});
   const r = await synchroniser();
   if (r && !r.ok && r.raison === "erreur") annoncer("Tes spots n'ont pas pu être synchronisés. Nouvel essai au prochain démarrage.");
   lireProfil().catch(() => {});
@@ -387,11 +434,13 @@ function lierComptes(lien) {
       return;
     }
     effacerDonneesLocales();
+    oublierCommunaute();
     previsionsPrivees.clear();
     majReperes();
     afficherEcranCompte("connexion");
     allerA(large.matches ? "#/liste" : "#/carte");
   });
+  document.addEventListener("kelvisi-communaute", () => majReperes());
   document.addEventListener("kelvisi-synchro", () => {
     calculerMesSpots();
     majReperes();

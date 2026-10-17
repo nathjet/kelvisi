@@ -3,10 +3,12 @@
 --
 -- Contenu :
 --   profils        un profil par compte (prénom, département, pratique, tranche d'âge, accord e-mails)
---   spots_prives   spots privés, visibles par leur seul propriétaire
+--   spots_prives   spots privés, visibles par leur seul propriétaire ; un spot proposé au partage
+--                  devient visible de tous (sans le nom de son auteur) une fois validé par l'éditeur
 --   favoris        points Kelvisi favoris de chaque compte
 --   rapports       retours terrain (« Tu y étais ? »)
 --   admin.clients  vue réservée à l'éditeur : la liste des comptes, à exporter depuis Supabase
+--   admin.spots_a_valider  vue réservée à l'éditeur : les spots proposés au partage
 -- Les données de l'application ne sont lisibles qu'avec un compte connecté, et chacun ne voit que les siennes.
 
 -- ---------------------------------------------------------------------------------------------
@@ -128,6 +130,79 @@ drop trigger if exists spots_limite on public.spots_prives;
 create trigger spots_limite before insert on public.spots_prives
   for each row execute function public.spots_limite();
 
+-- Partage d'un spot avec tous les utilisateurs, après validation par l'éditeur.
+--   prive       visible de son seul propriétaire (par défaut)
+--   en_attente  proposé par son propriétaire, en attente de validation
+--   publie      validé : visible de tous, sans le nom de son auteur
+--   refuse      refusé par l'éditeur
+-- Le propriétaire ne peut que proposer (en_attente) ou retirer (prive) ; seul l'éditeur, depuis
+-- le tableau de bord Supabase, passe un spot à « publie » ou « refuse ». Un spot publié dont la
+-- position ou les caractéristiques changent repasse en attente de validation.
+alter table public.spots_prives add column if not exists partage text not null default 'prive';
+alter table public.spots_prives add column if not exists partage_demande_le timestamptz;
+alter table public.spots_prives add column if not exists partage_id uuid not null default gen_random_uuid();
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'spots_prives_partage_valeurs') then
+    alter table public.spots_prives add constraint spots_prives_partage_valeurs
+      check (partage in ('prive', 'en_attente', 'publie', 'refuse'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'spots_prives_partage_id_unique') then
+    alter table public.spots_prives add constraint spots_prives_partage_id_unique unique (partage_id);
+  end if;
+end $$;
+
+create or replace function public.spots_partage() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  -- Modification par l'éditeur (tableau de bord Supabase, clé secrète) : rien n'est imposé
+  if (select auth.uid()) is null then
+    return new;
+  end if;
+  -- L'identifiant public ne se choisit pas et ne change jamais
+  if tg_op = 'INSERT' then
+    new.partage_id := gen_random_uuid();
+  else
+    new.partage_id := old.partage_id;
+  end if;
+  if new.partage is null or new.partage = 'prive' then
+    new.partage := 'prive';
+    new.partage_demande_le := null;
+  elsif tg_op = 'UPDATE' and old.partage in ('publie', 'refuse')
+        and (new.nom, new.lat, new.lon, new.orientation_deg, new.ouverture_deg, new.profondeur_m, new.fond)
+            is not distinct from (old.nom, old.lat, old.lon, old.orientation_deg, old.ouverture_deg, old.profondeur_m, old.fond) then
+    -- Rien n'a changé : la décision de l'éditeur reste valable
+    new.partage := old.partage;
+    new.partage_demande_le := old.partage_demande_le;
+  elsif tg_op = 'UPDATE' and old.partage = 'en_attente' then
+    new.partage := 'en_attente';
+    new.partage_demande_le := old.partage_demande_le;
+  else
+    -- Nouvelle proposition, ou spot modifié après validation : à (re)valider
+    new.partage := 'en_attente';
+    new.partage_demande_le := now();
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists spots_partage on public.spots_prives;
+create trigger spots_partage before insert or update on public.spots_prives
+  for each row execute function public.spots_partage();
+
+-- Spots partagés et validés, lisibles par tout compte connecté, sans leur propriétaire
+create or replace function public.spots_communaute()
+returns table (id uuid, nom text, lat double precision, lon double precision, region text,
+               orientation_deg real, ouverture_deg real, profondeur_m real, fond text, publie_le timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select s.partage_id, s.nom, s.lat, s.lon, s.region, s.orientation_deg, s.ouverture_deg, s.profondeur_m, s.fond, s.maj_le
+  from public.spots_prives s
+  where s.partage = 'publie'
+  order by s.maj_le desc
+  limit 3000
+$$;
+revoke all on function public.spots_communaute() from public, anon;
+grant execute on function public.spots_communaute() to authenticated;
+
 -- ---------------------------------------------------------------------------------------------
 -- Favoris
 -- ---------------------------------------------------------------------------------------------
@@ -239,6 +314,27 @@ left join public.profils p on p.id = u.id
 order by u.created_at desc;
 
 revoke all on admin.clients from public, anon, authenticated;
+
+-- Spots proposés au partage, du plus ancien au plus récent. Pour valider : dans Table Editor >
+-- spots_prives, filtrer « partage » = en_attente et remplacer la valeur par publie (ou refuse).
+create or replace view admin.spots_a_valider as
+select
+  s.partage_id,
+  s.nom,
+  s.lat,
+  s.lon,
+  s.region,
+  s.profondeur_m,
+  s.fond,
+  s.partage_demande_le as propose_le,
+  'https://www.openstreetmap.org/?mlat=' || s.lat || '&mlon=' || s.lon || '#map=15/' || s.lat || '/' || s.lon as carte,
+  u.email as propose_par
+from public.spots_prives s
+join auth.users u on u.id = s.proprietaire
+where s.partage = 'en_attente'
+order by s.partage_demande_le;
+
+revoke all on admin.spots_a_valider from public, anon, authenticated;
 
 -- Profils manquants pour des comptes créés avant ce script (repris des informations d'inscription)
 insert into public.profils (id, prenom, departement, pratiques, tranche_age, accord_emails)

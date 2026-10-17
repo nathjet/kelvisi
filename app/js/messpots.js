@@ -1,4 +1,4 @@
-// Spots privés : enregistrés uniquement sur cet appareil, jamais envoyés à Kelvisi.
+// Spots privés : gardés sur l'appareil et sur le compte, visibles du seul propriétaire, sauf partage validé.
 
 import { lire, ecrire, identifiant } from "./stockage.js";
 import { regionPour } from "./format.js";
@@ -7,6 +7,7 @@ import { noterSpot } from "./synchro.js";
 
 const CLE = "kelvisi-spots";
 const FONDS = ["sable", "vase", "mixte", "herbier", "roche"];
+const PARTAGES = ["prive", "en_attente", "publie", "refuse"];
 
 export function mesSpots() {
   return lire(CLE, []);
@@ -30,6 +31,9 @@ export function normaliser(s) {
     profondeur_m: Math.min(40, Math.max(1, Number(s.profondeur_m) || 8)),
     fond: FONDS.includes(s.fond) ? s.fond : "mixte",
     prive: true,
+    // Partage avec tous : l'utilisateur propose (en_attente) ou retire (prive) ; Kelvisi valide
+    partage: PARTAGES.includes(s.partage) ? s.partage : "prive",
+    partage_id: s.partage_id || null,
     cree_le: s.cree_le || new Date().toISOString(),
     maj_le: new Date().toISOString(),
   };

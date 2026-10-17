@@ -261,6 +261,20 @@ def lire_retours_supabase(url: str, cle: str, maintenant: int, session=None) -> 
     return dict(par_spot)
 
 
+def spots_a_valider(url: str, cle: str, session=None) -> int | None:
+    """Nombre de spots proposés au partage qui attendent la validation de l'éditeur (None si le partage n'est pas installé)."""
+    import requests
+
+    http = session or requests
+    r = http.get(f"{url.rstrip('/')}/rest/v1/spots_prives", params={"select": "partage_id", "partage": "eq.en_attente"},
+                 headers={**entetes_supabase(cle), "Prefer": "count=exact", "Range": "0-0"}, timeout=30)
+    if r.status_code in (400, 404):  # colonne absente : script SQL du partage pas encore appliqué
+        return None
+    r.raise_for_status()
+    total = r.headers.get("Content-Range", "*/0").split("/")[-1]
+    return int(total) if total.isdigit() else 0
+
+
 def purger_comptes_inactifs(url: str, cle: str, session=None) -> int | None:
     """Supprime les comptes sans connexion depuis 3 ans (fonction SQL de supabase/schema.sql)."""
     import requests
@@ -318,6 +332,12 @@ def main():
             noter(f"Retours terrain lus : {sum(len(v) for v in rapports.values())}")
         except Exception as e:
             noter(f"Retours terrain indisponibles ({type(e).__name__}) : prévisions sans correction")
+        try:
+            n = spots_a_valider(url, cle)
+            if n:
+                noter(f"Spots proposés au partage, en attente de ta validation : {n} (Supabase > Table Editor > spots_prives)")
+        except Exception as e:
+            noter(f"Spots à valider : lecture impossible ({type(e).__name__})")
         # Une fois par jour : effacement des comptes inactifs depuis 3 ans (durée annoncée aux utilisateurs)
         if datetime.fromtimestamp(maintenant, timezone.utc).hour == 3:
             try:

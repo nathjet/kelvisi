@@ -36,3 +36,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
       - name: Vérifier profils, règles d'accès, suppression et purge
         run: psql -v ON_ERROR_STOP=1 -f tests/supabase/verifier.sql
+      - name: Vérifier le partage des spots (validation, anonymat, retrait)
+        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/partage.sql

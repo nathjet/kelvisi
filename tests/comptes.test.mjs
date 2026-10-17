@@ -1,7 +1,7 @@
 // Test de bout en bout des comptes, dans un navigateur simulé (jsdom), avec un faux serveur Supabase
 // qui applique les mêmes règles que supabase/schema.sql (chacun ne voit que ses données).
 //
-// Usage : node tests/comptes.test.mjs   (lance les parcours « parcours », « lien » et « expire »)
+// Usage : node tests/comptes.test.mjs   (lance les parcours « parcours », « lien », « expire » et « partage »)
 
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -16,7 +16,7 @@ const mode = process.argv[2];
 
 if (!mode) {
   let echec = false;
-  for (const m of ["parcours", "lien", "expire"]) {
+  for (const m of ["parcours", "lien", "expire", "partage"]) {
     const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), m], { encoding: "utf8" });
     process.stdout.write(r.stdout);
     process.stderr.write(r.stderr);
@@ -28,7 +28,10 @@ if (!mode) {
 // --- Faux serveur Supabase ------------------------------------------------------------------------
 
 const BASE = "https://supabase.test";
-const serveur = { utilisateurs: [], profils: new Map(), spots: [], favoris: [], rapports: [], appels: [] };
+const serveur = { utilisateurs: [], profils: new Map(), spots: [], favoris: [], rapports: [], appels: [],
+  // Partage des spots installé sur la base (script SQL appliqué) : seulement dans le parcours « partage »
+  partageActif: mode === "partage" };
+const CARACTERISTIQUES = ["nom", "lat", "lon", "orientation_deg", "ouverture_deg", "profondeur_m", "fond"];
 let compteur = 0;
 
 function creerUtilisateur(email, motDePasse, meta = {}, confirme = false) {
@@ -101,10 +104,25 @@ function supabase(url, options) {
     return reponse([p]);
   }
   if (chemin.startsWith("/rest/v1/spots_prives")) {
-    if (methode === "GET") return reponse(serveur.spots.filter((s) => s.proprietaire === u.id).map(({ proprietaire, ...s }) => s));
+    // Sans le script de partage, la base ne connaît pas la colonne « partage » : elle refuse la requête
+    const colonneInconnue = reponse({ code: "PGRST204", message: "Could not find the 'partage' column of 'spots_prives'" }, 400);
+    if (methode === "GET") {
+      if (!serveur.partageActif && /partage/.test(decodeURIComponent(chemin))) return colonneInconnue;
+      return reponse(serveur.spots.filter((s) => s.proprietaire === u.id).map(({ proprietaire, ...s }) => s));
+    }
     if (methode === "POST") {
+      if (!serveur.partageActif && corps.some((s) => "partage" in s)) return colonneInconnue;
       for (const s of corps) {
         assert.equal(s.proprietaire, u.id, "spot déposé au nom du compte");
+        const ancien = serveur.spots.find((x) => x.proprietaire === u.id && x.id === s.id);
+        if (serveur.partageActif) {
+          // Mêmes règles que le déclencheur spots_partage de supabase/schema.sql
+          const demande = s.partage ?? ancien?.partage ?? "prive";
+          const inchange = ancien && CARACTERISTIQUES.every((c) => ancien[c] === s[c]);
+          s.partage = demande === "prive" ? "prive"
+            : ancien && ["publie", "refuse"].includes(ancien.partage) && inchange ? ancien.partage : "en_attente";
+          s.partage_id = ancien?.partage_id || `uuid-${++compteur}`;
+        }
         serveur.spots = serveur.spots.filter((x) => !(x.proprietaire === u.id && x.id === s.id));
         serveur.spots.push(s);
       }
@@ -131,6 +149,13 @@ function supabase(url, options) {
   if (chemin.startsWith("/rest/v1/rapports")) {
     serveur.rapports.push({ ...corps, utilisateur: u.id });
     return reponse(null, 201);
+  }
+  if (chemin.startsWith("/rest/v1/rpc/spots_communaute")) {
+    if (!serveur.partageActif) return reponse({ code: "PGRST202", message: "Could not find the function public.spots_communaute" }, 404);
+    return reponse(serveur.spots.filter((s) => s.partage === "publie").map((s) => ({
+      id: s.partage_id, nom: s.nom, lat: s.lat, lon: s.lon, region: s.region, orientation_deg: s.orientation_deg,
+      ouverture_deg: s.ouverture_deg, profondeur_m: s.profondeur_m, fond: s.fond, publie_le: s.maj_le,
+    })));
   }
   if (chemin.startsWith("/rest/v1/rpc/supprimer_mon_compte")) {
     serveur.utilisateurs = serveur.utilisateurs.filter((x) => x.id !== u.id);
@@ -202,6 +227,7 @@ class FauxRepere {
 
 const ADRESSES = {
   parcours: "https://kelvisi.test/",
+  partage: "https://kelvisi.test/",
   lien: "https://kelvisi.test/#access_token=PLACEHOLDER&expires_in=3600&refresh_token=REFRESH&token_type=bearer&type=recovery",
   expire: "https://kelvisi.test/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired",
 };
@@ -368,6 +394,8 @@ if (mode === "parcours") {
   await etape("suppression d'un spot privé, aussi sur le serveur", async () => {
     w.location.hash = "#/prive/prive-ancien";
     await jusqua(() => panneau().querySelector("#prive-supprimer"), "fiche du spot");
+    assert.ok(!panneau().querySelector("#prive-partage"), "pas de partage tant que la base ne le connaît pas");
+    assert.ok(serveur.spots.every((x) => !("partage" in x)), "aucun champ de partage envoyé");
     panneau().querySelector("#prive-supprimer").click();
     panneau().querySelector("#prive-oui").click();
     await jusqua(() => serveur.spots.length === 0, "spot supprimé du serveur");
@@ -414,6 +442,72 @@ if (mode === "lien") {
     await jusqua(() => ecran().hidden, "écran fermé");
     assert.equal(serveur.utilisateurs[0].motDePasse, "nouveaumdp7");
     await jusqua(() => /Mot de passe changé/.test(d.getElementById("bandeau").textContent), "annonce");
+  });
+}
+
+if (mode === "partage") {
+  const auteur = creerUtilisateur("auteur@exemple.fr", "partage2026", { prenom: "Auteur" }, true);
+  serveur.spots.push({ id: "prive-x", proprietaire: auteur.id, nom: "Roche du large", lat: 47.47, lon: -3.18, region: "atlantique",
+    orientation_deg: 260, ouverture_deg: 90, profondeur_m: 9, fond: "roche", partage: "publie", partage_id: "uuid-roche", maj_le: new Date().toISOString() });
+  const moi = creerUtilisateur("moi@exemple.fr", "chasse2026", { prenom: "Moi" }, true);
+  serveur.spots.push({ id: "prive-mien", proprietaire: moi.id, nom: "Ma crique", lat: 47.49, lon: -3.2, region: "atlantique",
+    orientation_deg: 270, ouverture_deg: 90, profondeur_m: 8, fond: "roche", partage: "prive", partage_id: "uuid-mien", maj_le: new Date().toISOString() });
+
+  await etape("connexion : spots partagés chargés", async () => {
+    await jusqua(() => !ecran().hidden, "écran de compte");
+    ecran().querySelector('[data-mode="connexion"]').click();
+    const form = ecran().querySelector("form");
+    remplir(form, { email: "moi@exemple.fr", mot_de_passe: "chasse2026" });
+    soumettre(form);
+    await jusqua(() => ecran().hidden, "écran fermé");
+    await jusqua(() => d.querySelector('.repere.communaute[data-type="communaute"]'), "repère du spot partagé");
+    assert.equal(d.querySelectorAll(".repere.communaute").length, 1);
+  });
+
+  await etape("fiche d'un spot partagé, anonyme, copiable", async () => {
+    w.location.hash = "#/partage/uuid-roche";
+    await jusqua(() => panneau().querySelector(".lecture"), "prévision calculée", 5000);
+    assert.match(texte(panneau()), /Roche du large/);
+    assert.match(texte(panneau()), /Spot partagé/);
+    assert.doesNotMatch(texte(panneau()), /Auteur|auteur@exemple/, "aucun nom d'auteur");
+    assert.match(panneau().querySelector("a.bouton[href^='mailto:']")?.getAttribute("href") || "", /Signalement/, "signalement possible");
+    panneau().querySelector("#communaute-copier").click();
+    await jusqua(() => /#\/prive\//.test(w.location.hash) && panneau().querySelector("#prive-partage"), "copie dans mes spots", 5000);
+    await jusqua(() => serveur.spots.filter((x) => x.proprietaire === moi.id).length === 2, "copie synchronisée");
+    const copie = serveur.spots.find((x) => x.proprietaire === moi.id && x.nom === "Roche du large");
+    assert.equal(copie.partage, "prive", "la copie reste privée");
+  });
+
+  await etape("proposer son spot : en attente de validation", async () => {
+    w.location.hash = "#/prive/prive-mien";
+    await jusqua(() => /Ma crique/.test(texte(panneau().querySelector(".titre-vue"))) && panneau().querySelector("#prive-partage"), "bloc de partage", 5000);
+    assert.match(texte(panneau()), /Visible par toi seul/);
+    panneau().querySelector("#prive-partage").click();
+    await jusqua(() => serveur.spots.find((x) => x.id === "prive-mien").partage === "en_attente", "proposition reçue");
+    await jusqua(() => /en attente de validation/.test(texte(panneau())), "état affiché");
+  });
+
+  await etape("validé par Kelvisi : visible comme partagé, puis retiré", async () => {
+    serveur.spots.find((x) => x.id === "prive-mien").partage = "publie";
+    w.dispatchEvent(new w.Event("online"));
+    await jusqua(() => JSON.parse(w.localStorage.getItem("kelvisi-spots")).find((x) => x.id === "prive-mien").partage === "publie", "état rapatrié");
+    w.location.hash = "#/mes-spots";
+    await attendre();
+    w.location.hash = "#/prive/prive-mien";
+    await jusqua(() => /Ma crique/.test(texte(panneau().querySelector(".titre-vue"))) && /Partagé : visible par tous, sans ton nom/.test(texte(panneau())), "partagé", 5000);
+    panneau().querySelector("#prive-partage").click();
+    await jusqua(() => serveur.spots.find((x) => x.id === "prive-mien").partage === "prive", "retiré");
+  });
+
+  await etape("« Où aller ? » autour d'une ville inclut le spot partagé", async () => {
+    await import(pathToFileURL(join(APP, "js", "communaute.js")).href).then((m) => m.chargerCommunaute());
+    w.location.hash = "#/liste";
+    await jusqua(() => panneau().querySelector("#ou-texte"), "liste");
+    assert.ok(![...panneau().querySelectorAll(".liste .marque-prive")].some((m) => m.textContent === "partagé"), "pas sans point de départ");
+    const champ = panneau().querySelector("#ou-texte");
+    champ.value = "roche";
+    champ.dispatchEvent(new w.Event("input"));
+    await jusqua(() => /Roche du large\s*Spot partagé/.test(texte(panneau().querySelector("#ou-resultats"))), "spot partagé trouvé par son nom");
   });
 }
 
