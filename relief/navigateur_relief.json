@@ -1,0 +1,24 @@
+{
+ "tuiles": {
+  "quiberon": "tuile 13/4024/2864 : 4830 ms, 256750 octets",
+  "crozon": "tuile 13/3989/2838 : 1767 ms, 318423 octets",
+  "marseille": "tuile 13/4218/3003 : 2182 ms, 196237 octets",
+  "glenan": "tuile 12/2002/1428 : 2694 ms, 592366 octets",
+  "chausey": "tuile 11/1013/704 : 1323 ms, 358827 octets",
+  "bonifacio": "tuile 11/1076/764 : 458 ms, 190913 octets",
+  "bretagne_sud": "tuile 8/125/89 : 1694 ms, 303682 octets"
+ },
+ "travailleur": true,
+ "carte_quiberon": "21 images du Shom en 15 s",
+ "carte_crozon": "25 images du Shom en 15 s",
+ "carte_marseille": "27 images du Shom en 15 s",
+ "carte_glenan": "22 images du Shom en 15 s",
+ "carte_chausey": "36 images du Shom en 15 s",
+ "carte_bonifacio": "19 images du Shom en 15 s",
+ "carte_bretagne_sud": "10 images du Shom en 15 s",
+ "erreurs": [
+  "console warning: Expected value to be of type number, but found null instead.",
+  "console warning: Expected value to be of type number, but found null instead.",
+  "console warning: Expected value to be of type number, but found null instead."
+ ]
+}
