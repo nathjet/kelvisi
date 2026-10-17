@@ -39,6 +39,7 @@ from prevision import charger_spots, parametres as P, prevoir  # noqa: E402
 from prevision.donnees import Rapport  # noqa: E402
 from prevision.pipeline import VERSION_MODELE  # noqa: E402
 from prevision.sources import copernicus, hubeau, openmeteo  # noqa: E402
+from prevision.spot import avec_reglage_voisin  # noqa: E402
 
 JOURS_RETOURS = 90
 
@@ -181,8 +182,10 @@ def construire(spots, conditions, maintenant: int, rapports_par_spot: dict | Non
     resume_points, details, erreurs = [], {}, []
     for spot, cond in zip(spots, conditions):
         try:
-            rapports = completer_previsions(spot, cond, rapports_par_spot.get(spot.id, []))
-            p = prevoir(spot, cond, maintenant, satellite=satellites.get(spot.id), rapports=rapports, jours=jours)
+            # Point pas encore calé : il reprend les valeurs de son voisin calé (moins de 25 km), comme un lieu libre
+            calcul = avec_reglage_voisin(spot, spots)
+            rapports = completer_previsions(calcul, cond, rapports_par_spot.get(spot.id, []))
+            p = prevoir(calcul, cond, maintenant, satellite=satellites.get(spot.id), rapports=rapports, jours=jours)
         except Exception as e:  # un point défaillant ne doit pas empêcher la publication des autres
             erreurs.append({"id": spot.id, "erreur": f"{type(e).__name__}: {e}"})
             continue

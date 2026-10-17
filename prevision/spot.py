@@ -103,3 +103,35 @@ def charger_spots(chemin: str | Path) -> list[Spot]:
     """Lit une liste de spots depuis un fichier JSON."""
     donnees = json.loads(Path(chemin).read_text(encoding="utf-8"))
     return [Spot(**d) for d in donnees]
+
+
+RAYON_VOISIN_KM = 25.0
+
+
+def _distance_km(a: Spot, b: Spot) -> float:
+    import math
+
+    dlat = math.radians(b.lat - a.lat)
+    dlon = math.radians(b.lon - a.lon)
+    h = math.sin(dlat / 2) ** 2 + math.cos(math.radians(a.lat)) * math.cos(math.radians(b.lat)) * math.sin(dlon / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(h))
+
+
+def reglage_voisin(spot: Spot, spots: list[Spot], rayon_km: float = RAYON_VOISIN_KM) -> Spot | None:
+    """Point calé le plus proche (même région, moins de `rayon_km`) pour un point qui n'a pas encore ses
+    propres valeurs calées sur le satellite. Même règle que le navigateur pour un lieu libre."""
+    if spot.visibilite_calme_m is not None:
+        return None
+    candidats = [(d, s) for s in spots if s.id != spot.id and s.region == spot.region and s.visibilite_calme_m is not None
+                 for d in [_distance_km(spot, s)] if d <= rayon_km]
+    return min(candidats, key=lambda x: x[0])[1] if candidats else None
+
+
+def avec_reglage_voisin(spot: Spot, spots: list[Spot]) -> Spot:
+    """Le point, avec la visibilité habituelle et la sensibilité à la houle de son voisin calé s'il en a un."""
+    from dataclasses import replace
+
+    voisin = reglage_voisin(spot, spots)
+    if voisin is None:
+        return spot
+    return replace(spot, visibilite_calme_m=voisin.visibilite_calme_m, sensibilite_houle=voisin.sensibilite_houle)
