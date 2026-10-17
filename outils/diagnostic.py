@@ -494,6 +494,74 @@ def satellite_rayons():
     annoter("Rayons satellite", lignes)
 
 
+def placer_points():
+    """Nouveaux points (spots/candidats.json) : profondeur EMODnet, direction du large, placement entre 6 et 15 m.
+
+    Résultat dans diag/points_places.json (publié sur la branche « diagnostic »).
+    """
+    import json
+    import math
+    from concurrent.futures import ThreadPoolExecutor
+    from pathlib import Path
+
+    racine = Path(__file__).resolve().parent.parent
+    candidats = json.loads((racine / "spots" / "candidats.json").read_text(encoding="utf-8"))
+    Path(SORTIE).mkdir(exist_ok=True)
+    http = requests.Session()
+
+    def profondeur(lat, lon):
+        for _ in range(3):
+            try:
+                r = http.get("https://rest.emodnet-bathymetry.eu/depth_sample",
+                             params={"geom": f"POINT({lon:.5f} {lat:.5f})"}, timeout=30)
+                if r.status_code == 200:
+                    v = r.json().get("avg")
+                    return float(v) if v is not None and float(v) > 0 else None
+            except Exception:
+                pass
+        return None
+
+    def deplacer(lat, lon, azimut, metres):
+        a = math.radians(azimut)
+        return (lat + metres * math.cos(a) / 111_320.0, lon + metres * math.sin(a) / (111_320.0 * math.cos(math.radians(lat))))
+
+    def traiter(c):
+        lat, lon = c["lat"], c["lon"]
+        p0 = profondeur(lat, lon)
+        directions = [k * 22.5 for k in range(16)]
+        rayons = {}
+        for d in directions:
+            rayons[d] = [profondeur(*deplacer(lat, lon, d, m)) for m in (400, 800, 1500)]
+        au_large = [d for d in directions if rayons[d][2] is not None]
+        if au_large:
+            # Direction du large : la plus profonde à 1,5 km, lissée avec ses deux voisines
+            def score(d):
+                vals = [rayons[(d + k * 22.5) % 360][2] or 0 for k in (-1, 0, 1)]
+                return sum(vals)
+            orientation = max(directions, key=score)
+        else:
+            orientation = c.get("orientation_deg", 270)
+        ouverture = max(45, min(180, 22.5 * sum(1 for d in directions if rayons[d][1] is not None)))
+        lat2, lon2, p2, deplace = lat, lon, p0, 0
+        if p0 is None or not 5 <= p0 <= 16:
+            for m in range(100, 3100, 100):
+                la, lo = deplacer(lat, lon, orientation, m)
+                p = profondeur(la, lo)
+                if p is not None and 6 <= p <= 15:
+                    lat2, lon2, p2, deplace = la, lo, p, m
+                    break
+        return {"id": c["id"], "nom": c["nom"], "depart": [lat, lon], "profondeur_depart": p0, "lat": round(lat2, 4), "lon": round(lon2, 4),
+                "profondeur": p2, "deplace_m": deplace, "orientation_deg": orientation, "orientation_prevue": c.get("orientation_deg"),
+                "ouverture_deg": ouverture, "eau_a_800m": [d for d in directions if rayons[d][1] is not None]}
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        resultats = list(pool.map(traiter, candidats))
+    Path(SORTIE, "points_places.json").write_text(json.dumps(resultats, ensure_ascii=False, indent=1), encoding="utf-8")
+    annoter("Placement des nouveaux points", [
+        f"{r['id']} : {r['profondeur_depart']} m -> {r['profondeur']} m ({r['deplace_m']} m), large {r['orientation_deg']}° (prévu {r['orientation_prevue']}°), ouverture {r['ouverture_deg']}°"
+        for r in resultats])
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:
