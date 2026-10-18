@@ -11,7 +11,7 @@ RACINE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RACINE / "outils"))
 
 from caler import charger_series, climatologie_plancton, erreur_climatologie  # noqa: E402
-from historique import annees, poids_open_meteo, vers_series  # noqa: E402
+from historique import annees, attente_apres, poids_open_meteo, vers_series  # noqa: E402
 from prevision.calage import separer  # noqa: E402
 from prevision.spot import StationRiviere  # noqa: E402
 
@@ -28,6 +28,10 @@ def test_poids_des_requetes_open_meteo():
     assert poids_open_meteo(8, 14, 1) == 1          # moins de 10 grandeurs, 2 semaines : un appel
     assert poids_open_meteo(15, 14, 1) == 1.5       # exemple de la documentation Open-Meteo
     assert round(poids_open_meteo(8, 365, 10)) == 261
+    # Une requête d'un an pour 10 points (261 appels) est suivie d'une pause d'une demi-minute :
+    # on reste sous les 600 appels par minute de l'offre gratuite
+    assert 30 <= attente_apres(261) <= 35
+    assert attente_apres(1) == 2.0
 
 
 def test_conversion_reponse_marine():

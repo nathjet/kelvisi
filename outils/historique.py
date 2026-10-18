@@ -42,6 +42,9 @@ VARIABLES_MARINE = {
 }  # 8 grandeurs : moins de 10, chaque tranche de 2 semaines compte pour un seul appel
 VARIABLES_PLUIE = {"precipitation": "pluie"}
 LOT = 10  # points par requête Open-Meteo
+# Offre gratuite d'Open-Meteo : 600 appels par minute au plus. Les requêtes d'historique pèsent
+# chacune plusieurs centaines d'appels : on les espace pour rester sous ce rythme, avec une marge.
+APPELS_PAR_MINUTE = 500
 
 
 def annoter(titre: str, lignes) -> None:
@@ -52,6 +55,11 @@ def annoter(titre: str, lignes) -> None:
 def poids_open_meteo(n_variables: int, jours: int, n_points: int) -> float:
     """Nombre d'appels décomptés par Open-Meteo (au-delà de 10 variables ou de 2 semaines, appels fractionnaires)."""
     return max(1.0, n_variables / 10) * max(1.0, jours / 14) * n_points
+
+
+def attente_apres(cout: float) -> float:
+    """Pause (s) après une requête de ce poids, pour respecter la limite d'appels par minute."""
+    return max(2.0, 60.0 * cout / APPELS_PAR_MINUTE)
 
 
 def cle_open_meteo() -> str | None:
@@ -282,7 +290,7 @@ def collecter(budget: float, debut: str, refaire_satellite: tuple[str, ...] = ()
             for s, rep in zip(lot, reponses):
                 temps, series = vers_series(rep, variables)
                 enregistrer_npz(DOSSIER / nom / f"{s.id}_{etiquette}.npz", temps, series)
-            time.sleep(2.0)
+            time.sleep(attente_apres(cout))
         if arret:
             break
 
