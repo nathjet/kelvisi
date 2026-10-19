@@ -119,18 +119,20 @@ les réglages sur le début de l'historique et vérifie le résultat sur la fin,
 jamais vue pendant le calage (`--appliquer` écrit les valeurs retenues).
 Rapport complet : `calage/resultat.json`.
 
-Calage d'octobre 2026 (images de janvier 2024 à octobre 2026, 44 points,
-5 307 images) ; erreur typique sur la turbidité pendant la période de
+Calage du 19 octobre 2026 (images de janvier 2024 à octobre 2026, 95 points,
+11 007 images ; les 51 points ajoutés en octobre ont 2025 et 2026, et 2024
+pour 40 d'entre eux) ; erreur typique sur la turbidité pendant la période de
 vérification :
 
 | Prévision | 1 jour après une image | 2 à 3 jours | 4 à 7 jours |
 | --- | --- | --- | --- |
-| Eau identique à la dernière image | 38 % | 48 % | 65 % |
-| Modèle calé, recalé sur la dernière image | 35 % | 35 % | 41 % |
+| Eau identique à la dernière image | 34 % | 45 % | 66 % |
+| Modèle calé, recalé sur la dernière image | 31 % | 34 % | 42 % |
 
-Sans image récente, le modèle calé fait 42 % d'erreur typique, contre 58 %
-pour une simple moyenne de chaque point (et 118 % avec les réglages
-d'origine). Aux Glénan et à Palombaggia, le fond de sable clair peu profond
+Sans image récente, le modèle calé fait 42 % d'erreur typique, contre 57 %
+pour une simple moyenne de chaque point. Pour les 51 points ajoutés, qui
+reprenaient jusque-là les valeurs d'un voisin, l'erreur passe de 95 % à 42 %
+(au premier calage, les réglages d'origine faisaient 118 %). Aux Glénan et à Palombaggia, le fond de sable clair peu profond
 fausse la turbidité satellite : le satellite y est ignoré. À Ouessant,
 Belle-Île, Campomoro, sur la côte Vermeille et aux Baleines, le masque des
 terres du satellite s'arrête à 140-380 m du point : les pixels sont pris

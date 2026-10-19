@@ -41,7 +41,7 @@ const PAGES = {
       </ul>
       <h2>Limites de cette version bêta</h2>
       <ul>
-        <li>Le modèle est calé sur environ 5 300 images satellite de 2024 à 2026. Le passage de la turbidité aux mètres de visibilité reste à vérifier avec vos retours terrain.</li>
+        <li>Le modèle est calé sur environ 11 000 images satellite de 2024 à 2026. Le passage de la turbidité aux mètres de visibilité reste à vérifier avec vos retours terrain.</li>
         <li>Par temps couvert, le satellite ne voit rien : la prévision repose alors sur le modèle seul, moins précis.</li>
         <li>Les horaires de marée et le courant viennent d'un modèle à maille de 8 km : ce sont des indications, pas des horaires officiels.</li>
         <li>Les profondeurs viennent des cartes du Shom, lues sur leurs couleurs : compte environ un mètre d'incertitude. Elles sont mesurées sous le niveau moyen de la mer pour le relevé laser, sous les plus basses mers ailleurs, d'où un écart de quelques mètres en limite des relevés laser en Manche et en Atlantique. Elles ne servent pas à naviguer.</li>

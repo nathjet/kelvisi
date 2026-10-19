@@ -1,729 +1,1086 @@
 {
- "date": "2026-10-17T09:21:15+00:00",
+ "date": "2026-10-19T17:40:24+00:00",
  "periode": {
   "du": "2024-01-01",
-  "au": "2026-10-10"
+  "au": "2026-10-12"
  },
- "points": 44,
- "images": 5307,
+ "points": 95,
+ "images": 11007,
  "validation": {
-  "images_apprentissage": 3713,
-  "images_test": 1594,
+  "images_apprentissage": 7700,
+  "images_test": 3307,
   "erreur_typique_sans_satellite_pct": {
-   "climatologie": 58.0,
-   "modele_avant_calage": 50.4,
+   "climatologie": 57.2,
+   "modele_avant_calage": 67.3,
    "modele_apres_calage": 42.0
   },
   "erreur_typique_avec_satellite_pct": {
    "persistance": {
     "4-7 jours": {
-     "erreur_pct": 64.6,
-     "images": 341
+     "erreur_pct": 66.0,
+     "images": 706
     },
     "2-3 jours": {
-     "erreur_pct": 47.7,
-     "images": 897
+     "erreur_pct": 44.9,
+     "images": 1873
     },
     "1 jour": {
-     "erreur_pct": 37.7,
-     "images": 133
+     "erreur_pct": 33.6,
+     "images": 239
     }
    },
    "modele_seul": {
     "4-7 jours": {
-     "erreur_pct": 41.9,
-     "images": 341
+     "erreur_pct": 43.7,
+     "images": 706
     },
     "2-3 jours": {
-     "erreur_pct": 38.2,
-     "images": 897
+     "erreur_pct": 38.1,
+     "images": 1873
     },
     "1 jour": {
-     "erreur_pct": 45.7,
-     "images": 133
+     "erreur_pct": 41.7,
+     "images": 239
     }
    },
    "additif_48h": {
     "4-7 jours": {
-     "erreur_pct": 40.9,
-     "images": 341
+     "erreur_pct": 42.4,
+     "images": 706
     },
     "2-3 jours": {
-     "erreur_pct": 34.9,
-     "images": 897
+     "erreur_pct": 34.3,
+     "images": 1873
     },
     "1 jour": {
-     "erreur_pct": 35.6,
-     "images": 133
+     "erreur_pct": 31.7,
+     "images": 239
     }
    },
    "multiplicatif_48h": {
     "4-7 jours": {
-     "erreur_pct": 40.9,
-     "images": 341
+     "erreur_pct": 42.5,
+     "images": 706
     },
     "2-3 jours": {
-     "erreur_pct": 34.2,
-     "images": 897
+     "erreur_pct": 33.5,
+     "images": 1873
     },
     "1 jour": {
-     "erreur_pct": 35.4,
-     "images": 133
+     "erreur_pct": 31.5,
+     "images": 239
     }
    },
    "additif_72h": {
     "4-7 jours": {
-     "erreur_pct": 40.5,
-     "images": 341
+     "erreur_pct": 41.7,
+     "images": 706
     },
     "2-3 jours": {
-     "erreur_pct": 35.0,
-     "images": 897
+     "erreur_pct": 34.1,
+     "images": 1873
     },
     "1 jour": {
-     "erreur_pct": 35.1,
-     "images": 133
+     "erreur_pct": 31.3,
+     "images": 239
     }
    },
    "multiplicatif_72h": {
     "4-7 jours": {
-     "erreur_pct": 40.0,
-     "images": 341
+     "erreur_pct": 41.3,
+     "images": 706
     },
     "2-3 jours": {
-     "erreur_pct": 34.0,
-     "images": 897
+     "erreur_pct": 32.9,
+     "images": 1873
     },
     "1 jour": {
-     "erreur_pct": 34.8,
-     "images": 133
+     "erreur_pct": 30.9,
+     "images": 239
     }
    },
    "additif_120h": {
     "4-7 jours": {
-     "erreur_pct": 41.3,
-     "images": 341
+     "erreur_pct": 41.8,
+     "images": 706
     },
     "2-3 jours": {
-     "erreur_pct": 36.4,
-     "images": 897
+     "erreur_pct": 35.1,
+     "images": 1873
     },
     "1 jour": {
-     "erreur_pct": 35.1,
-     "images": 133
+     "erreur_pct": 31.3,
+     "images": 239
     }
    },
    "multiplicatif_120h": {
     "4-7 jours": {
-     "erreur_pct": 39.7,
-     "images": 341
+     "erreur_pct": 40.4,
+     "images": 706
     },
     "2-3 jours": {
-     "erreur_pct": 34.9,
-     "images": 897
+     "erreur_pct": 33.5,
+     "images": 1873
     },
     "1 jour": {
-     "erreur_pct": 34.6,
-     "images": 133
+     "erreur_pct": 30.9,
+     "images": 239
     }
    }
   },
   "reglages": {
-   "ALPHA_BRASSAGE": 0.0021,
-   "FACTEUR_TAU": 1.41421,
-   "POIDS_LITTORAL": 2.12132,
-   "DELTA_PLUIE": 0.28196,
-   "EFFET_PHASE_MAREE": 0.07115,
-   "GAMMA_FLUVIAL": 0.77808,
-   "C_BRASSAGE_MAX": 5.15847
+   "ALPHA_BRASSAGE": 0.00143,
+   "FACTEUR_TAU": 1.68154,
+   "POIDS_LITTORAL": 3.0,
+   "DELTA_PLUIE": 0.25856,
+   "EFFET_PHASE_MAREE": 0.12496,
+   "GAMMA_FLUVIAL": 0.5502,
+   "C_BRASSAGE_MAX": 19.01569
   },
   "saisons": {
    "manche": {
-    "amplitude": 0.487,
-    "pic_jour": 3.8
+    "amplitude": 0.45,
+    "pic_jour": 6.6
    },
    "atlantique": {
     "amplitude": 0.562,
-    "pic_jour": 6.6
+    "pic_jour": 12.2
    },
    "mediterranee": {
-    "amplitude": 0.075,
-    "pic_jour": 93.8
+    "amplitude": 0.037,
+    "pic_jour": 96.6
    }
   }
  },
  "reglages": {
   "ALPHA_BRASSAGE": {
-   "avant": 0.00223,
-   "apres": 0.00192
+   "avant": 0.00192,
+   "apres": 0.00264
   },
   "FACTEUR_TAU": {
-   "avant": 1.0,
-   "apres": 1.41421
+   "avant": 1.414,
+   "apres": 1.414
   },
   "POIDS_LITTORAL": {
-   "avant": 3.0,
-   "apres": 2.52269
+   "avant": 2.523,
+   "apres": 2.12158
   },
   "DELTA_PLUIE": {
-   "avant": 0.1041,
-   "apres": 0.1238
+   "avant": 0.1238,
+   "apres": 0.19093
   },
   "EFFET_PHASE_MAREE": {
-   "avant": 0.01562,
-   "apres": 0.09636
+   "avant": 0.09636,
+   "apres": 0.16923
   },
   "GAMMA_FLUVIAL": {
-   "avant": 0.7135,
-   "apres": 0.77808
+   "avant": 0.7781,
+   "apres": 0.6
   },
   "C_BRASSAGE_MAX": {
-   "avant": 10.96,
-   "apres": 12.81218
+   "avant": 12.81,
+   "apres": 17.83559
   }
  },
  "saisons": {
   "manche": {
-   "amplitude": 0.45,
+   "amplitude": 0.412,
    "pic_jour": 6.6
   },
   "atlantique": {
    "amplitude": 0.506,
-   "pic_jour": 3.8
+   "pic_jour": 9.4
   },
   "mediterranee": {
-   "amplitude": 0.037,
+   "amplitude": 0.0,
    "pic_jour": 96.6
   }
  },
  "erreur_typique_apprentissage_pct": {
-  "avant": 62.1,
-  "apres": 48.6
+  "avant": 83.1,
+  "apres": 47.9
  },
  "points_cales": {
   "ref-gris-nez": {
-   "visibilite_calme_avant": 4.3,
-   "visibilite_calme": 16.26,
-   "sensibilite_houle": 11.383,
-   "erreur_pct": 101.5,
+   "visibilite_calme_avant": 16.3,
+   "visibilite_calme": 31.89,
+   "sensibilite_houle": 9.457,
+   "erreur_pct": 103.8,
    "images": 72
   },
   "ref-etretat": {
-   "visibilite_calme_avant": 1.7,
-   "visibilite_calme": 1.82,
-   "sensibilite_houle": 1.204,
-   "erreur_pct": 69.5,
+   "visibilite_calme_avant": 1.8,
+   "visibilite_calme": 1.98,
+   "sensibilite_houle": 1.648,
+   "erreur_pct": 68.7,
    "images": 122
   },
   "ref-barfleur": {
-   "visibilite_calme_avant": 2.7,
-   "visibilite_calme": 2.57,
-   "sensibilite_houle": 21.247,
-   "erreur_pct": 58.5,
+   "visibilite_calme_avant": 2.6,
+   "visibilite_calme": 2.68,
+   "sensibilite_houle": 20.0,
+   "erreur_pct": 57.2,
    "images": 96
   },
   "ref-granville": {
-   "visibilite_calme_avant": 4.3,
-   "visibilite_calme": 3.93,
-   "sensibilite_houle": 14.61,
+   "visibilite_calme_avant": 3.9,
+   "visibilite_calme": 4.26,
+   "sensibilite_houle": 12.139,
    "erreur_pct": 96.5,
    "images": 62
   },
   "ref-carteret": {
-   "visibilite_calme_avant": 7.7,
-   "visibilite_calme": 8.27,
-   "sensibilite_houle": 2.884,
-   "erreur_pct": 96.9,
+   "visibilite_calme_avant": 8.3,
+   "visibilite_calme": 20.82,
+   "sensibilite_houle": 2.714,
+   "erreur_pct": 98.3,
    "images": 63
   },
   "ref-grouin": {
-   "visibilite_calme_avant": 2.3,
-   "visibilite_calme": 2.46,
-   "sensibilite_houle": 10.047,
-   "erreur_pct": 72.6,
+   "visibilite_calme_avant": 2.5,
+   "visibilite_calme": 2.57,
+   "sensibilite_houle": 8.348,
+   "erreur_pct": 73.6,
    "images": 67
   },
   "ref-la-hague": {
-   "visibilite_calme_avant": 4.4,
-   "visibilite_calme": 5.88,
-   "sensibilite_houle": 0.645,
-   "erreur_pct": 62.3,
+   "visibilite_calme_avant": 5.9,
+   "visibilite_calme": 6.36,
+   "sensibilite_houle": 0.536,
+   "erreur_pct": 64.0,
    "images": 59
   },
   "ref-cap-frehel": {
-   "visibilite_calme_avant": 5.9,
-   "visibilite_calme": 6.36,
-   "sensibilite_houle": 2.884,
-   "erreur_pct": 41.5,
+   "visibilite_calme_avant": 6.4,
+   "visibilite_calme": 6.61,
+   "sensibilite_houle": 2.396,
+   "erreur_pct": 41.7,
    "images": 77
   },
   "ref-saint-quay": {
-   "visibilite_calme_avant": 2.9,
-   "visibilite_calme": 3.05,
-   "sensibilite_houle": 1.364,
-   "erreur_pct": 56.1,
+   "visibilite_calme_avant": 3.0,
+   "visibilite_calme": 3.18,
+   "sensibilite_houle": 1.454,
+   "erreur_pct": 54.6,
    "images": 117
   },
   "ref-brehat": {
    "visibilite_calme_avant": 5.9,
-   "visibilite_calme": 5.88,
-   "sensibilite_houle": 1.204,
-   "erreur_pct": 32.4,
+   "visibilite_calme": 6.12,
+   "sensibilite_houle": 1.0,
+   "erreur_pct": 32.5,
    "images": 104
   },
   "ref-ploumanach": {
-   "visibilite_calme_avant": 7.4,
-   "visibilite_calme": 7.98,
-   "sensibilite_houle": 1.062,
-   "erreur_pct": 36.6,
+   "visibilite_calme_avant": 8.0,
+   "visibilite_calme": 8.27,
+   "sensibilite_houle": 0.883,
+   "erreur_pct": 37.7,
    "images": 108
   },
   "ref-batz": {
-   "visibilite_calme_avant": 4.6,
-   "visibilite_calme": 5.02,
-   "sensibilite_houle": 1.062,
-   "erreur_pct": 62.8,
+   "visibilite_calme_avant": 5.0,
+   "visibilite_calme": 5.22,
+   "sensibilite_houle": 0.883,
+   "erreur_pct": 63.0,
    "images": 77
   },
   "ref-aber-wrach": {
-   "visibilite_calme_avant": 10.9,
-   "visibilite_calme": 11.69,
-   "sensibilite_houle": 0.569,
-   "erreur_pct": 45.2,
+   "visibilite_calme_avant": 11.7,
+   "visibilite_calme": 12.47,
+   "sensibilite_houle": 0.473,
+   "erreur_pct": 46.2,
    "images": 50
   },
   "ref-ouessant": {
-   "visibilite_calme_avant": 6.05,
-   "visibilite_calme": 10.23,
-   "sensibilite_houle": 0.269,
-   "erreur_pct": 28.2,
+   "visibilite_calme_avant": 10.2,
+   "visibilite_calme": 10.59,
+   "sensibilite_houle": 0.253,
+   "erreur_pct": 29.6,
    "images": 37
   },
   "ref-saint-mathieu": {
-   "visibilite_calme_avant": 5.7,
+   "visibilite_calme_avant": 6.1,
    "visibilite_calme": 6.12,
-   "sensibilite_houle": 0.443,
-   "erreur_pct": 31.9,
+   "sensibilite_houle": 0.368,
+   "erreur_pct": 32.0,
    "images": 64
   },
   "ref-cap-chevre": {
-   "visibilite_calme_avant": 6.9,
+   "visibilite_calme_avant": 7.1,
    "visibilite_calme": 7.13,
-   "sensibilite_houle": 0.828,
-   "erreur_pct": 48.4,
+   "sensibilite_houle": 0.688,
+   "erreur_pct": 47.9,
    "images": 59
   },
   "ref-penmarch": {
-   "visibilite_calme_avant": 6.9,
+   "visibilite_calme_avant": 7.1,
    "visibilite_calme": 7.13,
-   "sensibilite_houle": 0.731,
-   "erreur_pct": 55.6,
+   "sensibilite_houle": 0.607,
+   "erreur_pct": 56.6,
    "images": 128
   },
   "ref-groix": {
-   "visibilite_calme_avant": 6.4,
-   "visibilite_calme": 6.61,
-   "sensibilite_houle": 1.364,
-   "erreur_pct": 36.2,
+   "visibilite_calme_avant": 6.6,
+   "visibilite_calme": 6.87,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 37.6,
    "images": 131
   },
   "ref-quiberon": {
-   "visibilite_calme_avant": 5.0,
-   "visibilite_calme": 5.65,
-   "sensibilite_houle": 0.443,
-   "erreur_pct": 47.0,
+   "visibilite_calme_avant": 5.7,
+   "visibilite_calme": 5.88,
+   "sensibilite_houle": 0.368,
+   "erreur_pct": 46.0,
    "images": 149
   },
   "ref-belle-ile": {
-   "visibilite_calme_avant": 6.05,
-   "visibilite_calme": 6.61,
-   "sensibilite_houle": 0.502,
-   "erreur_pct": 28.1,
+   "visibilite_calme_avant": 6.6,
+   "visibilite_calme": 6.87,
+   "sensibilite_houle": 0.536,
+   "erreur_pct": 29.9,
    "images": 56
   },
   "ref-le-croisic": {
-   "visibilite_calme_avant": 3.6,
+   "visibilite_calme_avant": 3.9,
    "visibilite_calme": 3.93,
-   "sensibilite_houle": 2.884,
-   "erreur_pct": 53.3,
+   "sensibilite_houle": 2.396,
+   "erreur_pct": 53.5,
    "images": 85
   },
   "ref-yeu": {
-   "visibilite_calme_avant": 5.0,
+   "visibilite_calme_avant": 5.7,
    "visibilite_calme": 5.65,
-   "sensibilite_houle": 1.545,
-   "erreur_pct": 58.4,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 58.7,
    "images": 154
   },
   "ref-sables": {
-   "visibilite_calme_avant": 3.0,
+   "visibilite_calme_avant": 3.2,
    "visibilite_calme": 3.18,
-   "sensibilite_houle": 5.383,
-   "erreur_pct": 71.6,
+   "sensibilite_houle": 4.472,
+   "erreur_pct": 71.2,
    "images": 149
   },
   "ref-baleines": {
-   "visibilite_calme_avant": 6.05,
+   "visibilite_calme_avant": 1.3,
    "visibilite_calme": 1.27,
-   "sensibilite_houle": 4.193,
-   "erreur_pct": 72.2,
+   "sensibilite_houle": 3.484,
+   "erreur_pct": 71.1,
    "images": 129
   },
   "ref-chassiron": {
-   "visibilite_calme_avant": 1.9,
-   "visibilite_calme": 2.16,
-   "sensibilite_houle": 11.383,
-   "erreur_pct": 84.6,
+   "visibilite_calme_avant": 2.2,
+   "visibilite_calme": 2.46,
+   "sensibilite_houle": 10.715,
+   "erreur_pct": 84.0,
    "images": 117
   },
   "ref-biarritz": {
-   "visibilite_calme_avant": 3.2,
-   "visibilite_calme": 2.92,
-   "sensibilite_houle": 2.247,
-   "erreur_pct": 79.4,
+   "visibilite_calme_avant": 2.9,
+   "visibilite_calme": 3.05,
+   "sensibilite_houle": 2.115,
+   "erreur_pct": 79.9,
    "images": 84
   },
   "ref-guethary": {
-   "visibilite_calme_avant": 6.4,
-   "visibilite_calme": 6.61,
-   "sensibilite_houle": 1.204,
-   "erreur_pct": 50.5,
+   "visibilite_calme_avant": 6.6,
+   "visibilite_calme": 6.36,
+   "sensibilite_houle": 1.0,
+   "erreur_pct": 50.7,
    "images": 63
   },
   "ref-hendaye": {
    "visibilite_calme_avant": 5.7,
-   "visibilite_calme": 5.65,
-   "sensibilite_houle": 0.502,
-   "erreur_pct": 45.9,
+   "visibilite_calme": 5.88,
+   "sensibilite_houle": 0.473,
+   "erreur_pct": 46.6,
    "images": 87
   },
   "ref-leucate": {
-   "visibilite_calme_avant": 3.9,
+   "visibilite_calme_avant": 4.1,
    "visibilite_calme": 4.09,
-   "sensibilite_houle": 6.098,
-   "erreur_pct": 40.5,
+   "sensibilite_houle": 6.503,
+   "erreur_pct": 39.6,
    "images": 107
   },
   "ref-cote-vermeille": {
-   "visibilite_calme_avant": 13.64,
+   "visibilite_calme_avant": 7.4,
    "visibilite_calme": 7.41,
-   "sensibilite_houle": 2.884,
-   "erreur_pct": 50.2,
+   "sensibilite_houle": 2.714,
+   "erreur_pct": 50.8,
    "images": 101
   },
   "ref-sete": {
    "visibilite_calme_avant": 4.1,
    "visibilite_calme": 4.09,
-   "sensibilite_houle": 7.827,
+   "sensibilite_houle": 7.368,
    "erreur_pct": 44.5,
    "images": 112
   },
   "ref-sausset": {
-   "visibilite_calme_avant": 11.7,
+   "visibilite_calme_avant": 12.1,
    "visibilite_calme": 12.08,
-   "sensibilite_houle": 0.828,
-   "erreur_pct": 53.3,
+   "sensibilite_houle": 0.883,
+   "erreur_pct": 53.4,
    "images": 212
   },
   "ref-la-ciotat": {
-   "visibilite_calme_avant": 14.1,
+   "visibilite_calme_avant": 15.4,
    "visibilite_calme": 15.38,
-   "sensibilite_houle": 0.391,
-   "erreur_pct": 27.3,
+   "sensibilite_houle": 0.368,
+   "erreur_pct": 28.0,
    "images": 130
   },
   "ref-giens": {
-   "visibilite_calme_avant": 13.7,
+   "visibilite_calme_avant": 14.5,
    "visibilite_calme": 14.52,
-   "sensibilite_houle": 0.569,
-   "erreur_pct": 35.4,
+   "sensibilite_houle": 0.536,
+   "erreur_pct": 36.0,
    "images": 136
   },
   "ref-camarat": {
-   "visibilite_calme_avant": 12.5,
+   "visibilite_calme_avant": 12.9,
    "visibilite_calme": 12.87,
-   "sensibilite_houle": 0.645,
-   "erreur_pct": 31.0,
+   "sensibilite_houle": 0.607,
+   "erreur_pct": 31.6,
    "images": 229
   },
   "ref-dramont": {
-   "visibilite_calme_avant": 12.9,
-   "visibilite_calme": 13.27,
-   "sensibilite_houle": 0.828,
-   "erreur_pct": 26.7,
+   "visibilite_calme_avant": 13.3,
+   "visibilite_calme": 13.68,
+   "sensibilite_houle": 0.883,
+   "erreur_pct": 27.0,
    "images": 214
   },
   "ref-cap-antibes": {
-   "visibilite_calme_avant": 11.7,
-   "visibilite_calme": 12.47,
-   "sensibilite_houle": 0.731,
-   "erreur_pct": 45.7,
+   "visibilite_calme_avant": 12.5,
+   "visibilite_calme": 12.08,
+   "sensibilite_houle": 0.779,
+   "erreur_pct": 47.1,
    "images": 214
   },
   "ref-cap-ferrat": {
-   "visibilite_calme_avant": 15.8,
+   "visibilite_calme_avant": 16.3,
    "visibilite_calme": 16.26,
-   "sensibilite_houle": 0.731,
-   "erreur_pct": 33.2,
+   "sensibilite_houle": 0.883,
+   "erreur_pct": 33.4,
    "images": 213
   },
   "ref-macinaggio": {
    "visibilite_calme_avant": 14.1,
    "visibilite_calme": 14.1,
-   "sensibilite_houle": 0.938,
-   "erreur_pct": 34.5,
+   "sensibilite_houle": 1.0,
+   "erreur_pct": 34.4,
    "images": 213
   },
   "ref-centuri": {
-   "visibilite_calme_avant": 15.8,
+   "visibilite_calme_avant": 16.3,
    "visibilite_calme": 16.26,
-   "sensibilite_houle": 0.163,
-   "erreur_pct": 28.3,
+   "sensibilite_houle": 0.154,
+   "erreur_pct": 29.3,
    "images": 223
   },
   "ref-revellata": {
-   "visibilite_calme_avant": 18.1,
-   "visibilite_calme": 18.98,
-   "sensibilite_houle": 0.144,
-   "erreur_pct": 27.4,
+   "visibilite_calme_avant": 19.0,
+   "visibilite_calme": 19.44,
+   "sensibilite_houle": 0.136,
+   "erreur_pct": 28.8,
    "images": 137
   },
   "ref-sanguinaires": {
-   "visibilite_calme_avant": 8.0,
+   "visibilite_calme_avant": 8.3,
    "visibilite_calme": 8.27,
-   "sensibilite_houle": 0.21,
-   "erreur_pct": 40.6,
+   "sensibilite_houle": 0.197,
+   "erreur_pct": 41.0,
    "images": 121
   },
   "ref-solenzara": {
-   "visibilite_calme_avant": 14.1,
+   "visibilite_calme_avant": 14.5,
    "visibilite_calme": 14.52,
-   "sensibilite_houle": 0.828,
-   "erreur_pct": 44.9,
+   "sensibilite_houle": 0.779,
+   "erreur_pct": 45.6,
    "images": 232
   },
   "ref-campomoro": {
-   "visibilite_calme_avant": 13.64,
-   "visibilite_calme": 11.32,
-   "sensibilite_houle": 0.345,
-   "erreur_pct": 22.4,
+   "visibilite_calme_avant": 11.3,
+   "visibilite_calme": 11.69,
+   "sensibilite_houle": 0.368,
+   "erreur_pct": 23.8,
    "images": 147
+  },
+  "ref-wimereux": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 2.26,
+   "sensibilite_houle": 9.457,
+   "erreur_pct": 95.7,
+   "images": 79
+  },
+  "ref-le-treport": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 0.81,
+   "sensibilite_houle": 29.084,
+   "erreur_pct": 80.2,
+   "images": 59
+  },
+  "ref-dieppe": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 1.02,
+   "sensibilite_houle": 29.084,
+   "erreur_pct": 92.4,
+   "images": 69
+  },
+  "ref-fecamp": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 1.39,
+   "sensibilite_houle": 3.947,
+   "erreur_pct": 88.7,
+   "images": 122
+  },
+  "ref-saint-vaast": {
+   "visibilite_calme_avant": 2.9,
+   "visibilite_calme": 4.63,
+   "sensibilite_houle": 12.139,
+   "erreur_pct": 76.4,
+   "images": 113
+  },
+  "ref-cap-levi": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 5.22,
+   "sensibilite_houle": 1.648,
+   "erreur_pct": 53.3,
+   "images": 61
+  },
+  "ref-chausey": {
+   "visibilite_calme_avant": 2.9,
+   "visibilite_calme": 3.18,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 48.3,
+   "images": 69
+  },
+  "ref-saint-malo": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 5.02,
+   "sensibilite_houle": 4.472,
+   "erreur_pct": 52.2,
+   "images": 66
+  },
+  "ref-saint-lunaire": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 4.63,
+   "sensibilite_houle": 1.867,
+   "erreur_pct": 37.1,
+   "images": 74
+  },
+  "ref-saint-cast": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 3.93,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 46.7,
+   "images": 77
+  },
+  "ref-erquy": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 3.46,
+   "sensibilite_houle": 2.396,
+   "erreur_pct": 34.0,
+   "images": 78
+  },
+  "ref-trebeurden": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 6.12,
+   "sensibilite_houle": 3.075,
+   "erreur_pct": 28.6,
+   "images": 105
+  },
+  "ref-locquirec": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 2.8,
+   "sensibilite_houle": 2.115,
+   "erreur_pct": 116.3,
+   "images": 108
+  },
+  "ref-carantec": {
+   "visibilite_calme_avant": 2.9,
+   "visibilite_calme": 3.93,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 42.8,
+   "images": 111
+  },
+  "ref-brignogan": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 6.61,
+   "sensibilite_houle": 4.472,
+   "erreur_pct": 140.8,
+   "images": 54
+  },
+  "ref-portsall": {
+   "visibilite_calme_avant": 3.19,
+   "visibilite_calme": 5.65,
+   "sensibilite_houle": 0.473,
+   "erreur_pct": 31.3,
+   "images": 62
+  },
+  "ref-molene": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 7.41,
+   "sensibilite_houle": 0.224,
+   "erreur_pct": 37.3,
+   "images": 76
+  },
+  "ref-pen-hir": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 8.89,
+   "sensibilite_houle": 0.536,
+   "erreur_pct": 38.5,
+   "images": 63
+  },
+  "ref-douarnenez": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 7.13,
+   "sensibilite_houle": 2.115,
+   "erreur_pct": 47.0,
+   "images": 62
+  },
+  "ref-sein": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 9.89,
+   "sensibilite_houle": 0.417,
+   "erreur_pct": 39.0,
+   "images": 68
+  },
+  "ref-pointe-du-raz": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 12.47,
+   "sensibilite_houle": 0.417,
+   "erreur_pct": 43.5,
+   "images": 65
+  },
+  "ref-trevignon": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 5.88,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 40.5,
+   "images": 146
+  },
+  "ref-le-pouldu": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 6.61,
+   "sensibilite_houle": 2.714,
+   "erreur_pct": 41.0,
+   "images": 131
+  },
+  "ref-houat": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 4.09,
+   "sensibilite_houle": 0.883,
+   "erreur_pct": 39.8,
+   "images": 92
+  },
+  "ref-saint-gildas": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 3.46,
+   "sensibilite_houle": 2.115,
+   "erreur_pct": 49.2,
+   "images": 80
+  },
+  "ref-prefailles": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 2.46,
+   "sensibilite_houle": 13.753,
+   "erreur_pct": 60.2,
+   "images": 92
+  },
+  "ref-noirmoutier": {
+   "visibilite_calme_avant": 5.8,
+   "visibilite_calme": 3.18,
+   "sensibilite_houle": 3.484,
+   "erreur_pct": 98.9,
+   "images": 98
+  },
+  "ref-saint-palais": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 1.52,
+   "sensibilite_houle": 20.0,
+   "erreur_pct": 99.6,
+   "images": 102
+  },
+  "ref-saint-jean-de-luz": {
+   "visibilite_calme_avant": 6.38,
+   "visibilite_calme": 6.12,
+   "sensibilite_houle": 1.0,
+   "erreur_pct": 60.1,
+   "images": 77
+  },
+  "ref-cap-d-agde": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 3.46,
+   "sensibilite_houle": 5.74,
+   "erreur_pct": 44.0,
+   "images": 114
+  },
+  "ref-frioul": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 11.32,
+   "sensibilite_houle": 0.473,
+   "erreur_pct": 30.4,
+   "images": 117
+  },
+  "ref-cassis": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 12.87,
+   "sensibilite_houle": 0.536,
+   "erreur_pct": 29.3,
+   "images": 117
+  },
+  "ref-bandol": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 9.55,
+   "sensibilite_houle": 0.883,
+   "erreur_pct": 29.3,
+   "images": 135
+  },
+  "ref-embiez": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 12.47,
+   "sensibilite_houle": 0.253,
+   "erreur_pct": 35.6,
+   "images": 131
+  },
+  "ref-cap-sicie": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 13.68,
+   "sensibilite_houle": 0.473,
+   "erreur_pct": 25.4,
+   "images": 133
+  },
+  "ref-saint-mandrier": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 13.27,
+   "sensibilite_houle": 0.473,
+   "erreur_pct": 26.7,
+   "images": 128
+  },
+  "ref-porquerolles": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 17.16,
+   "sensibilite_houle": 0.253,
+   "erreur_pct": 29.0,
+   "images": 115
+  },
+  "ref-cap-benat": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 12.08,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 29.8,
+   "images": 132
+  },
+  "ref-cavalaire": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 13.27,
+   "sensibilite_houle": 1.0,
+   "erreur_pct": 26.5,
+   "images": 223
+  },
+  "ref-saint-tropez": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 7.69,
+   "sensibilite_houle": 1.133,
+   "erreur_pct": 56.7,
+   "images": 226
+  },
+  "ref-esterel": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 9.22,
+   "sensibilite_houle": 1.0,
+   "erreur_pct": 19.9,
+   "images": 146
+  },
+  "ref-lerins": {
+   "visibilite_calme_avant": 12.1,
+   "visibilite_calme": 7.13,
+   "sensibilite_houle": 0.536,
+   "erreur_pct": 29.8,
+   "images": 155
+  },
+  "ref-nice": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 11.32,
+   "sensibilite_houle": 1.867,
+   "erreur_pct": 50.0,
+   "images": 143
+  },
+  "ref-cap-martin": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 6.87,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 36.8,
+   "images": 139
+  },
+  "ref-bonifacio": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 14.52,
+   "sensibilite_houle": 0.883,
+   "erreur_pct": 24.4,
+   "images": 167
+  },
+  "ref-pinarellu": {
+   "visibilite_calme_avant": 12.1,
+   "visibilite_calme": 13.68,
+   "sensibilite_houle": 1.0,
+   "erreur_pct": 35.9,
+   "images": 158
+  },
+  "ref-cargese": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 19.44,
+   "sensibilite_houle": 0.136,
+   "erreur_pct": 28.3,
+   "images": 95
+  },
+  "ref-ile-rousse": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 13.68,
+   "sensibilite_houle": 0.417,
+   "erreur_pct": 25.7,
+   "images": 182
+  },
+  "ref-agriates": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 7.69,
+   "sensibilite_houle": 0.688,
+   "erreur_pct": 26.0,
+   "images": 183
+  },
+  "ref-nonza": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 11.32,
+   "sensibilite_houle": 0.417,
+   "erreur_pct": 21.5,
+   "images": 149
+  },
+  "ref-pietracorbara": {
+   "visibilite_calme_avant": 13.31,
+   "visibilite_calme": 12.47,
+   "sensibilite_houle": 1.284,
+   "erreur_pct": 26.8,
+   "images": 153
   }
  },
  "regions": {
   "manche": {
-   "actuelle": 2.8,
+   "actuelle": 2.9,
    "calee": 2.9,
    "quartiles": [
     1.7,
-    4.9
+    4.2
    ],
-   "points": 13
+   "points": 29
   },
   "atlantique": {
-   "actuelle": 5.5,
-   "calee": 5.8,
+   "actuelle": 5.8,
+   "calee": 5.7,
    "quartiles": [
-    2.4,
-    6.9
+    2.5,
+    7.4
    ],
-   "points": 15
+   "points": 28
   },
   "mediterranee": {
-   "actuelle": 12.4,
-   "calee": 12.1,
+   "actuelle": 12.1,
+   "calee": 11.7,
    "quartiles": [
-    10.3,
-    14.9
+    8.7,
+    13.6
    ],
-   "points": 16
+   "points": 38
   }
  },
  "plancton_satellite_non_utilise": {
   "manche": [
    {
-    "chl_mediane": 3.099,
-    "images": 21,
-    "attenuation": 0.789
+    "chl_mediane": 3.593,
+    "images": 46,
+    "attenuation": 0.862
    },
    {
-    "chl_mediane": 2.451,
-    "images": 30,
-    "attenuation": 0.685
+    "chl_mediane": 3.094,
+    "images": 62,
+    "attenuation": 0.788
    },
    {
-    "chl_mediane": 3.26,
-    "images": 83,
-    "attenuation": 0.813
+    "chl_mediane": 3.382,
+    "images": 182,
+    "attenuation": 0.831
    },
    {
-    "chl_mediane": 2.234,
-    "images": 120,
-    "attenuation": 0.648
+    "chl_mediane": 2.072,
+    "images": 261,
+    "attenuation": 0.619
    },
    {
-    "chl_mediane": 1.238,
-    "images": 110,
-    "attenuation": 0.455
+    "chl_mediane": 1.285,
+    "images": 246,
+    "attenuation": 0.465
    },
    {
-    "chl_mediane": 1.223,
-    "images": 155,
-    "attenuation": 0.451
+    "chl_mediane": 1.292,
+    "images": 336,
+    "attenuation": 0.466
    },
    {
-    "chl_mediane": 1.318,
-    "images": 150,
-    "attenuation": 0.472
+    "chl_mediane": 1.288,
+    "images": 329,
+    "attenuation": 0.466
    },
    {
-    "chl_mediane": 1.9,
-    "images": 152,
-    "attenuation": 0.588
+    "chl_mediane": 1.838,
+    "images": 321,
+    "attenuation": 0.576
    },
    {
-    "chl_mediane": 2.212,
-    "images": 94,
-    "attenuation": 0.644
+    "chl_mediane": 2.057,
+    "images": 197,
+    "attenuation": 0.617
    },
    {
-    "chl_mediane": 2.737,
-    "images": 78,
-    "attenuation": 0.732
+    "chl_mediane": 2.52,
+    "images": 175,
+    "attenuation": 0.696
    },
    {
-    "chl_mediane": 2.834,
-    "images": 25,
-    "attenuation": 0.747
+    "chl_mediane": 2.58,
+    "images": 61,
+    "attenuation": 0.706
    },
    {
-    "chl_mediane": 2.832,
-    "images": 16,
-    "attenuation": 0.747
+    "chl_mediane": 2.03,
+    "images": 39,
+    "attenuation": 0.612
    }
   ],
   "atlantique": [
    {
-    "chl_mediane": 4.303,
-    "images": 23,
-    "attenuation": 0.96
+    "chl_mediane": 3.444,
+    "images": 40,
+    "attenuation": 0.84
    },
    {
-    "chl_mediane": 3.673,
-    "images": 23,
-    "attenuation": 0.873
+    "chl_mediane": 3.613,
+    "images": 43,
+    "attenuation": 0.864
    },
    {
-    "chl_mediane": 6.08,
-    "images": 93,
-    "attenuation": 1.181
+    "chl_mediane": 5.69,
+    "images": 182,
+    "attenuation": 1.135
    },
    {
-    "chl_mediane": 1.782,
-    "images": 138,
-    "attenuation": 0.566
+    "chl_mediane": 1.605,
+    "images": 244,
+    "attenuation": 0.531
    },
    {
-    "chl_mediane": 1.05,
-    "images": 173,
-    "attenuation": 0.412
+    "chl_mediane": 1.031,
+    "images": 301,
+    "attenuation": 0.407
    },
    {
     "chl_mediane": 1.096,
-    "images": 191,
+    "images": 341,
     "attenuation": 0.423
    },
    {
-    "chl_mediane": 1.094,
-    "images": 235,
-    "attenuation": 0.422
+    "chl_mediane": 1.057,
+    "images": 401,
+    "attenuation": 0.414
    },
    {
-    "chl_mediane": 1.471,
-    "images": 211,
-    "attenuation": 0.504
+    "chl_mediane": 1.392,
+    "images": 362,
+    "attenuation": 0.488
    },
    {
-    "chl_mediane": 2.091,
-    "images": 182,
-    "attenuation": 0.623
+    "chl_mediane": 1.854,
+    "images": 294,
+    "attenuation": 0.579
    },
    {
-    "chl_mediane": 2.511,
-    "images": 101,
-    "attenuation": 0.695
+    "chl_mediane": 2.244,
+    "images": 192,
+    "attenuation": 0.65
    },
    {
-    "chl_mediane": 4.167,
-    "images": 51,
-    "attenuation": 0.942
+    "chl_mediane": 4.361,
+    "images": 90,
+    "attenuation": 0.968
    },
    {
-    "chl_mediane": 3.563,
-    "images": 29,
-    "attenuation": 0.857
+    "chl_mediane": 3.544,
+    "images": 52,
+    "attenuation": 0.855
    }
   ],
   "mediterranee": [
    {
-    "chl_mediane": 0.49,
-    "images": 106,
-    "attenuation": 0.261
+    "chl_mediane": 0.513,
+    "images": 191,
+    "attenuation": 0.268
    },
    {
-    "chl_mediane": 0.395,
-    "images": 106,
+    "chl_mediane": 0.394,
+    "images": 212,
     "attenuation": 0.229
    },
    {
-    "chl_mediane": 0.59,
-    "images": 144,
-    "attenuation": 0.291
+    "chl_mediane": 0.494,
+    "images": 328,
+    "attenuation": 0.262
    },
    {
-    "chl_mediane": 0.406,
-    "images": 270,
-    "attenuation": 0.233
+    "chl_mediane": 0.392,
+    "images": 602,
+    "attenuation": 0.228
    },
    {
-    "chl_mediane": 0.328,
-    "images": 294,
-    "attenuation": 0.205
+    "chl_mediane": 0.334,
+    "images": 629,
+    "attenuation": 0.207
    },
    {
-    "chl_mediane": 0.25,
-    "images": 273,
-    "attenuation": 0.174
+    "chl_mediane": 0.281,
+    "images": 620,
+    "attenuation": 0.187
    },
    {
-    "chl_mediane": 0.271,
-    "images": 398,
-    "attenuation": 0.183
+    "chl_mediane": 0.325,
+    "images": 872,
+    "attenuation": 0.204
    },
    {
-    "chl_mediane": 0.342,
-    "images": 403,
-    "attenuation": 0.21
+    "chl_mediane": 0.373,
+    "images": 911,
+    "attenuation": 0.221
    },
    {
-    "chl_mediane": 0.301,
-    "images": 301,
-    "attenuation": 0.195
+    "chl_mediane": 0.347,
+    "images": 713,
+    "attenuation": 0.212
    },
    {
-    "chl_mediane": 0.404,
-    "images": 157,
-    "attenuation": 0.232
+    "chl_mediane": 0.409,
+    "images": 352,
+    "attenuation": 0.234
    },
    {
-    "chl_mediane": 0.523,
-    "images": 153,
-    "attenuation": 0.271
+    "chl_mediane": 0.495,
+    "images": 292,
+    "attenuation": 0.262
    },
    {
-    "chl_mediane": 0.504,
-    "images": 126,
-    "attenuation": 0.265
+    "chl_mediane": 0.472,
+    "images": 242,
+    "attenuation": 0.255
    }
   ]
  },
@@ -1081,6 +1438,414 @@
    "maree_presente": 0.982,
    "vagues_presentes": 1.0
   },
-  "ref-palombaggia": "satellite écarté : fond clair peu profond"
+  "ref-palombaggia": "satellite écarté : fond clair peu profond",
+  "ref-wimereux": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 79,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-le-treport": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 59,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-dieppe": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 69,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-fecamp": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 122,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-vaast": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 113,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-cap-levi": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 61,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-chausey": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 69,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-malo": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 66,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-lunaire": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 74,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-cast": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 77,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-erquy": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 78,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-trebeurden": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 105,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-locquirec": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 108,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-carantec": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 111,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-brignogan": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 54,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-portsall": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 62,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-molene": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 76,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-pen-hir": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 63,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-douarnenez": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 62,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-sein": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 68,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-pointe-du-raz": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 65,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-trevignon": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 146,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-le-pouldu": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 131,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-houat": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 92,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-gildas": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 80,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-prefailles": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 92,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-noirmoutier": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 98,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-palais": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 102,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-jean-de-luz": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 77,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-cap-d-agde": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 114,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-frioul": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 117,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-cassis": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 117,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-bandol": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 135,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-embiez": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 131,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-cap-sicie": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 133,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-mandrier": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 128,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-porquerolles": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 115,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-cap-benat": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 132,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-cavalaire": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 223,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-saint-tropez": {
+   "heures": 24384,
+   "du": "2024-01-01",
+   "au": "2026-10-12",
+   "images": 226,
+   "maree_presente": 0.982,
+   "vagues_presentes": 1.0
+  },
+  "ref-esterel": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 146,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-lerins": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 155,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-nice": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 143,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-cap-martin": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 139,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-bonifacio": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 167,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-pinarellu": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 158,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-cargese": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 95,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-ile-rousse": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 182,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-agriates": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 183,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-nonza": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 149,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  },
+  "ref-pietracorbara": {
+   "heures": 15600,
+   "du": "2025-01-01",
+   "au": "2026-10-12",
+   "images": 153,
+   "maree_presente": 0.983,
+   "vagues_presentes": 1.0
+  }
  }
 }

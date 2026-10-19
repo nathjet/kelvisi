@@ -36,7 +36,7 @@ RAPPORT_DEFERLEMENT = 0.78
 PROFONDEUR_LITTORAL_M = 3.0
 
 # Poids de la frange littorale par rapport au fond du spot. Calé sur le satellite (2024-01 à 2026-10).
-POIDS_LITTORAL = 2.523
+POIDS_LITTORAL = 2.122
 
 # Vitesse critique du sable de plage, souvent plus grossier (m/s).
 U_CRITIQUE_LITTORAL = 0.25
@@ -48,10 +48,10 @@ COURANT_PRES_DU_FOND = 0.7
 
 # Coefficient de production de turbidité (m⁻¹ par heure et par unité
 # d'excès de cisaillement). Calé sur le satellite (2024-01 à 2026-10).
-ALPHA_BRASSAGE = 0.00192
+ALPHA_BRASSAGE = 0.00264
 
 # Plafond doux de l'atténuation due au brassage (m⁻¹). Calé sur le satellite (2024-01 à 2026-10).
-C_BRASSAGE_MAX = 12.81
+C_BRASSAGE_MAX = 17.84
 
 # Par type de fond :
 #   vitesse critique de remise en suspension au fond (m/s),
@@ -77,7 +77,7 @@ EXPOSITION_RESIDUELLE = 0.1
 # Effet de la phase de marée sur les composantes côtières :
 # facteur = 1 - EFFET_PHASE_MAREE * sensibilité * phase (phase = +1 à la pleine mer).
 # Calé sur le satellite (2024-01 à 2026-10) : effet faible à l'échelle des pixels.
-EFFET_PHASE_MAREE = 0.09636
+EFFET_PHASE_MAREE = 0.1692
 
 # Effet du marnage (vives-eaux) sur le brassage.
 EFFET_MARNAGE = 0.3
@@ -87,13 +87,13 @@ MARNAGE_MINIMUM_M = 0.5
 
 # --- Rivières et pluie -------------------------------------------------------
 
-GAMMA_FLUVIAL = 0.7781     # m⁻¹ par unité d'anomalie de débit. Calé sur le satellite (2024-01 à 2026-10).
+GAMMA_FLUVIAL = 0.6     # m⁻¹ par unité d'anomalie de débit. Calé sur le satellite (2024-01 à 2026-10).
 EXPOSANT_FLUVIAL = 0.7
 TAU_FLUVIAL_H = 24.0       # persistance du panache
 
 TAU_PLUIE_H = 36.0         # mémoire de la pluie
 SEUIL_PLUIE_MM = 8.0       # cumul (avec mémoire) sans effet notable
-DELTA_PLUIE = 0.1238       # m⁻¹ par tranche de 10 mm au-delà du seuil. Calé sur le satellite (2024-01 à 2026-10).
+DELTA_PLUIE = 0.1909       # m⁻¹ par tranche de 10 mm au-delà du seuil. Calé sur le satellite (2024-01 à 2026-10).
 
 # --- Assimilation satellite --------------------------------------------------
 
@@ -113,14 +113,14 @@ REGIONS = {
         "plancton_mensuel": (0.05, 0.05, 0.12, 0.35, 0.35, 0.25, 0.2, 0.2, 0.15, 0.1, 0.05, 0.05),
     },
     "atlantique": {
-        "visibilite_calme_m": 5.8,
+        "visibilite_calme_m": 5.7,
         "visibilite_max_m": 25.0,
         "sensibilite_maree": 0.5,
         "seuils": (2.0, 4.0, 7.0),
         "plancton_mensuel": (0.05, 0.05, 0.12, 0.35, 0.35, 0.25, 0.2, 0.2, 0.15, 0.1, 0.05, 0.05),
     },
     "mediterranee": {
-        "visibilite_calme_m": 12.1,
+        "visibilite_calme_m": 11.7,
         "visibilite_max_m": 35.0,
         "sensibilite_maree": 0.0,
         "seuils": (4.0, 8.0, 15.0),
@@ -133,9 +133,9 @@ REGIONS = {
 # sur la turbidité côtière : exp(amplitude · cos(2π (jour − pic_jour) / 365,25)),
 # pic_jour compté depuis le 1er janvier. Calé sur le satellite (2024-01 à 2026-10).
 SAISON = {
-    "manche": {"amplitude": 0.45, "pic_jour": 6.6},
-    "atlantique": {"amplitude": 0.506, "pic_jour": 3.8},
-    "mediterranee": {"amplitude": 0.037, "pic_jour": 96.6},
+    "manche": {"amplitude": 0.412, "pic_jour": 6.6},
+    "atlantique": {"amplitude": 0.506, "pic_jour": 9.4},
+    "mediterranee": {"amplitude": 0.0, "pic_jour": 96.6},
 }
 
 # Effet du type de fond sur la visibilité par temps calme (eau de fond vaseux

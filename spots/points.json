@@ -10,8 +10,8 @@
     "profondeur_m": 6,
     "fond": "roche",
     "notes": "Courants forts du pas de Calais.",
-    "visibilite_calme_m": 16.3,
-    "sensibilite_houle": 11.38
+    "visibilite_calme_m": 31.9,
+    "sensibilite_houle": 9.46
   },
   {
     "id": "ref-etretat",
@@ -33,8 +33,8 @@
         "nom": "Seine"
       }
     ],
-    "visibilite_calme_m": 1.8,
-    "sensibilite_houle": 1.2
+    "visibilite_calme_m": 2.0,
+    "sensibilite_houle": 1.65
   },
   {
     "id": "ref-barfleur",
@@ -46,8 +46,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 8,
     "fond": "roche",
-    "visibilite_calme_m": 2.6,
-    "sensibilite_houle": 21.25
+    "visibilite_calme_m": 2.7,
+    "sensibilite_houle": 20.0
   },
   {
     "id": "ref-granville",
@@ -61,8 +61,8 @@
     "fond": "mixte",
     "sensibilite_maree": 0.9,
     "notes": "Baie du Mont-Saint-Michel : très forts marnages, eaux souvent chargées.",
-    "visibilite_calme_m": 3.9,
-    "sensibilite_houle": 14.61
+    "visibilite_calme_m": 4.3,
+    "sensibilite_houle": 12.14
   },
   {
     "id": "ref-carteret",
@@ -74,8 +74,8 @@
     "ouverture_deg": 80,
     "profondeur_m": 6,
     "fond": "mixte",
-    "visibilite_calme_m": 8.3,
-    "sensibilite_houle": 2.88
+    "visibilite_calme_m": 20.8,
+    "sensibilite_houle": 2.71
   },
   {
     "id": "ref-grouin",
@@ -87,8 +87,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 10,
     "fond": "roche",
-    "visibilite_calme_m": 2.5,
-    "sensibilite_houle": 10.05
+    "visibilite_calme_m": 2.6,
+    "sensibilite_houle": 8.35
   },
   {
     "id": "ref-la-hague",
@@ -101,8 +101,8 @@
     "profondeur_m": 10,
     "fond": "roche",
     "notes": "Raz Blanchard : parmi les courants les plus forts d'Europe.",
-    "visibilite_calme_m": 5.9,
-    "sensibilite_houle": 0.65
+    "visibilite_calme_m": 6.4,
+    "sensibilite_houle": 0.54
   },
   {
     "id": "ref-cap-frehel",
@@ -114,8 +114,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 12,
     "fond": "roche",
-    "visibilite_calme_m": 6.4,
-    "sensibilite_houle": 2.88
+    "visibilite_calme_m": 6.6,
+    "sensibilite_houle": 2.4
   },
   {
     "id": "ref-saint-quay",
@@ -127,8 +127,8 @@
     "ouverture_deg": 80,
     "profondeur_m": 8,
     "fond": "mixte",
-    "visibilite_calme_m": 3.0,
-    "sensibilite_houle": 1.36
+    "visibilite_calme_m": 3.2,
+    "sensibilite_houle": 1.45
   },
   {
     "id": "ref-brehat",
@@ -140,8 +140,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 10,
     "fond": "roche",
-    "visibilite_calme_m": 5.9,
-    "sensibilite_houle": 1.2
+    "visibilite_calme_m": 6.1,
+    "sensibilite_houle": 1.0
   },
   {
     "id": "ref-ploumanach",
@@ -153,8 +153,8 @@
     "ouverture_deg": 80,
     "profondeur_m": 8,
     "fond": "roche",
-    "visibilite_calme_m": 8.0,
-    "sensibilite_houle": 1.06
+    "visibilite_calme_m": 8.3,
+    "sensibilite_houle": 0.88
   },
   {
     "id": "ref-batz",
@@ -166,8 +166,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 10,
     "fond": "roche",
-    "visibilite_calme_m": 5.0,
-    "sensibilite_houle": 1.06
+    "visibilite_calme_m": 5.2,
+    "sensibilite_houle": 0.88
   },
   {
     "id": "ref-aber-wrach",
@@ -179,8 +179,8 @@
     "ouverture_deg": 80,
     "profondeur_m": 8,
     "fond": "roche",
-    "visibilite_calme_m": 11.7,
-    "sensibilite_houle": 0.57
+    "visibilite_calme_m": 12.5,
+    "sensibilite_houle": 0.47
   },
   {
     "id": "ref-ouessant",
@@ -194,8 +194,8 @@
     "fond": "roche",
     "notes": "Parc naturel marin d'Iroise. Courants violents.",
     "rayon_satellite_m": 800,
-    "visibilite_calme_m": 10.2,
-    "sensibilite_houle": 0.27
+    "visibilite_calme_m": 10.6,
+    "sensibilite_houle": 0.25
   },
   {
     "id": "ref-saint-mathieu",
@@ -209,7 +209,7 @@
     "fond": "roche",
     "notes": "Parc naturel marin d'Iroise.",
     "visibilite_calme_m": 6.1,
-    "sensibilite_houle": 0.44
+    "sensibilite_houle": 0.37
   },
   {
     "id": "ref-cap-chevre",
@@ -223,7 +223,7 @@
     "fond": "roche",
     "notes": "Dans le Parc naturel marin d'Iroise.",
     "visibilite_calme_m": 7.1,
-    "sensibilite_houle": 0.83
+    "sensibilite_houle": 0.69
   },
   {
     "id": "ref-penmarch",
@@ -236,7 +236,7 @@
     "profondeur_m": 8,
     "fond": "roche",
     "visibilite_calme_m": 7.1,
-    "sensibilite_houle": 0.73
+    "sensibilite_houle": 0.61
   },
   {
     "id": "ref-glenan",
@@ -261,8 +261,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 10,
     "fond": "roche",
-    "visibilite_calme_m": 6.6,
-    "sensibilite_houle": 1.36
+    "visibilite_calme_m": 6.9,
+    "sensibilite_houle": 1.28
   },
   {
     "id": "ref-quiberon",
@@ -274,8 +274,8 @@
     "ouverture_deg": 80,
     "profondeur_m": 6,
     "fond": "mixte",
-    "visibilite_calme_m": 5.7,
-    "sensibilite_houle": 0.44
+    "visibilite_calme_m": 5.9,
+    "sensibilite_houle": 0.37
   },
   {
     "id": "ref-belle-ile",
@@ -297,8 +297,8 @@
       }
     ],
     "rayon_satellite_m": 800,
-    "visibilite_calme_m": 6.6,
-    "sensibilite_houle": 0.5
+    "visibilite_calme_m": 6.9,
+    "sensibilite_houle": 0.54
   },
   {
     "id": "ref-le-croisic",
@@ -329,7 +329,7 @@
       }
     ],
     "visibilite_calme_m": 3.9,
-    "sensibilite_houle": 2.88
+    "sensibilite_houle": 2.4
   },
   {
     "id": "ref-yeu",
@@ -351,7 +351,7 @@
       }
     ],
     "visibilite_calme_m": 5.7,
-    "sensibilite_houle": 1.54
+    "sensibilite_houle": 1.28
   },
   {
     "id": "ref-sables",
@@ -364,7 +364,7 @@
     "profondeur_m": 6,
     "fond": "roche",
     "visibilite_calme_m": 3.2,
-    "sensibilite_houle": 5.38
+    "sensibilite_houle": 4.47
   },
   {
     "id": "ref-baleines",
@@ -379,7 +379,7 @@
     "notes": "Platiers, eaux souvent chargées.",
     "rayon_satellite_m": 800,
     "visibilite_calme_m": 1.3,
-    "sensibilite_houle": 4.19
+    "sensibilite_houle": 3.48
   },
   {
     "id": "ref-chassiron",
@@ -391,8 +391,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 6,
     "fond": "roche",
-    "visibilite_calme_m": 2.2,
-    "sensibilite_houle": 11.38
+    "visibilite_calme_m": 2.5,
+    "sensibilite_houle": 10.71
   },
   {
     "id": "ref-biarritz",
@@ -413,8 +413,8 @@
         "nom": "Adour"
       }
     ],
-    "visibilite_calme_m": 2.9,
-    "sensibilite_houle": 2.25
+    "visibilite_calme_m": 3.0,
+    "sensibilite_houle": 2.12
   },
   {
     "id": "ref-guethary",
@@ -437,8 +437,8 @@
         "nom": "Adour"
       }
     ],
-    "visibilite_calme_m": 6.6,
-    "sensibilite_houle": 1.2
+    "visibilite_calme_m": 6.4,
+    "sensibilite_houle": 1.0
   },
   {
     "id": "ref-hendaye",
@@ -459,8 +459,8 @@
         "nom": "Adour"
       }
     ],
-    "visibilite_calme_m": 5.7,
-    "sensibilite_houle": 0.5
+    "visibilite_calme_m": 5.9,
+    "sensibilite_houle": 0.47
   },
   {
     "id": "ref-leucate",
@@ -473,7 +473,7 @@
     "profondeur_m": 8,
     "fond": "roche",
     "visibilite_calme_m": 4.1,
-    "sensibilite_houle": 6.1
+    "sensibilite_houle": 6.5
   },
   {
     "id": "ref-cote-vermeille",
@@ -488,7 +488,7 @@
     "notes": "Réserve naturelle de Cerbère-Banyuls à proximité : ne pas publier comme spot de chasse sans vérifier la réglementation.",
     "rayon_satellite_m": 800,
     "visibilite_calme_m": 7.4,
-    "sensibilite_houle": 2.88
+    "sensibilite_houle": 2.71
   },
   {
     "id": "ref-sete",
@@ -510,7 +510,7 @@
       }
     ],
     "visibilite_calme_m": 4.1,
-    "sensibilite_houle": 7.83
+    "sensibilite_houle": 7.37
   },
   {
     "id": "ref-sausset",
@@ -533,7 +533,7 @@
       }
     ],
     "visibilite_calme_m": 12.1,
-    "sensibilite_houle": 0.83
+    "sensibilite_houle": 0.88
   },
   {
     "id": "ref-la-ciotat",
@@ -547,7 +547,7 @@
     "fond": "roche",
     "notes": "Parc national des Calanques à proximité : zones de non-prélèvement.",
     "visibilite_calme_m": 15.4,
-    "sensibilite_houle": 0.39
+    "sensibilite_houle": 0.37
   },
   {
     "id": "ref-giens",
@@ -561,7 +561,7 @@
     "fond": "roche",
     "notes": "Parc national de Port-Cros à proximité : chasse interdite autour de Port-Cros.",
     "visibilite_calme_m": 14.5,
-    "sensibilite_houle": 0.57
+    "sensibilite_houle": 0.54
   },
   {
     "id": "ref-camarat",
@@ -574,7 +574,7 @@
     "profondeur_m": 12,
     "fond": "roche",
     "visibilite_calme_m": 12.9,
-    "sensibilite_houle": 0.65
+    "sensibilite_houle": 0.61
   },
   {
     "id": "ref-dramont",
@@ -586,8 +586,8 @@
     "ouverture_deg": 90,
     "profondeur_m": 12,
     "fond": "roche",
-    "visibilite_calme_m": 13.3,
-    "sensibilite_houle": 0.83
+    "visibilite_calme_m": 13.7,
+    "sensibilite_houle": 0.88
   },
   {
     "id": "ref-cap-antibes",
@@ -608,8 +608,8 @@
         "nom": "Var"
       }
     ],
-    "visibilite_calme_m": 12.5,
-    "sensibilite_houle": 0.73
+    "visibilite_calme_m": 12.1,
+    "sensibilite_houle": 0.78
   },
   {
     "id": "ref-cap-ferrat",
@@ -631,7 +631,7 @@
       }
     ],
     "visibilite_calme_m": 16.3,
-    "sensibilite_houle": 0.73
+    "sensibilite_houle": 0.88
   },
   {
     "id": "ref-macinaggio",
@@ -644,7 +644,7 @@
     "profondeur_m": 10,
     "fond": "roche",
     "visibilite_calme_m": 14.1,
-    "sensibilite_houle": 0.94
+    "sensibilite_houle": 1.0
   },
   {
     "id": "ref-centuri",
@@ -657,7 +657,7 @@
     "profondeur_m": 12,
     "fond": "roche",
     "visibilite_calme_m": 16.3,
-    "sensibilite_houle": 0.16
+    "sensibilite_houle": 0.15
   },
   {
     "id": "ref-revellata",
@@ -670,7 +670,7 @@
     "profondeur_m": 15,
     "fond": "roche",
     "notes": "Zones réglementées autour de la station de recherche : vérifier.",
-    "visibilite_calme_m": 19.0,
+    "visibilite_calme_m": 19.4,
     "sensibilite_houle": 0.14
   },
   {
@@ -684,7 +684,7 @@
     "profondeur_m": 15,
     "fond": "roche",
     "visibilite_calme_m": 8.3,
-    "sensibilite_houle": 0.21
+    "sensibilite_houle": 0.2
   },
   {
     "id": "ref-solenzara",
@@ -697,7 +697,7 @@
     "profondeur_m": 8,
     "fond": "sable",
     "visibilite_calme_m": 14.5,
-    "sensibilite_houle": 0.83
+    "sensibilite_houle": 0.78
   },
   {
     "id": "ref-campomoro",
@@ -710,8 +710,8 @@
     "profondeur_m": 12,
     "fond": "roche",
     "rayon_satellite_m": 800,
-    "visibilite_calme_m": 11.3,
-    "sensibilite_houle": 0.34
+    "visibilite_calme_m": 11.7,
+    "sensibilite_houle": 0.37
   },
   {
     "id": "ref-palombaggia",
@@ -735,7 +735,9 @@
     "ouverture_deg": 90,
     "profondeur_m": 5,
     "fond": "roche",
-    "notes": "Courants forts, eaux souvent chargées."
+    "notes": "Courants forts, eaux souvent chargées.",
+    "visibilite_calme_m": 2.3,
+    "sensibilite_houle": 9.46
   },
   {
     "id": "ref-le-treport",
@@ -746,7 +748,9 @@
     "orientation_deg": 320,
     "ouverture_deg": 90,
     "profondeur_m": 6,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 0.8,
+    "sensibilite_houle": 29.08
   },
   {
     "id": "ref-dieppe",
@@ -757,7 +761,9 @@
     "orientation_deg": 335,
     "ouverture_deg": 90,
     "profondeur_m": 6,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 1.0,
+    "sensibilite_houle": 29.08
   },
   {
     "id": "ref-fecamp",
@@ -777,7 +783,9 @@
         "delai_h": 84,
         "nom": "Seine"
       }
-    ]
+    ],
+    "visibilite_calme_m": 1.4,
+    "sensibilite_houle": 3.95
   },
   {
     "id": "ref-saint-vaast",
@@ -797,7 +805,9 @@
         "delai_h": 96,
         "nom": "Seine"
       }
-    ]
+    ],
+    "visibilite_calme_m": 4.6,
+    "sensibilite_houle": 12.14
   },
   {
     "id": "ref-cap-levi",
@@ -809,7 +819,9 @@
     "ouverture_deg": 120,
     "profondeur_m": 6,
     "fond": "roche",
-    "notes": "Courants forts."
+    "notes": "Courants forts.",
+    "visibilite_calme_m": 5.2,
+    "sensibilite_houle": 1.65
   },
   {
     "id": "ref-chausey",
@@ -821,7 +833,9 @@
     "ouverture_deg": 140,
     "profondeur_m": 6,
     "fond": "mixte",
-    "notes": "Très forts marnages et courants : prévoir la marée."
+    "notes": "Très forts marnages et courants : prévoir la marée.",
+    "visibilite_calme_m": 3.2,
+    "sensibilite_houle": 1.28
   },
   {
     "id": "ref-saint-malo",
@@ -832,7 +846,9 @@
     "orientation_deg": 315,
     "ouverture_deg": 90,
     "profondeur_m": 14,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 5.0,
+    "sensibilite_houle": 4.47
   },
   {
     "id": "ref-saint-lunaire",
@@ -843,7 +859,9 @@
     "orientation_deg": 325,
     "ouverture_deg": 90,
     "profondeur_m": 14,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 4.6,
+    "sensibilite_houle": 1.87
   },
   {
     "id": "ref-saint-cast",
@@ -854,7 +872,9 @@
     "orientation_deg": 30,
     "ouverture_deg": 90,
     "profondeur_m": 9,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 3.9,
+    "sensibilite_houle": 1.28
   },
   {
     "id": "ref-erquy",
@@ -865,7 +885,9 @@
     "orientation_deg": 330,
     "ouverture_deg": 90,
     "profondeur_m": 12,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 3.5,
+    "sensibilite_houle": 2.4
   },
   {
     "id": "ref-trebeurden",
@@ -876,7 +898,9 @@
     "orientation_deg": 225,
     "ouverture_deg": 90,
     "profondeur_m": 10,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 6.1,
+    "sensibilite_houle": 3.08
   },
   {
     "id": "ref-locquirec",
@@ -887,7 +911,9 @@
     "orientation_deg": 15,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 2.8,
+    "sensibilite_houle": 2.12
   },
   {
     "id": "ref-carantec",
@@ -898,7 +924,9 @@
     "orientation_deg": 20,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "mixte"
+    "fond": "mixte",
+    "visibilite_calme_m": 3.9,
+    "sensibilite_houle": 1.28
   },
   {
     "id": "ref-brignogan",
@@ -909,7 +937,9 @@
     "orientation_deg": 5,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 6.6,
+    "sensibilite_houle": 4.47
   },
   {
     "id": "ref-portsall",
@@ -921,7 +951,9 @@
     "ouverture_deg": 90,
     "profondeur_m": 5,
     "fond": "roche",
-    "notes": "Courants forts."
+    "notes": "Courants forts.",
+    "visibilite_calme_m": 5.7,
+    "sensibilite_houle": 0.47
   },
   {
     "id": "ref-molene",
@@ -933,7 +965,9 @@
     "ouverture_deg": 140,
     "profondeur_m": 5,
     "fond": "roche",
-    "notes": "Parc naturel marin d'Iroise, courants violents : vérifier la réglementation avant de chasser."
+    "notes": "Parc naturel marin d'Iroise, courants violents : vérifier la réglementation avant de chasser.",
+    "visibilite_calme_m": 7.4,
+    "sensibilite_houle": 0.22
   },
   {
     "id": "ref-pen-hir",
@@ -944,7 +978,9 @@
     "orientation_deg": 225,
     "ouverture_deg": 120,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 8.9,
+    "sensibilite_houle": 0.54
   },
   {
     "id": "ref-douarnenez",
@@ -955,7 +991,9 @@
     "orientation_deg": 345,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 7.1,
+    "sensibilite_houle": 2.12
   },
   {
     "id": "ref-sein",
@@ -967,7 +1005,9 @@
     "ouverture_deg": 140,
     "profondeur_m": 5,
     "fond": "roche",
-    "notes": "Courants violents du raz de Sein."
+    "notes": "Courants violents du raz de Sein.",
+    "visibilite_calme_m": 9.9,
+    "sensibilite_houle": 0.42
   },
   {
     "id": "ref-pointe-du-raz",
@@ -979,7 +1019,9 @@
     "ouverture_deg": 120,
     "profondeur_m": 15,
     "fond": "roche",
-    "notes": "Courants violents : seulement par mer calme et à l'étale."
+    "notes": "Courants violents : seulement par mer calme et à l'étale.",
+    "visibilite_calme_m": 12.5,
+    "sensibilite_houle": 0.42
   },
   {
     "id": "ref-trevignon",
@@ -990,7 +1032,9 @@
     "orientation_deg": 195,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 5.9,
+    "sensibilite_houle": 1.28
   },
   {
     "id": "ref-le-pouldu",
@@ -1001,7 +1045,9 @@
     "orientation_deg": 190,
     "ouverture_deg": 90,
     "profondeur_m": 12,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 6.6,
+    "sensibilite_houle": 2.71
   },
   {
     "id": "ref-houat",
@@ -1021,7 +1067,9 @@
         "delai_h": 48,
         "nom": "Vilaine"
       }
-    ]
+    ],
+    "visibilite_calme_m": 4.1,
+    "sensibilite_houle": 0.88
   },
   {
     "id": "ref-saint-gildas",
@@ -1048,7 +1096,9 @@
         "delai_h": 48,
         "nom": "Loire"
       }
-    ]
+    ],
+    "visibilite_calme_m": 3.5,
+    "sensibilite_houle": 2.12
   },
   {
     "id": "ref-prefailles",
@@ -1068,7 +1118,9 @@
         "delai_h": 36,
         "nom": "Loire"
       }
-    ]
+    ],
+    "visibilite_calme_m": 2.5,
+    "sensibilite_houle": 13.75
   },
   {
     "id": "ref-noirmoutier",
@@ -1088,7 +1140,9 @@
         "delai_h": 48,
         "nom": "Loire"
       }
-    ]
+    ],
+    "visibilite_calme_m": 3.2,
+    "sensibilite_houle": 3.48
   },
   {
     "id": "ref-saint-palais",
@@ -1100,7 +1154,9 @@
     "ouverture_deg": 90,
     "profondeur_m": 9,
     "fond": "roche",
-    "notes": "Eaux de l'estuaire de la Gironde, souvent chargées."
+    "notes": "Eaux de l'estuaire de la Gironde, souvent chargées.",
+    "visibilite_calme_m": 1.5,
+    "sensibilite_houle": 20.0
   },
   {
     "id": "ref-saint-jean-de-luz",
@@ -1120,7 +1176,9 @@
         "delai_h": 30,
         "nom": "Adour"
       }
-    ]
+    ],
+    "visibilite_calme_m": 6.1,
+    "sensibilite_houle": 1.0
   },
   {
     "id": "ref-cap-d-agde",
@@ -1141,7 +1199,9 @@
         "delai_h": 48,
         "nom": "Rhône"
       }
-    ]
+    ],
+    "visibilite_calme_m": 3.5,
+    "sensibilite_houle": 5.74
   },
   {
     "id": "ref-frioul",
@@ -1162,7 +1222,9 @@
         "delai_h": 36,
         "nom": "Rhône"
       }
-    ]
+    ],
+    "visibilite_calme_m": 11.3,
+    "sensibilite_houle": 0.47
   },
   {
     "id": "ref-cassis",
@@ -1174,7 +1236,9 @@
     "ouverture_deg": 90,
     "profondeur_m": 12,
     "fond": "roche",
-    "notes": "Parc national des Calanques à proximité : vérifier la réglementation."
+    "notes": "Parc national des Calanques à proximité : vérifier la réglementation.",
+    "visibilite_calme_m": 12.9,
+    "sensibilite_houle": 0.54
   },
   {
     "id": "ref-bandol",
@@ -1185,7 +1249,9 @@
     "orientation_deg": 225,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 9.6,
+    "sensibilite_houle": 0.88
   },
   {
     "id": "ref-embiez",
@@ -1196,7 +1262,9 @@
     "orientation_deg": 220,
     "ouverture_deg": 140,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 12.5,
+    "sensibilite_houle": 0.25
   },
   {
     "id": "ref-cap-sicie",
@@ -1207,7 +1275,9 @@
     "orientation_deg": 155,
     "ouverture_deg": 120,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 13.7,
+    "sensibilite_houle": 0.47
   },
   {
     "id": "ref-saint-mandrier",
@@ -1218,7 +1288,9 @@
     "orientation_deg": 165,
     "ouverture_deg": 120,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 13.3,
+    "sensibilite_houle": 0.47
   },
   {
     "id": "ref-porquerolles",
@@ -1230,7 +1302,9 @@
     "ouverture_deg": 140,
     "profondeur_m": 15,
     "fond": "roche",
-    "notes": "Parc national de Port-Cros : chasse interdite dans certaines zones, vérifier avant de chasser."
+    "notes": "Parc national de Port-Cros : chasse interdite dans certaines zones, vérifier avant de chasser.",
+    "visibilite_calme_m": 17.2,
+    "sensibilite_houle": 0.25
   },
   {
     "id": "ref-cap-benat",
@@ -1241,7 +1315,9 @@
     "orientation_deg": 145,
     "ouverture_deg": 120,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 12.1,
+    "sensibilite_houle": 1.28
   },
   {
     "id": "ref-cavalaire",
@@ -1253,7 +1329,9 @@
     "ouverture_deg": 90,
     "profondeur_m": 15,
     "fond": "roche",
-    "notes": "Zones protégées entre Cavalaire et le cap Taillat : vérifier la réglementation."
+    "notes": "Zones protégées entre Cavalaire et le cap Taillat : vérifier la réglementation.",
+    "visibilite_calme_m": 13.3,
+    "sensibilite_houle": 1.0
   },
   {
     "id": "ref-saint-tropez",
@@ -1264,7 +1342,9 @@
     "orientation_deg": 340,
     "ouverture_deg": 90,
     "profondeur_m": 5,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 7.7,
+    "sensibilite_houle": 1.13
   },
   {
     "id": "ref-esterel",
@@ -1275,7 +1355,9 @@
     "orientation_deg": 100,
     "ouverture_deg": 90,
     "profondeur_m": 12,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 9.2,
+    "sensibilite_houle": 1.0
   },
   {
     "id": "ref-lerins",
@@ -1296,7 +1378,9 @@
         "delai_h": 18,
         "nom": "Var"
       }
-    ]
+    ],
+    "visibilite_calme_m": 7.1,
+    "sensibilite_houle": 0.54
   },
   {
     "id": "ref-nice",
@@ -1316,7 +1400,9 @@
         "delai_h": 6,
         "nom": "Var"
       }
-    ]
+    ],
+    "visibilite_calme_m": 11.3,
+    "sensibilite_houle": 1.87
   },
   {
     "id": "ref-cap-martin",
@@ -1336,7 +1422,9 @@
         "delai_h": 24,
         "nom": "Var"
       }
-    ]
+    ],
+    "visibilite_calme_m": 6.9,
+    "sensibilite_houle": 1.28
   },
   {
     "id": "ref-bonifacio",
@@ -1348,7 +1436,9 @@
     "ouverture_deg": 120,
     "profondeur_m": 12,
     "fond": "roche",
-    "notes": "Réserve naturelle des Bouches de Bonifacio : zones où la chasse est interdite, vérifier avant de chasser."
+    "notes": "Réserve naturelle des Bouches de Bonifacio : zones où la chasse est interdite, vérifier avant de chasser.",
+    "visibilite_calme_m": 14.5,
+    "sensibilite_houle": 0.88
   },
   {
     "id": "ref-pinarellu",
@@ -1359,7 +1449,9 @@
     "orientation_deg": 100,
     "ouverture_deg": 90,
     "profondeur_m": 12,
-    "fond": "mixte"
+    "fond": "mixte",
+    "visibilite_calme_m": 13.7,
+    "sensibilite_houle": 1.0
   },
   {
     "id": "ref-cargese",
@@ -1370,7 +1462,9 @@
     "orientation_deg": 245,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 19.4,
+    "sensibilite_houle": 0.14
   },
   {
     "id": "ref-ile-rousse",
@@ -1381,7 +1475,9 @@
     "orientation_deg": 350,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 13.7,
+    "sensibilite_houle": 0.42
   },
   {
     "id": "ref-agriates",
@@ -1392,7 +1488,9 @@
     "orientation_deg": 355,
     "ouverture_deg": 90,
     "profondeur_m": 10,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 7.7,
+    "sensibilite_houle": 0.69
   },
   {
     "id": "ref-nonza",
@@ -1403,7 +1501,9 @@
     "orientation_deg": 275,
     "ouverture_deg": 90,
     "profondeur_m": 15,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 11.3,
+    "sensibilite_houle": 0.42
   },
   {
     "id": "ref-pietracorbara",
@@ -1414,6 +1514,8 @@
     "orientation_deg": 85,
     "ouverture_deg": 90,
     "profondeur_m": 14,
-    "fond": "roche"
+    "fond": "roche",
+    "visibilite_calme_m": 12.5,
+    "sensibilite_houle": 1.28
   }
 ]
