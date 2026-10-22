@@ -119,20 +119,23 @@ les réglages sur le début de l'historique et vérifie le résultat sur la fin,
 jamais vue pendant le calage (`--appliquer` écrit les valeurs retenues).
 Rapport complet : `calage/resultat.json`.
 
-Calage du 19 octobre 2026 (images de janvier 2024 à octobre 2026, 95 points,
-11 007 images ; les 51 points ajoutés en octobre ont 2025 et 2026, et 2024
-pour 40 d'entre eux) ; erreur typique sur la turbidité pendant la période de
-vérification :
+Calage du 22 octobre 2026 (images de janvier 2022 à octobre 2026, 95 points,
+14 804 images). La vérification porte sur la fin de chaque série (de mi-2025 à
+octobre 2026), jamais vue pendant le calage ; erreur typique sur la turbidité :
 
 | Prévision | 1 jour après une image | 2 à 3 jours | 4 à 7 jours |
 | --- | --- | --- | --- |
-| Eau identique à la dernière image | 34 % | 45 % | 66 % |
-| Modèle calé, recalé sur la dernière image | 31 % | 34 % | 42 % |
+| Eau identique à la dernière image | 33 % | 47 % | 73 % |
+| Modèle calé, recalé sur la dernière image | 31 % | 36 % | 48 % |
 
-Sans image récente, le modèle calé fait 42 % d'erreur typique, contre 57 %
-pour une simple moyenne de chaque point. Pour les 51 points ajoutés, qui
-reprenaient jusque-là les valeurs d'un voisin, l'erreur passe de 95 % à 42 %
-(au premier calage, les réglages d'origine faisaient 118 %). Aux Glénan et à Palombaggia, le fond de sable clair peu profond
+Sans image récente, le modèle calé fait 46 % d'erreur typique, contre 63 %
+pour une simple moyenne de chaque point. Ces chiffres sont plus élevés qu'au
+calage précédent parce que la période de vérification, plus récente, est plus
+difficile : sur une même période (l'année 2026 mise de côté), caler sur
+2022-2025 plutôt que sur 2024-2025 fait passer l'erreur de 48,9 % à 48,5 %.
+Les 51 points ajoutés en octobre ont leurs propres valeurs depuis le 19
+octobre : leur erreur est passée de 95 % (valeurs reprises d'un voisin) à
+42 %. Aux Glénan et à Palombaggia, le fond de sable clair peu profond
 fausse la turbidité satellite : le satellite y est ignoré. À Ouessant,
 Belle-Île, Campomoro, sur la côte Vermeille et aux Baleines, le masque des
 terres du satellite s'arrête à 140-380 m du point : les pixels sont pris

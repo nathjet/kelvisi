@@ -320,7 +320,7 @@ depuis « Mes spots » avant le changement et les réimporter après).
 | Fonds de carte en ligne (OpenFreeMap, vue aérienne IGN), carte des profondeurs redessinée | Vérifiés dans un vrai navigateur sur les vrais services (workflow « Diagnostic ») |
 | Recherche de lieux (IGN) et profondeur au point (Shom, EMODnet) | Vérifiées de la même façon |
 | Satellite Copernicus | En service sur le vrai service : 27 points sur 46 recalés au premier passage (16 octobre 2026) |
-| Calage du modèle sur le satellite | Fait sur janvier 2024 à octobre 2026 (95 points, 11 007 images) et vérifié sur une période mise de côté ; 2022 et 2023 en cours de collecte |
+| Calage du modèle sur le satellite | Fait sur janvier 2022 à octobre 2026 (95 points, 14 804 images) et vérifié sur une période mise de côté ; historique complet |
 | Comptes (inscription, connexion, mot de passe oublié, profil, synchronisation, suppression) | Testés de bout en bout avec un faux serveur ; schéma testé sur un vrai PostgreSQL ; à vérifier sur ton projet après l'étape 6 |
 | Profondeurs du Shom lues au point et direction du large | Vérifiées dans Chromium sur les vraies cartes du Shom (Bretagne, Provence, Pays basque, Normandie, Corse) |
 | Conversion turbidité en mètres, plancton (« À CALER ») | Ordres de grandeur de la littérature ; seront ajustés avec les retours de la bêta |
