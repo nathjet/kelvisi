@@ -14,7 +14,7 @@ import { lire, ecrire } from "./stockage.js";
 import { comptesActifs, lireProfil, session, traiterLienRecu } from "./compte.js";
 import { effacerDonneesLocales, synchroniser } from "./synchro.js";
 import { afficherEcranCompte, afficherMonCompte, masquerEcranCompte } from "./vues/compte.js";
-import { NOM_CLASSE, dateHeure, decrireMesure, distanceKm, echapper, heure, jourCourt, metres } from "./format.js";
+import { NOM_CLASSE, dateHeure, decrireMesure, distanceKm, echapper, heure, jourCourt, metres, ventDansTexte } from "./format.js";
 import { meilleureMesure, profondeursAuPoint } from "./bathymetrie.js";
 import { tranchesLegende } from "./relief-rendu.js";
 
@@ -238,8 +238,8 @@ function resumeJour(j, lien) {
   if (!j) return `<p class="note">Prévision en cours de calcul…</p><button type="button" class="bouton" data-aller="${lien}">Ouvrir la fiche</button>`;
   const v = j.meilleur_creneau ? j.meilleur_creneau.visibilite_m : j.visibilite_moyenne_m;
   return `<div class="rangee"><span class="gros chiffres">${metres(v)} m</span><span class="classe" style="background:var(--v-${j.classe})">${NOM_CLASSE[j.classe]}</span></div>
-    <p class="note">${j.meilleur_creneau ? `Meilleur créneau de ${heure(j.meilleur_creneau.debut)} à ${heure(j.meilleur_creneau.fin)}.` : "Aucun créneau conseillé."} ${echapper(j.explication)}</p>
-    ${j.alerte ? `<p class="encart alerte">${echapper(j.alerte)}</p>` : ""}
+    <p class="note">${j.meilleur_creneau ? `Meilleur créneau de ${heure(j.meilleur_creneau.debut)} à ${heure(j.meilleur_creneau.fin)}.` : "Aucun créneau conseillé."} ${echapper(ventDansTexte(j.explication))}</p>
+    ${j.alerte ? `<p class="encart alerte">${echapper(ventDansTexte(j.alerte))}</p>` : ""}
     <button type="button" class="bouton" data-aller="${lien}">Voir la prévision</button>`;
 }
 

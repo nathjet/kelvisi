@@ -89,6 +89,13 @@ export function vitesseVent(kn) {
   return `${Math.round(kn)} nœud${Math.round(kn) >= 2 ? "s" : ""}`;
 }
 
+// Les explications et alertes des moteurs donnent le vent en nœuds entiers : on les affiche dans
+// l'unité choisie, avec la même conversion que les cartes « Conditions »
+export function ventDansTexte(texte) {
+  if (!texte || lire(CLE_UNITE_VENT, "kn") !== "kmh") return texte;
+  return texte.replace(/(\d+) nœuds?/g, (_, n) => vitesseVent(Number(n)));
+}
+
 // Phase de la Lune à une date (midi UTC), et période de marée qui en découle en Manche et Atlantique.
 // Les vives-eaux arrivent environ un jour et demi après la nouvelle et la pleine lune.
 const NOUVELLE_LUNE_REF = Date.UTC(2000, 0, 6, 18, 14) / 86400000;

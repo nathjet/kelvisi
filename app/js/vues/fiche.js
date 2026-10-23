@@ -11,7 +11,7 @@ import { CONFIG } from "../config.js";
 import { ETATS_PARTAGE, partageConnu, spotCommunaute } from "../communaute.js";
 import {
   NOM_CLASSE, NOM_FACADE, NOM_FOND, SECTEURS_COURTS, de, echapper, facadePour, fleche, heure, jourCourt, jourLong,
-  metres, regionPour, secteur, dateHeure, vitesseVent, lune, decrireMesure,
+  metres, regionPour, secteur, dateHeure, vitesseVent, ventDansTexte, lune, decrireMesure,
 } from "../format.js";
 
 const lieuxEstimes = new Map();
@@ -100,7 +100,13 @@ function conditions(prevision, jour, meta) {
   const hs = heuresDuJour(prevision, jour.date);
   if (!hs.length) return "";
   const cr = jour.meilleur_creneau;
-  const h = (cr && hs.find((x) => x.heure === cr.debut)) || hs[Math.min(12, hs.length - 1)];
+  // Même heure que l'explication du jour : le milieu du meilleur créneau (sinon le milieu de la journée)
+  let h = hs[Math.min(12, hs.length - 1)];
+  if (cr) {
+    const milieu = (Date.parse(cr.debut) + Date.parse(cr.fin)) / 2;
+    const avant = hs.filter((x) => Date.parse(x.heure) <= milieu);
+    if (avant.length) h = avant[avant.length - 1];
+  }
   const moment = `à ${heure(h.heure)}`;
   const houle = h.houle, vent = h.vent;
   const cartes = [];
@@ -400,8 +406,8 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
         <div class="details"><span class="classe" style="background:${couleur(jour.classe)}">${NOM_CLASSE[jour.classe]}</span>
         ${pl ? `<span class="fourchette chiffres">entre ${metres(pl.bas)} et ${metres(pl.haut)} m · confiance ${pl.texte} (${pl.confiance} %)</span>` : ""}</div></div>
       ${jauge(jour, pl, meta.seuils)}
-      <p class="explication">${echapper(jour.explication)}</p>
-      ${jour.alerte ? `<div class="encart alerte">${echapper(jour.alerte)}</div>` : ""}
+      <p class="explication">${echapper(ventDansTexte(jour.explication))}</p>
+      ${jour.alerte ? `<div class="encart alerte">${echapper(ventDansTexte(jour.alerte))}</div>` : ""}
       ${cr ? `<div class="encart creneau"><strong class="etiquette">Meilleur créneau</strong><span class="grand chiffres">de ${heure(cr.debut)} à ${heure(cr.fin)}</span><span>${metres(cr.visibilite_m)} m en moyenne sur le créneau</span></div>`
         : `<div class="encart alerte">Aucun créneau conseillé ce jour-là.</div>`}
       ${jour.conseil_maree || tendance ? `<p class="note">${[jour.conseil_maree, tendance].filter(Boolean).join(" ")}</p>` : ""}

@@ -449,7 +449,36 @@ await etape("unité du vent", async () => {
   await jusqua(() => panneau().querySelector(".lecture"), "fiche");
   assert.match(texte(panneau().querySelector(".conditions")), /\d+ km\/h/);
   assert.doesNotMatch(texte(panneau().querySelector(".conditions")), /Vent\s*\d+ nœud/);
+  // Explications et alertes dans la même unité que les cartes, et cartes à l'heure de l'explication
+  const fiches = resume.points.map((p) => ({ id: p.id, d: JSON.parse(readFileSync(join(APP, "donnees", "points", `${p.id}.json`), "utf8")) }));
+  const vus = { explication: false, alerte: false };
+  for (const champ of ["explication", "alerte"]) {
+    const cas = fiches.flatMap(({ id, d }) => d.jours.map((j, k) => ({ id, j, k }))).find(({ j }) => /\d+ nœuds?/.test(j[champ] || ""));
+    if (!cas) continue;
+    vus[champ] = true;
+    await aller(`#/spot/${cas.id}`);
+    await jusqua(() => panneau().querySelector(".lecture"), "fiche");
+    panneau().querySelector(`#jours-fiche button[data-jour="${cas.k}"]`).click();
+    await attendre();
+    const bloc = texte(panneau().querySelector(champ === "explication" ? ".explication" : ".encart.alerte"));
+    const n = Number(/(\d+) nœuds?/.exec(cas.j[champ])[1]);
+    assert.ok(bloc.includes(`${Math.round(n * 1.852)} km/h`), `${champ} en km/h : ${bloc}`);
+    assert.doesNotMatch(bloc, /nœud/);
+    if (champ === "explication" && cas.j.meilleur_creneau) {
+      const milieu = (Date.parse(cas.j.meilleur_creneau.debut) + Date.parse(cas.j.meilleur_creneau.fin)) / 2;
+      const h = new Date(milieu).toLocaleString("fr-FR", { hour: "numeric", timeZone: "Europe/Paris" }).replace(/\D/g, "");
+      assert.match(texte(panneau().querySelector(".conditions")), new RegExp(`à ${Number(h)} h`), "cartes à l'heure de l'explication");
+    }
+  }
+  assert.ok(vus.explication && vus.alerte, "données d'exemple avec vent dans les textes");
   w.localStorage.removeItem("kelvisi-unite-vent");
+  // En nœuds (réglage par défaut), les textes sont inchangés
+  const cas = fiches.flatMap(({ id, d }) => d.jours.map((j, k) => ({ id, j, k }))).find(({ j }) => /\d+ nœuds/.test(j.explication || ""));
+  await aller(`#/spot/${cas.id}`);
+  await jusqua(() => panneau().querySelector(".lecture"), "fiche");
+  panneau().querySelector(`#jours-fiche button[data-jour="${cas.k}"]`).click();
+  await attendre();
+  assert.equal(texte(panneau().querySelector(".explication")), cas.j.explication);
 });
 
 await etape("aucune erreur JavaScript", async () => {
