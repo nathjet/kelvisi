@@ -856,6 +856,41 @@ def zones_cacem():
         annoter("Zones CACEM", lignes)
 
 
+def zones_kelvisi():
+    """Fichier des zones de pêche sous-marine produit par outils/zones_reglementees.py, avec la liste de revue
+    et les points Kelvisi situés dans une zone (diag/zones/)."""
+    import csv
+    import json
+    import subprocess
+    from pathlib import Path
+
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "geopandas", "pyogrio", "shapely"], check=True)
+    from shapely.geometry import Point, shape
+
+    racine = Path(__file__).resolve().parent.parent
+    dossier = Path(SORTIE) / "zones"
+    dossier.mkdir(parents=True, exist_ok=True)
+    r = subprocess.run([sys.executable, str(racine / "outils" / "zones_reglementees.py"), "--sortie", str(dossier / "peche-sous-marine.geojson"),
+                        "--revue", str(dossier / "revue.csv")], capture_output=True, text=True)
+    lignes = [r.stdout.strip(), r.stderr.strip()[-1500:]]
+    if r.returncode:
+        annoter("Zones Kelvisi", lignes)
+        return
+    revue = list(csv.DictReader(open(dossier / "revue.csv", encoding="utf-8")))
+    ecartees = [z for z in revue if z["classe"] and z["retenue"] == "False"]
+    lignes.append(f"{len(revue)} zones examinées ; écartées : " + "; ".join(f"{z['nom'][:50]} ({z['motif']})" for z in ecartees)[:1500])
+    zones = json.load(open(dossier / "peche-sous-marine.geojson", encoding="utf-8"))
+    formes = [(shape(f["geometry"]), f["properties"]) for f in zones["features"]]
+    points = json.load(open(racine / "spots" / "points.json", encoding="utf-8"))
+    dedans = []
+    for pt in points:
+        for g, prop in formes:
+            if g.contains(Point(pt["lon"], pt["lat"])):
+                dedans.append(f"{pt['id']} dans « {prop['nom'][:60]} » ({prop['classe']})")
+    lignes.append(f"points Kelvisi dans une zone : {dedans or 'aucun'}")
+    annoter("Zones Kelvisi", lignes)
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:

@@ -128,9 +128,11 @@ def recuperer(spots, maintenant: int, jours: int = 4, ouvrir=_ouvrir) -> dict:
     return {"points": points, "erreurs": erreurs, "jeux": jeux}
 
 
-def encore_valable(precedent: dict | None, ids: set[str], maintenant: int, age_max_s: int) -> bool:
-    """Le fichier déjà publié peut-il être repris tel quel (assez récent, mêmes points) ?"""
+def encore_valable(precedent: dict | None, ids: set[str], maintenant: int, age_max_s: int, complet: bool = True) -> bool:
+    """Le fichier déjà publié peut-il être repris (assez récent, mêmes points, et sans bassin en panne si `complet`) ?"""
     if not precedent or not precedent.get("points"):
+        return False
+    if complet and precedent.get("complet") is False:
         return False
     try:
         genere = datetime.fromisoformat(precedent["genere_le"]).timestamp()

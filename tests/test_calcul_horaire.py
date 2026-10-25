@@ -2,6 +2,7 @@
 
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -167,3 +168,45 @@ def test_entetes_supabase():
 
     assert entetes_supabase("sb_secret_abc") == {"apikey": "sb_secret_abc"}
     assert entetes_supabase("eyJhbGciOi.x.y")["Authorization"] == "Bearer eyJhbGciOi.x.y"
+
+
+def test_temperatures_du_passage():
+    import calculer_previsions as cp
+    from conftest import fabriquer_spot
+
+    a, b = fabriquer_spot(id="a"), fabriquer_spot(id="b", region="mediterranee", lat=43.2, lon=5.3)
+    t = int(datetime.fromisoformat("2026-10-25T09:00:00+00:00").timestamp())
+    appels = []
+
+    def recuperer(spots, maintenant):
+        appels.append([s.id for s in spots])
+        return {"points": {"a": {"au_fond": [14.0]}}, "erreurs": {"med": "ConnectionError: panne"}, "jeux": ["ibi"]}
+
+    frais = {"genere_le": "2026-10-25T06:00:00+00:00", "complet": True, "points": {"a": {"au_fond": [13.0]}, "b": {"au_fond": [20.0]}}}
+    sortie, bilan = cp.temperatures_du_passage([a, b], t, frais, recuperer)
+    assert sortie is frais and not appels and "repris" in bilan
+
+    vieux = {**frais, "genere_le": "2026-10-24T12:00:00+00:00"}
+    sortie, bilan = cp.temperatures_du_passage([a, b], t, vieux, recuperer)
+    assert appels == [["a", "b"]]
+    assert sortie["points"]["a"] == {"au_fond": [14.0]} and sortie["points"]["b"] == {"au_fond": [20.0]}
+    assert sortie["complet"] is False and "1 anciens profils repris" in bilan and "panne" in bilan
+
+    sortie, bilan = cp.temperatures_du_passage([a, b], t, None, recuperer)
+    assert set(sortie["points"]) == {"a"}
+
+    sortie, _ = cp.temperatures_du_passage([a, b], t, None, lambda s, m: {"points": {}, "erreurs": {"ibi": "x"}, "jeux": []})
+    assert sortie is None
+
+
+def test_adresse_site(monkeypatch):
+    import calculer_previsions as cp
+
+    monkeypatch.delenv("KELVISI_SITE", raising=False)
+    monkeypatch.setenv("GITHUB_REPOSITORY", "Nathjet/kelvisi")
+    assert cp.adresse_site() == "https://nathjet.github.io/kelvisi/"
+    monkeypatch.setenv("KELVISI_SITE", "https://exemple.fr/app")
+    assert cp.adresse_site() == "https://exemple.fr/app/"
+    monkeypatch.delenv("KELVISI_SITE")
+    monkeypatch.delenv("GITHUB_REPOSITORY")
+    assert cp.adresse_site() is None and cp.lire_temperatures_publiees(None) is None

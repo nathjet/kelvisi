@@ -8,12 +8,14 @@ Usage : python outils/calculer_previsions.py [--sortie app/donnees] [--jours 3]
   resume.json        tous les points, résumé par jour (carte et liste « Où aller ? »)
   points/<id>.json   détail heure par heure d'un point (fiche du spot)
   parametres.json    constantes du modèle, lues par le moteur du navigateur
+  temperatures.json  température de l'eau de la surface à 40 m autour de chaque point (si Copernicus)
 
 Variables d'environnement facultatives :
   OPEN_METEO_CLE                       clé Open-Meteo (usage commercial)
   SUPABASE_URL, SUPABASE_SERVICE_KEY   lecture des retours terrain pour corriger chaque point
   COPERNICUSMARINE_SERVICE_USERNAME,
   COPERNICUSMARINE_SERVICE_PASSWORD    correction par satellite (voir prevision/sources/copernicus.py)
+                                       et température en profondeur (prevision/sources/temperature.py)
 
 Les débits des rivières (Hub'Eau) sont lus sans clé. Toute source facultative
 en panne est ignorée : les prévisions sont publiées sans elle.
@@ -38,10 +40,14 @@ sys.path.insert(0, str(RACINE))
 from prevision import charger_spots, parametres as P, prevoir  # noqa: E402
 from prevision.donnees import Rapport  # noqa: E402
 from prevision.pipeline import VERSION_MODELE  # noqa: E402
-from prevision.sources import copernicus, hubeau, openmeteo  # noqa: E402
+from prevision.sources import copernicus, hubeau, openmeteo, temperature  # noqa: E402
 from prevision.spot import avec_reglage_voisin  # noqa: E402
 
 JOURS_RETOURS = 90
+# Le modèle de température ne change qu'une fois par jour : le fichier publié est repris tel quel
+# pendant 6 h, et sert de secours (moins de 2 jours) si Copernicus ne répond pas.
+AGE_TEMPERATURES_S = 6 * 3600
+AGE_SECOURS_TEMPERATURES_S = 48 * 3600
 
 
 def facade(spot) -> str:
@@ -229,6 +235,63 @@ def ecrire(dossier: Path, sorties: dict) -> None:
         ecrire_json(dossier / "points" / f"{ident}.json", detail)
     ecrire_json(dossier / "resume.json", sorties["resume"])
     ecrire_json(dossier / "parametres.json", parametres_publics())
+    if sorties.get("temperatures"):
+        ecrire_json(dossier / "temperatures.json", sorties["temperatures"])
+
+
+def adresse_site() -> str | None:
+    """Adresse de l'application publiée (GitHub Pages), pour relire le fichier de températures déjà en ligne."""
+    if os.environ.get("KELVISI_SITE"):
+        return os.environ["KELVISI_SITE"].rstrip("/") + "/"
+    depot = os.environ.get("GITHUB_REPOSITORY", "")
+    if "/" not in depot:
+        return None
+    proprietaire, nom = depot.split("/", 1)
+    return f"https://{proprietaire.lower()}.github.io/{nom}/"
+
+
+def lire_temperatures_publiees(site: str | None, session=None) -> dict | None:
+    if not site:
+        return None
+    import requests
+
+    try:
+        r = (session or requests).get(f"{site}donnees/temperatures.json", timeout=20)
+        return r.json() if r.ok else None
+    except Exception:
+        return None
+
+
+def temperatures_du_passage(spots, maintenant: int, precedent: dict | None, recuperer=temperature.recuperer) -> tuple[dict | None, str]:
+    """Profils de température à publier, et une ligne de bilan.
+
+    Fichier déjà en ligne de moins de 6 h et complet : repris sans interroger Copernicus.
+    Sinon recalcul ; les points d'un bassin en panne gardent leur ancien profil s'il a moins de 2 jours
+    (ses dates restent celles d'origine, l'application n'affiche que le jour correspondant).
+    """
+    ids = {s.id for s in spots}
+    if temperature.encore_valable(precedent, ids, maintenant, AGE_TEMPERATURES_S):
+        return precedent, f"Température en profondeur : fichier de {precedent['genere_le'][11:16]} UTC repris ({len(precedent['points'])} points)"
+    t0 = time.time()
+    res = recuperer(spots, maintenant)
+    points = dict(res["points"])
+    repris = 0
+    if temperature.encore_valable(precedent, set(), maintenant, AGE_SECOURS_TEMPERATURES_S, complet=False):
+        for ident, profil in precedent["points"].items():
+            if ident in ids and ident not in points:
+                points[ident] = profil
+                repris += 1
+    bilan = (f"Température en profondeur : {len(res['points'])} points sur {len(spots)} en {time.time() - t0:.0f} s"
+             + (f", {repris} anciens profils repris" if repris else "")
+             + "".join(f" ; indisponible ({b}) : {e[:200]}" for b, e in res["erreurs"].items()))
+    if not points:
+        return None, bilan
+    return {
+        "genere_le": datetime.fromtimestamp(maintenant, timezone.utc).isoformat(),
+        "complet": not res["erreurs"],
+        "jeux": res["jeux"],
+        "points": points,
+    }, bilan
 
 
 def entetes_supabase(cle: str) -> dict:
@@ -327,6 +390,14 @@ def main():
     else:
         noter("Satellite : identifiants Copernicus absents, étape sautée")
 
+    temperatures = None
+    if copernicus.identifiants_presents():
+        try:
+            temperatures, ligne = temperatures_du_passage(spots, maintenant, lire_temperatures_publiees(adresse_site()))
+            noter(ligne)
+        except Exception as e:
+            noter(f"Température en profondeur indisponible ({type(e).__name__})")
+
     rapports = {}
     url, cle = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_SERVICE_KEY")
     if url and cle:
@@ -351,6 +422,10 @@ def main():
 
     sorties = construire(spots, conditions, maintenant, rapports, args.jours, satellites)
     resume = sorties["resume"]
+    if temperatures:
+        sorties["temperatures"] = temperatures
+        if "Copernicus Marine" not in resume["sources"]:
+            resume["sources"].insert(1, "Copernicus Marine")
     if any(e == "ok" for e in etat_rivieres.values()):
         resume["sources"].insert(1, "Hub'Eau")
     ecrire(Path(args.sortie), sorties)
