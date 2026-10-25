@@ -754,9 +754,40 @@ def temperature_fond():
     annoter("Température en profondeur", lignes)
 
 
+def temperature_points():
+    """Profils de température de tous les points Kelvisi avec le module réel (prevision/sources/temperature.py)."""
+    import json
+    import time
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from prevision import charger_spots
+    from prevision.sources import temperature
+
+    spots = charger_spots(str(Path(__file__).resolve().parent.parent / "spots" / "points.json"))
+    t0 = time.time()
+    res = temperature.recuperer(spots, int(time.time()))
+    duree = time.time() - t0
+    Path(SORTIE).mkdir(exist_ok=True)
+    Path(SORTIE, "temperatures_points.json").write_text(json.dumps(res, ensure_ascii=False), encoding="utf-8")
+    pts = res["points"]
+    manquants = [s.id for s in spots if s.id not in pts]
+    lignes = [f"{len(pts)} points sur {len(spots)} en {duree:.0f} s, jeux {res['jeux']}, erreurs {res['erreurs']}",
+              f"sans profil : {manquants}",
+              f"taille JSON : {len(json.dumps(pts, separators=(',', ':'))) / 1000:.0f} ko"]
+    dist = sorted(p["distance_km"] for p in pts.values())
+    if dist:
+        lignes.append(f"distance de la maille de surface : médiane {dist[len(dist) // 2]} km, max {dist[-1]} km")
+    courts = [(i, p["profondeurs"][-1], s.profondeur_m) for s in spots for i, p in [(s.id, pts.get(s.id))] if p and p["profondeurs"][-1] < s.profondeur_m]
+    lignes.append(f"profil moins profond que le spot : {courts}")
+    for i, p in list(pts.items())[::8]:
+        lignes.append(f"{i} : surface {p['valeurs'][0][0]} °C, {p['profondeur_m']} m {p['au_fond']} (profil jusqu'à {p['profondeurs'][-1]} m, {p['distance_km']} km)")
+    annoter("Température des points", lignes)
+
+
 def zones_cacem():
-    """Zones réglementaires du CACEM (data.gouv.fr) : structure du fichier et zones qui parlent de pêche sous-marine
-    ou d'interdiction de pêche, en métropole (diag/zones/)."""
+    """Zones réglementaires du CACEM (data.gouv.fr) : structure du fichier (toutes les couches) et zones de
+    métropole qui parlent de pêche sous-marine ou d'interdiction de pêche (diag/zones/)."""
     import json
     import re as _re
     import subprocess
@@ -765,44 +796,64 @@ def zones_cacem():
 
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "geopandas", "pyogrio", "shapely"], check=True)
     import geopandas as gpd
+    import pandas as pd
     import pyogrio
 
     dossier = Path(SORTIE) / "zones"
     dossier.mkdir(parents=True, exist_ok=True)
     gpkg = Path("/tmp/zones_cacem.gpkg")
-    t0 = time.time()
-    with requests.get("https://www.data.gouv.fr/api/1/datasets/r/dd48b545-a1d1-4710-9e56-415b895f5336", stream=True, timeout=600) as r:
-        r.raise_for_status()
-        with open(gpkg, "wb") as f:
-            for morceau in r.iter_content(1 << 20):
-                f.write(morceau)
-    lignes = [f"téléchargé {gpkg.stat().st_size / 1e6:.0f} Mo en {time.time() - t0:.0f} s"]
-    couches = pyogrio.list_layers(gpkg)
-    lignes.append(f"couches : {couches.tolist()}")
-    nom_couche = couches[0][0]
-    attributs = pyogrio.read_dataframe(gpkg, layer=nom_couche, read_geometry=False)
-    lignes.append(f"{len(attributs)} zones ; colonnes {list(attributs.columns)}")
-    for col in ("plan", "facade", "type", "layer_name"):
-        if col in attributs:
-            (dossier / f"valeurs_{col}.txt").write_text(attributs[col].astype(str).value_counts().to_string(), encoding="utf-8")
-    texte = attributs[[c for c in ("layer_name", "ref_reg", "resume", "obs", "poly_name", "type") if c in attributs]].astype(str).agg(" | ".join, axis=1)
-    motif = _re.compile(r"sous[- ]marin|chasse|harpon|toute (forme de )?p[êe]che|tout pr[ée]l[èe]vement|non[- ]pr[ée]l[èe]vement|interdiction de (la )?p[êe]che|r[ée]serve", _re.I)
-    garde = texte.str.contains(motif)
-    if "facade" in attributs:
-        garde &= ~attributs["facade"].astype(str).str.contains(r"Antilles|Guyane|Réunion|Mayotte|Saint|Sud|Océan Indien|Pacifique|OI|SA ?OI", case=False, regex=True) | attributs["facade"].isna()
-    lignes.append(f"{int(garde.sum())} zones retenues")
-    sel = attributs[garde]
-    (dossier / "zones_retenues.csv").write_text(sel.to_csv(index=False), encoding="utf-8")
-    geo = gpd.read_file(gpkg, layer=nom_couche, where=None).loc[garde.values]
-    geo = geo.to_crs(4326)
-    geo["geometry"] = geo.geometry.simplify(0.0003, preserve_topology=True)
-    geo = geo[geo.geometry.bounds["minx"] > -6] if len(geo) else geo
-    geo.to_file(dossier / "zones_retenues.geojson", driver="GeoJSON")
-    lignes.append(f"GeoJSON : {(dossier / 'zones_retenues.geojson').stat().st_size / 1e6:.1f} Mo, {len(geo)} zones en métropole")
-    exemples = sel.head(25)
-    for _, z in exemples.iterrows():
-        lignes.append(" · ".join(str(z.get(c, ""))[:90] for c in ("layer_name", "type", "resume") if c in z))
-    annoter("Zones CACEM", lignes)
+    lignes = []
+    try:
+        t0 = time.time()
+        with requests.get("https://www.data.gouv.fr/api/1/datasets/r/dd48b545-a1d1-4710-9e56-415b895f5336", stream=True, timeout=600) as r:
+            r.raise_for_status()
+            with open(gpkg, "wb") as f:
+                for morceau in r.iter_content(1 << 20):
+                    f.write(morceau)
+        lignes.append(f"téléchargé {gpkg.stat().st_size / 1e6:.0f} Mo en {time.time() - t0:.0f} s")
+        couches = pyogrio.list_layers(gpkg)
+        (dossier / "couches.txt").write_text("\n".join(f"{c[0]}\t{c[1]}" for c in couches), encoding="utf-8")
+        lignes.append(f"{len(couches)} couches : {[c[0] for c in couches][:40]}")
+        morceaux = []
+        for nom, _ in couches:
+            try:
+                a = pyogrio.read_dataframe(gpkg, layer=nom, read_geometry=False)
+            except Exception as e:
+                lignes.append(f"couche {nom} illisible : {type(e).__name__}")
+                continue
+            a.insert(0, "couche_gpkg", nom)
+            morceaux.append(a)
+        attributs = pd.concat(morceaux, ignore_index=True)
+        lignes.append(f"{len(attributs)} zones ; colonnes {list(attributs.columns)}")
+        for col in ("couche_gpkg", "plan", "facade", "type", "layer_name", "thematique", "thematiques", "tags"):
+            if col in attributs:
+                (dossier / f"valeurs_{col}.txt").write_text(attributs[col].astype("string").fillna("").value_counts().to_string(), encoding="utf-8")
+        champs = [c for c in ("layer_name", "ref_reg", "resume", "obs", "poly_name", "type", "thematique", "tags") if c in attributs]
+        texte = attributs[champs].astype("string").fillna("").agg(" | ".join, axis=1)
+        motif = _re.compile(r"sous[- ]marin|chasse|harpon|toute (forme de )?p[êe]che|tout pr[ée]l[èe]vement|non[- ]pr[ée]l[èe]vement|interdiction de (la )?p[êe]che|cantonnement|r[ée]serve int[ée]grale|protection (forte|renforc)", _re.I)
+        garde = texte.str.contains(motif)
+        lignes.append(f"{int(garde.sum())} zones citent la pêche sous-marine ou une interdiction de pêche")
+        sel = attributs[garde]
+        (dossier / "zones_retenues.csv").write_text(sel.to_csv(index=False), encoding="utf-8")
+        geos = []
+        for nom in sel["couche_gpkg"].unique():
+            g = gpd.read_file(gpkg, layer=nom)
+            g.insert(0, "couche_gpkg", nom)
+            g = g.loc[garde[attributs["couche_gpkg"] == nom].values]
+            if g.crs is not None:
+                g = g.to_crs(4326)
+            geos.append(g)
+        if geos:
+            geo = gpd.GeoDataFrame(pd.concat(geos, ignore_index=True), crs=4326)
+            b = geo.geometry.bounds
+            geo = geo[(b["minx"] > -6) & (b["maxx"] < 10) & (b["miny"] > 41) & (b["maxy"] < 51.5)]
+            geo["geometry"] = geo.geometry.simplify(0.0002, preserve_topology=True)
+            geo.to_file(dossier / "zones_retenues.geojson", driver="GeoJSON")
+            lignes.append(f"GeoJSON : {(dossier / 'zones_retenues.geojson').stat().st_size / 1e6:.1f} Mo, {len(geo)} zones en métropole")
+            for _, z in geo.head(30).iterrows():
+                lignes.append(" · ".join(str(z.get(c, ""))[:80] for c in ("couche_gpkg", "layer_name", "type", "ref_reg") if c in z))
+    finally:
+        annoter("Zones CACEM", lignes)
 
 
 def main():
