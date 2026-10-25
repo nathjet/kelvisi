@@ -148,7 +148,8 @@ def test_envoi_des_alertes_du_passage():
     bilan = alertes.traiter(base, {"points": list(POINTS.values())}, MATIN, "https://kelvisi.test/", envoyer=envoyer)
     assert base.ecrits[0][0] == "cles_push" and len(wp.deb64(bilan["cle_publique"])) == 65, "clés créées au premier passage"
     assert sorted(envois) == [("https://push.test/a1", "Groix : 12 m demain"), ("https://push.test/a2", "Groix : 12 m demain"), ("https://push.test/b1", "Glénan : 8 m demain")]
-    assert bilan == {"cle_publique": bilan["cle_publique"], "comptes": 1, "notifications": 1, "abonnements_supprimes": 1, "hors_horaires": False}
+    assert bilan == {"cle_publique": bilan["cle_publique"], "comptes": 1, "notifications": 1, "abonnements_supprimes": 1, "hors_horaires": False,
+                     "spots_prives": None}
     assert len(base.effaces) == 1 and "endpoint=eq.%22https%3A%2F%2Fpush.test%2Fa2%22" in base.effaces[0]
     # Seule l'alerte arrivée est notée comme envoyée : celle de B (service en panne) repartira au passage suivant
     assert base.ecrits[-1] == ("alertes_envoyees", [{"proprietaire": A, "point_id": "ref-groix", "jour": "2026-10-26"}])
@@ -167,12 +168,70 @@ def test_alertes_dans_le_calcul_horaire(monkeypatch):
     class Erreur(Exception):
         response = type("R", (), {"status_code": 404})()
 
-    def absente(*a):
+    def absente(*a, **k):
         raise Erreur()
 
     cp.BILAN.clear()
     assert cp.envoyer_alertes("https://x.supabase.co", "sb_secret_x", {"points": []}, 1_792_918_800, traiter=absente) is None
     assert "relance supabase/schema.sql" in cp.BILAN[-1]
     ok = cp.envoyer_alertes("https://x.supabase.co", "sb_secret_x", {"points": []}, 1_792_918_800,
-                            traiter=lambda *a: {"cle_publique": "PUB", "comptes": 2, "notifications": 3, "abonnements_supprimes": 0, "hors_horaires": False})
+                            traiter=lambda *a, **k: {"cle_publique": "PUB", "comptes": 2, "notifications": 3, "abonnements_supprimes": 0, "hors_horaires": False})
     assert ok == {"cle_publique": "PUB"} and cp.BILAN[-1] == "Alertes : 3 notifications envoyées à 2 comptes"
+
+
+# --- Spots privés sous alerte ------------------------------------------------------------------
+
+LIGNE_PRIVEE = {"proprietaire": B, "id": "prive-crique", "nom": "Ma crique", "lat": 47.4912, "lon": -3.2031, "region": "atlantique",
+                "orientation_deg": 270, "ouverture_deg": 90, "profondeur_m": 8, "fond": "roche", "alerte": "bonne"}
+
+
+def test_prevision_des_spots_prives():
+    from prevision import charger_spots
+    from prevision.simulation import calme
+
+    publics = charger_spots(Path(__file__).resolve().parent.parent / "spots" / "points.json")
+    maintenant = datetime(2026, 10, 25, 10, 17, tzinfo=timezone.utc)
+    demandes = []
+
+    def recuperer(positions):
+        demandes.append(positions)
+        return [calme(int(maintenant.timestamp()) - 5 * 86400, jours=9) for _ in positions]
+
+    autre = {**LIGNE_PRIVEE, "proprietaire": A, "id": "prive-voisin", "lat": 47.4888}
+    invalide = {**LIGNE_PRIVEE, "id": "prive-faux", "region": "pacifique"}
+    r = alertes.prevoir_spots_prives([LIGNE_PRIVEE, autre, invalide], publics, maintenant, recuperer)
+    assert demandes == [[(47.49, -3.2)]], "deux spots à moins d'un kilomètre : une seule position demandée"
+    assert set(r) == {(B, "prive-crique"), (A, "prive-voisin")}
+    p = r[(B, "prive-crique")]
+    assert p["lien"] == "#/prive/prive-crique" and len(p["jours"]) == 3
+    assert set(p["jours"][0]) == {"date", "classe", "meilleur_creneau"}
+
+
+def test_alertes_des_spots_prives_aux_heures_prevues():
+    prive = {"id": "prive-crique", "nom": "Ma crique", "lien": "#/prive/prive-crique", "jours": [jour("2026-10-26", "bonne", visi=7.6)]}
+    base = FausseBase()
+    base.tables["spots_prives"] = [LIGNE_PRIVEE]
+    lu = []
+
+    def prevoir_prives(lignes):
+        lu.append([l["id"] for l in lignes])
+        return {(B, "prive-crique"): prive}
+
+    envois = []
+    envoyer = lambda ab, d, *a: envois.append((ab["endpoint"], d)) or 201  # noqa: E731
+    # 9 h 17 à Paris : pas une heure de calcul des spots privés
+    bilan = alertes.traiter(base, {"points": []}, datetime(2026, 10, 25, 8, 17, tzinfo=timezone.utc), "x", envoyer=envoyer, prevoir_prives=prevoir_prives)
+    assert not lu and bilan["spots_prives"] is None
+    # 11 h 17 à Paris : calculés, alerte envoyée avec un lien vers le spot privé
+    bilan = alertes.traiter(base, {"points": []}, datetime(2026, 10, 25, 10, 17, tzinfo=timezone.utc), "x", envoyer=envoyer, prevoir_prives=prevoir_prives)
+    assert lu == [["prive-crique"]] and bilan["spots_prives"] == 1
+    assert envois == [("https://push.test/b1", {"titre": "Bonne visibilité prévue", "corps": "Ma crique : 8 m demain", "url": "#/prive/prive-crique",
+                                                 "etiquette": "kelvisi-alerte"})]
+    assert base.ecrits[-1] == ("alertes_envoyees", [{"proprietaire": B, "point_id": "prive-crique", "jour": "2026-10-26"}])
+
+
+def test_spots_prives_illisibles_sans_bloquer_les_favoris():
+    base = FausseBase()  # pas de table spots_prives : colonne alerte absente
+    bilan = alertes.traiter(base, {"points": list(POINTS.values())}, MATIN.replace(hour=10, minute=17), "x",
+                            envoyer=lambda *a: 201, prevoir_prives=lambda lignes: {})
+    assert bilan["spots_prives"].startswith("indisponibles") and bilan["notifications"] >= 1

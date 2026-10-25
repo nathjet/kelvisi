@@ -12,6 +12,10 @@ insert into public.favoris (point_id) values ('ref-groix'), ('ref-glenan');
 update public.favoris set alerte = 'bonne' where point_id = 'ref-groix';
 update public.favoris set alerte = 'excellente' where point_id = 'ref-glenan';
 update public.favoris set alerte = null where point_id = 'ref-glenan';
+-- Alerte sur un spot privé, sans toucher à son partage
+insert into public.spots_prives (id, nom, lat, lon, region, orientation_deg, ouverture_deg, profondeur_m, fond, partage)
+values ('prive-alerte', 'Ma crique', 47.49, -3.2, 'atlantique', 270, 90, 8, 'roche', 'en_attente');
+update public.spots_prives set alerte = 'bonne' where id = 'prive-alerte';
 insert into public.abonnements_push (endpoint, p256dh, auth)
 values ('https://fcm.googleapis.com/fcm/send/abc', 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6', 'BTBZMqHH6r4Tts7J');
 
@@ -20,6 +24,13 @@ begin
   assert (select alerte from public.favoris where point_id = 'ref-groix') = 'bonne', 'alerte choisie';
   assert (select alerte from public.favoris where point_id = 'ref-glenan') is null, 'alerte retirée';
   assert (select count(*) from public.abonnements_push) = 1, 'un appareil abonné';
+  assert (select alerte from public.spots_prives where id = 'prive-alerte') = 'bonne', 'alerte sur un spot privé';
+  assert (select partage from public.spots_prives where id = 'prive-alerte') = 'en_attente', 'partage inchangé par l''alerte';
+  begin
+    update public.spots_prives set alerte = 'parfois' where id = 'prive-alerte';
+    raise exception 'ÉCHEC : niveau d''alerte inconnu accepté sur un spot';
+  exception when check_violation then null;
+  end;
   -- Valeurs refusées
   begin
     update public.favoris set alerte = 'moyenne' where point_id = 'ref-groix';
@@ -135,6 +146,7 @@ begin
   assert (select count(*) from public.abonnements_push) = 0, 'appareils supprimés';
   assert (select count(*) from public.alertes_envoyees) = 0, 'alertes envoyées supprimées';
   assert (select count(*) from public.favoris where proprietaire = '55555555-5555-5555-5555-555555555555') = 0, 'favoris supprimés';
+  assert (select count(*) from public.spots_prives where proprietaire = '55555555-5555-5555-5555-555555555555') = 0, 'spots supprimés';
 end $$;
 
 select 'alertes vérifiées' as resultat;

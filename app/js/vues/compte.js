@@ -9,7 +9,7 @@ import {
 import { effacerDonneesLocales, noterAlerte, synchroniser } from "../synchro.js";
 import { NIVEAUX, alertes, choisirAlerte, desabonnerAppareil } from "../alertes.js";
 import { pointPublic } from "../donnees.js";
-import { mesSpots } from "../messpots.js";
+import { mesSpots, monSpot } from "../messpots.js";
 import { favoris } from "../favoris.js";
 import { echapper, dateHeure } from "../format.js";
 import { contenuPage } from "./infos.js";
@@ -249,8 +249,8 @@ function blocAlertes() {
   const liste = Object.entries(alertes());
   if (!liste.length) return "";
   return `<div class="bloc"><h2 class="titre-bloc">Mes alertes</h2>
-    <ul class="marees">${liste.map(([id, niveau]) => `<li><strong>${echapper(pointPublic(id)?.nom || id)}</strong> · ${NIVEAUX[niveau].toLowerCase()}</li>`).join("")}</ul>
-    <p class="note">Change-les depuis la fiche de chaque favori. Les notifications arrivent sur les appareils où tu les as autorisées.</p>
+    <ul class="marees">${liste.map(([id, niveau]) => `<li><strong>${echapper(pointPublic(id)?.nom || monSpot(id)?.nom || id)}</strong> · ${NIVEAUX[niveau].toLowerCase()}</li>`).join("")}</ul>
+    <p class="note">Change-les depuis la fiche de chaque favori ou spot. Les notifications arrivent sur les appareils où tu les as autorisées.</p>
     <div class="rangee"><button type="button" class="bouton secondaire" data-alertes-retirer>Désactiver toutes mes alertes</button></div></div>`;
 }
 

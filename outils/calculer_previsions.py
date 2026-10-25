@@ -243,19 +243,30 @@ def ecrire(dossier: Path, sorties: dict) -> None:
         ecrire_json(dossier / "push.json", sorties["push"])
 
 
-def envoyer_alertes(url: str, cle: str, resume: dict, maintenant: int, traiter=None) -> dict | None:
-    """Alertes sur les favoris (outils/alertes.py). Renvoie le contenu de push.json, ou None si indisponible."""
+def envoyer_alertes(url: str, cle: str, resume: dict, maintenant: int, spots=(), traiter=None) -> dict | None:
+    """Alertes sur les favoris et les spots privés (outils/alertes.py). Renvoie le contenu de push.json, ou None."""
     import alertes
 
     traiter = traiter or alertes.traiter
+    instant = datetime.fromtimestamp(maintenant, timezone.utc)
+
+    def prevoir_prives(lignes):
+        recuperer = lambda positions: openmeteo.recuperer_plusieurs(  # noqa: E731
+            positions, jours_passes=5, jours_prevision=4, cle=os.environ.get("OPEN_METEO_CLE") or None, pause_s=3.0)
+        return alertes.prevoir_spots_prives(lignes, list(spots), instant, recuperer)
+
     try:
-        bilan = traiter(alertes.Base(url, cle), resume, datetime.fromtimestamp(maintenant, timezone.utc),
-                        adresse_site() or "https://github.com/nathjet/kelvisi")
+        bilan = traiter(alertes.Base(url, cle), resume, instant, adresse_site() or "https://github.com/nathjet/kelvisi",
+                        prevoir_prives=prevoir_prives)
     except Exception as e:
         statut = getattr(getattr(e, "response", None), "status_code", None)
         noter("Alertes : tables absentes, relance supabase/schema.sql dans Supabase" if statut in (400, 404)
               else f"Alertes indisponibles ({type(e).__name__})")
         return None
+    if isinstance(bilan.get("spots_prives"), int) and bilan["spots_prives"]:
+        noter(f"Alertes : {bilan['spots_prives']} spots privés calculés")
+    elif isinstance(bilan.get("spots_prives"), str):
+        noter(f"Alertes : spots privés {bilan['spots_prives']}, relance supabase/schema.sql si besoin")
     if bilan["hors_horaires"]:
         noter("Alertes : en attente (envoi entre 8 h et 21 h)")
     elif bilan["notifications"] or bilan["abonnements_supprimes"]:
@@ -452,7 +463,7 @@ def main():
         if "Copernicus Marine" not in resume["sources"]:
             resume["sources"].insert(1, "Copernicus Marine")
     if url and cle and resume["points"]:
-        sorties["push"] = envoyer_alertes(url, cle, resume, maintenant)
+        sorties["push"] = envoyer_alertes(url, cle, resume, maintenant, spots)
     if any(e == "ok" for e in etat_rivieres.values()):
         resume["sources"].insert(1, "Hub'Eau")
     ecrire(Path(args.sortie), sorties)

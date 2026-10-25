@@ -109,6 +109,15 @@ function supabase(url, options) {
   if (chemin.startsWith("/rest/v1/spots_prives")) {
     // Sans le script de partage, la base ne connaît pas la colonne « partage » : elle refuse la requête
     const colonneInconnue = reponse({ code: "PGRST204", message: "Could not find the 'partage' column of 'spots_prives'" }, 400);
+    if (!serveur.alertesActives && /alerte/.test(decodeURIComponent(chemin) + JSON.stringify(corps || ""))) {
+      return reponse({ code: "PGRST204", message: "Could not find the 'alerte' column of 'spots_prives'" }, 400);
+    }
+    if (methode === "PATCH") {
+      assert.deepEqual(Object.keys(corps), ["alerte"], "seule l'alerte change par ce chemin");
+      const ids = filtreIn(url, "id");
+      for (const sp of serveur.spots) if (sp.proprietaire === u.id && ids.includes(sp.id)) sp.alerte = corps.alerte;
+      return reponse(null, 204);
+    }
     if (methode === "GET") {
       if (!serveur.partageActif && /partage/.test(decodeURIComponent(chemin))) return colonneInconnue;
       return reponse(serveur.spots.filter((s) => s.proprietaire === u.id).map(({ proprietaire, ...s }) => s));
@@ -615,10 +624,38 @@ if (mode === "alertes") {
     assert.deepEqual(JSON.parse(w.localStorage.getItem("kelvisi-alertes")), { "ref-groix": "excellente" });
   });
 
+  await etape("alerte sur un spot privé, enregistrée sur la ligne du spot", async () => {
+    serveur.spots.push({ id: "prive-crique", proprietaire: moi.id, nom: "Ma crique", lat: 47.49, lon: -3.2, region: "atlantique",
+      orientation_deg: 270, ouverture_deg: 90, profondeur_m: 8, fond: "roche", maj_le: new Date().toISOString() });
+    w.location.hash = "#/mes-spots";
+    await attendre(100);
+    const { synchroniser } = await import(pathToFileURL(join(APP, "js", "synchro.js")).href);
+    await synchroniser();
+    w.location.hash = "#/prive/prive-crique";
+    await jusqua(() => panneau().querySelector("#alerte-favori:not([hidden])"), "case d'alerte du spot privé");
+    assert.match(texte(panneau().querySelector("#alerte-favori")), /sa position n'est jamais publiée/);
+    const caseAlerte = panneau().querySelector("#alerte-case");
+    caseAlerte.checked = true;
+    caseAlerte.dispatchEvent(new w.Event("change"));
+    await jusqua(() => serveur.spots.find((x) => x.id === "prive-crique").alerte === "bonne", "alerte du spot sur le serveur");
+    assert.equal(serveur.favoris[0].alerte, "excellente", "l'alerte du favori n'a pas bougé");
+    assert.ok(!JSON.parse(w.localStorage.getItem("kelvisi-spots")).some((x) => "alerte" in x), "l'alerte n'est pas rangée dans le spot");
+  });
+
   await etape("mon compte : alertes listées et exportées", async () => {
     w.location.hash = "#/compte";
     await jusqua(() => /Mes alertes/.test(texte(panneau())), "bloc des alertes");
     assert.match(texte(panneau()), /Groix.*excellente seulement/);
+    assert.match(texte(panneau()), /Ma crique.*bonne ou mieux/);
+  });
+
+  await etape("spot privé supprimé : son alerte disparaît", async () => {
+    w.location.hash = "#/prive/prive-crique";
+    await jusqua(() => panneau().querySelector("#prive-supprimer"), "fiche du spot");
+    panneau().querySelector("#prive-supprimer").click();
+    panneau().querySelector("#prive-oui").click();
+    await jusqua(() => !serveur.spots.some((x) => x.id === "prive-crique"), "spot supprimé du serveur");
+    assert.deepEqual(JSON.parse(w.localStorage.getItem("kelvisi-alertes")), { "ref-groix": "excellente" });
   });
 
   await etape("favori retiré : son alerte disparaît", async () => {

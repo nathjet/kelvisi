@@ -1,7 +1,9 @@
-"""Alertes sur les points favoris : une notification quand la visibilité prévue y devient bonne.
+"""Alertes sur les favoris et les spots privés : une notification quand la visibilité prévue y devient bonne.
 
-Chaque utilisateur choisit, sur ses favoris, d'être alerté (colonne `alerte` de la table favoris :
-"bonne" ou "excellente"). À chaque calcul horaire, pour aujourd'hui et les deux jours suivants, on
+Chaque utilisateur choisit, sur ses favoris (points Kelvisi) et ses spots privés, d'être alerté
+(colonne `alerte` des tables favoris et spots_prives : "bonne" ou "excellente"). Les prévisions des
+spots privés sous alerte sont calculées ici, cinq fois par jour (8 h, 11 h, 14 h, 17 h et 20 h,
+heure de Paris), et ne sont jamais publiées. À chaque calcul horaire, pour aujourd'hui et les deux jours suivants, on
 cherche les favoris dont la journée atteint ce niveau avec un créneau conseillé, puis on envoie une
 seule notification par compte qui les regroupe. Règles :
   - une alerte au plus par favori et par jour prévu (table alertes_envoyees) ;
@@ -26,6 +28,10 @@ RANG = {"mauvaise": 0, "moyenne": 1, "bonne": 2, "excellente": 3}
 SEUIL = {"bonne": 2, "excellente": 3}
 HEURE_DEBUT, HEURE_FIN = 8, 21
 JOURS = 3
+# Spots privés : prévision recalculée à ces heures seulement (deux appels Open-Meteo par position)
+HEURES_SPOTS_PRIVES = {8, 11, 14, 17, 20}
+MAX_SPOTS_PRIVES = 150
+CHAMPS_PRIVES = "proprietaire,id,nom,lat,lon,region,orientation_deg,ouverture_deg,profondeur_m,fond,alerte"
 JOURS_SEMAINE = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 
 
@@ -80,7 +86,7 @@ def a_signaler(points: dict, alertes: list[dict], deja: set, maintenant: datetim
     aujourd_hui = local.strftime("%Y-%m-%d")
     resultat = defaultdict(list)
     for a in alertes:
-        point = points.get(a["point_id"])
+        point = a.get("point") or points.get(a["point_id"])
         seuil = SEUIL.get(a.get("alerte") or "")
         if not point or seuil is None:
             continue
@@ -113,19 +119,68 @@ def message(liste: list, maintenant: datetime) -> dict:
     return {
         "titre": "Excellente visibilité prévue" if excellente else "Bonne visibilité prévue",
         "corps": "\n".join(lignes[:3]) + (f"\net {reste} autre{'s' if reste > 1 else ''} favori{'s' if reste > 1 else ''}" if reste > 0 else ""),
-        "url": f"#/spot/{next(iter(par_point))}" if len(par_point) == 1 else "#/liste",
+        "url": (next(iter(par_point.values()))[0][0].get("lien") or f"#/spot/{next(iter(par_point))}") if len(par_point) == 1 else "#/liste",
         "etiquette": "kelvisi-alerte",
     }
 
 
-def traiter(base: Base, resume: dict, maintenant: datetime, contact: str, envoyer=webpush.envoyer) -> dict:
-    """Envoie les alertes du passage. Renvoie un bilan sans donnée personnelle et la clé publique."""
+def prevoir_spots_prives(lignes: list[dict], spots_publics: list, maintenant: datetime, recuperer) -> dict:
+    """Prévisions des spots privés sous alerte : {(propriétaire, id): point au format du résumé}.
+
+    `recuperer(positions)` renvoie les conditions météo de chaque position (arrondie à 0,01°,
+    comme dans le navigateur). Chaque spot reprend les valeurs calées de son voisin Kelvisi.
+    """
+    from prevision import prevoir
+    from prevision.spot import Spot, avec_reglage_voisin
+
+    spots = []
+    for ligne in lignes[:MAX_SPOTS_PRIVES]:
+        try:
+            spots.append((ligne, Spot(id=ligne["id"], nom=ligne["nom"], lat=float(ligne["lat"]), lon=float(ligne["lon"]),
+                                      region=ligne["region"], orientation_deg=float(ligne["orientation_deg"]),
+                                      ouverture_deg=float(ligne["ouverture_deg"]), profondeur_m=float(ligne["profondeur_m"]),
+                                      fond=ligne["fond"], prive=True)))
+        except (KeyError, TypeError, ValueError):
+            continue
+    positions = sorted({(round(s.lat, 2), round(s.lon, 2)) for _, s in spots})
+    if not positions:
+        return {}
+    conditions = dict(zip(positions, recuperer(positions)))
+    t = int(maintenant.timestamp())
+    resultat = {}
+    for ligne, spot in spots:
+        try:
+            p = prevoir(avec_reglage_voisin(spot, spots_publics), conditions[(round(spot.lat, 2), round(spot.lon, 2))], t, jours=JOURS)
+        except Exception:
+            continue
+        resultat[(ligne["proprietaire"], spot.id)] = {"id": spot.id, "nom": spot.nom, "lien": f"#/prive/{spot.id}",
+                                                      "jours": [{k: j.get(k) for k in ("date", "classe", "meilleur_creneau")} for j in p["jours"]]}
+    return resultat
+
+
+def traiter(base: Base, resume: dict, maintenant: datetime, contact: str, envoyer=webpush.envoyer, prevoir_prives=None) -> dict:
+    """Envoie les alertes du passage. Renvoie un bilan sans donnée personnelle et la clé publique.
+
+    `prevoir_prives(lignes)` calcule les prévisions des spots privés sous alerte (voir
+    prevoir_spots_prives) ; sans lui, seules les alertes des favoris sont traitées.
+    """
     publique, privee = cles_vapid(base)
-    bilan = {"cle_publique": publique, "comptes": 0, "notifications": 0, "abonnements_supprimes": 0, "hors_horaires": False}
-    if not HEURE_DEBUT <= maintenant.astimezone(PARIS).hour < HEURE_FIN:
+    bilan = {"cle_publique": publique, "comptes": 0, "notifications": 0, "abonnements_supprimes": 0, "hors_horaires": False,
+             "spots_prives": None}
+    heure = maintenant.astimezone(PARIS).hour
+    if not HEURE_DEBUT <= heure < HEURE_FIN:
         bilan["hors_horaires"] = True
         return bilan
     alertes = base.lire("favoris?select=proprietaire,point_id,alerte&alerte=not.is.null")
+    if prevoir_prives is not None and heure in HEURES_SPOTS_PRIVES:
+        try:
+            lignes = base.lire(f"spots_prives?select={CHAMPS_PRIVES}&alerte=not.is.null&order=maj_le.desc")
+            prevus = prevoir_prives(lignes) if lignes else {}
+            bilan["spots_prives"] = len(prevus)
+            alertes = alertes + [{"proprietaire": l["proprietaire"], "point_id": l["id"], "alerte": l["alerte"], "point": prevus[(l["proprietaire"], l["id"])]}
+                                 for l in lignes if (l["proprietaire"], l["id"]) in prevus]
+        except Exception as e:
+            bilan["spots_prives"] = f"indisponibles ({type(e).__name__})"
     if not alertes:
         return bilan
     depuis = (maintenant.astimezone(PARIS) - timedelta(days=1)).strftime("%Y-%m-%d")

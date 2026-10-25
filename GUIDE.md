@@ -212,10 +212,14 @@ auteur le modifie, il repasse tout seul en attente de validation.
 
 ### h. Activer les alertes sur les favoris
 
-Sur la fiche d'un favori, une case « M'alerter quand la visibilité y sera
-bonne » envoie une notification quand la journée devient bonne (ou
-excellente, au choix) : une fois par jour et par spot au plus, entre 8 h et
-21 h, pour aujourd'hui et les deux jours suivants.
+Sur la fiche d'un favori ou d'un spot privé, une case « M'alerter quand la
+visibilité y sera bonne » envoie une notification quand la journée devient
+bonne (ou excellente, au choix) : une fois par jour et par spot au plus,
+entre 8 h et 21 h, pour aujourd'hui et les deux jours suivants. Pour les spots
+privés sous alerte, le calcul horaire recalcule leur prévision à 8 h, 11 h,
+14 h, 17 h et 20 h (150 spots au plus, deux appels Open-Meteo par position) ;
+le bilan indique « Alertes : N spots privés calculés ». Ces prévisions ne
+sont jamais publiées.
 
 **À faire une fois** (25 octobre 2026) : **SQL Editor** > nouvelle requête >
 colle tout le fichier `supabase/schema.sql` > **Run** (le même script, qui

@@ -6,6 +6,7 @@
 --   spots_prives   spots privés, visibles par leur seul propriétaire ; un spot proposé au partage
 --                  devient visible de tous (sans le nom de son auteur) une fois validé par l'éditeur
 --   favoris        points Kelvisi favoris de chaque compte, avec l'alerte choisie (bonne, excellente ou aucune)
+--                  (les spots privés ont la même colonne « alerte »)
 --   abonnements_push  appareils où envoyer les alertes (notifications du navigateur)
 --   alertes_envoyees  alertes déjà envoyées (une par favori et par jour), écrites par le calcul horaire
 --   cles_push      clés de notification de Kelvisi, lisibles par le seul calcul horaire
@@ -235,6 +236,12 @@ alter table public.favoris add column if not exists alerte text;
 alter table public.favoris drop constraint if exists favoris_alerte_valeur;
 alter table public.favoris add constraint favoris_alerte_valeur check (alerte is null or alerte in ('bonne', 'excellente'));
 grant update (alerte) on public.favoris to authenticated;
+
+-- Même choix sur les spots privés : leur prévision est alors calculée par le calcul horaire
+-- (clé secrète) pour envoyer l'alerte, sans jamais être publiée
+alter table public.spots_prives add column if not exists alerte text;
+alter table public.spots_prives drop constraint if exists spots_prives_alerte_valeur;
+alter table public.spots_prives add constraint spots_prives_alerte_valeur check (alerte is null or alerte in ('bonne', 'excellente'));
 
 -- Un abonnement par appareil et navigateur (adresse fournie par le service de notification du navigateur)
 create table if not exists public.abonnements_push (

@@ -426,7 +426,7 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
         ${cible.type === "public" ? `<button type="button" class="bouton secondaire" id="favori" aria-pressed="${estFavori(meta.id)}">${estFavori(meta.id) ? "★ Dans mes favoris" : "☆ Ajouter aux favoris"}</button>` : ""}
         ${cible.type !== "prive" ? `<button type="button" class="bouton secondaire" id="partager">Partager</button>` : ""}</div>
       <p class="confirmation" id="message-partage" hidden></p>
-      ${cible.type === "public" ? '<div class="alerte-favori" id="alerte-favori" hidden></div>' : ""}
+      ${cible.type === "public" || cible.type === "prive" ? '<div class="alerte-favori" id="alerte-favori" hidden></div>' : ""}
     </div>
     <div class="bloc"><h2 class="titre-bloc">Heure par heure</h2>${graphique(prevision, jour)}</div>
     <div class="bloc"><h2 class="titre-bloc">Conditions</h2>${conditions(prevision, jour, meta)}</div>
@@ -453,9 +453,9 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
     const oui = basculerFavori(meta.id);
     fav.setAttribute("aria-pressed", String(oui));
     fav.textContent = oui ? "★ Dans mes favoris" : "☆ Ajouter aux favoris";
-    remplirAlerte(zone, meta);
+    remplirAlerte(zone, meta, cible.type);
   });
-  if (cible.type === "public") remplirAlerte(zone, meta);
+  if (cible.type === "public" || cible.type === "prive") remplirAlerte(zone, meta, cible.type);
   const bp = zone.querySelector("#partager");
   if (bp) bp.addEventListener("click", () => partager(zone, cible, meta, jour, v));
   lierFormulaireRetour(zone, cible, ctx, meta, prevision);
@@ -467,11 +467,11 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
   if (cible.type === "communaute" && spot) lierActionsCommunaute(zone, ctx, spot);
 }
 
-// Case « M'alerter » d'un favori : visible avec un compte connecté, une fois les alertes en service
-async function remplirAlerte(zone, meta) {
+// Case « M'alerter » d'un favori ou d'un spot privé : visible avec un compte connecté, une fois les alertes en service
+async function remplirAlerte(zone, meta, type = "public") {
   const bloc = zone.querySelector("#alerte-favori");
   if (!bloc) return;
-  if (!estFavori(meta.id) || !comptesActifs() || !utilisateur() || !(await alertesDisponibles())) {
+  if ((type === "public" && !estFavori(meta.id)) || !comptesActifs() || !utilisateur() || !(await alertesDisponibles())) {
     bloc.hidden = true;
     return;
   }
@@ -479,7 +479,8 @@ async function remplirAlerte(zone, meta) {
   bloc.innerHTML = `<label class="case"><input type="checkbox" id="alerte-case" ${niveau ? "checked" : ""}> M'alerter quand la visibilité y sera bonne</label>
     <div class="segments" id="alerte-niveau" role="group" aria-label="Niveau de l'alerte" ${niveau ? "" : "hidden"}>
       ${Object.entries(NIVEAUX).map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${v === niveau}">${t}</button>`).join("")}</div>
-    <p class="note">Une notification au plus par jour et par spot, entre 8 h et 21 h, pour aujourd'hui et les deux jours suivants.</p>
+    <p class="note">Une notification au plus par jour et par spot, entre 8 h et 21 h, pour aujourd'hui et les deux jours suivants.${type === "prive"
+      ? " Pour l'alerte, Kelvisi recalcule la prévision de ton spot cinq fois par jour (de 8 h à 20 h), sans tes retours terrain ; sa position n'est jamais publiée." : ""}</p>
     <p class="erreur" id="alerte-erreur" hidden></p>`;
   bloc.hidden = false;
   const erreur = bloc.querySelector("#alerte-erreur");

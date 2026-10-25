@@ -4,6 +4,7 @@ import { lire, ecrire, identifiant } from "./stockage.js";
 import { regionPour } from "./format.js";
 import { supprimerRetoursDuSpot } from "./retours.js";
 import { noterSpot } from "./synchro.js";
+import { alertes, remplacerAlertes } from "./alertes.js";
 
 const CLE = "kelvisi-spots";
 const FONDS = ["sable", "vase", "mixte", "herbier", "roche"];
@@ -51,5 +52,10 @@ export function enregistrerSpot(s) {
 export function supprimerSpot(id) {
   ecrire(CLE, mesSpots().filter((x) => x.id !== id));
   supprimerRetoursDuSpot(id);
+  const a = alertes();
+  if (a[id]) {
+    delete a[id];
+    remplacerAlertes(a);
+  }
   noterSpot(id, "suppr");
 }

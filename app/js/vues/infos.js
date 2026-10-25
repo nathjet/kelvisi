@@ -102,7 +102,7 @@ const PAGES = {
       <ul>
         <li><strong>Ce que tu donnes à l'inscription</strong> : adresse e-mail, mot de passe (stocké chiffré, personne ne peut le lire), prénom, département, pratiques, tranche d'âge, et ton choix de recevoir ou non des e-mails de Kelvisi.</li>
         <li><strong>Ce que tu enregistres</strong> : tes spots privés, tes favoris (avec l'alerte choisie) et tes retours terrain.</li>
-        <li><strong>Si tu actives une alerte</strong> : l'adresse de notification de chaque appareil où tu l'autorises (fournie par le service de ton navigateur : Google, Mozilla ou Apple) et la liste des alertes déjà envoyées, gardée 30 jours.</li>
+        <li><strong>Si tu actives une alerte</strong> : l'adresse de notification de chaque appareil où tu l'autorises (fournie par le service de ton navigateur : Google, Mozilla ou Apple) et la liste des alertes déjà envoyées, gardée 30 jours. Pour une alerte sur un de tes spots privés, sa position et ses réglages sont lus par le calcul de Kelvisi pour en tirer la prévision : elle n'est ni publiée ni gardée.</li>
         <li><strong>Ce qui est noté automatiquement</strong> : dates d'inscription et de dernière connexion.</li>
       </ul>
       <h2>À quoi elles servent</h2>
@@ -113,7 +113,7 @@ const PAGES = {
       </ul>
       <h2>Qui y a accès</h2>
       <ul>
-        <li>Tes spots privés ne sont visibles que par toi. Ni les autres utilisateurs ni l'application ne peuvent les lire.</li>
+        <li>Tes spots privés ne sont visibles que par toi. Les autres utilisateurs ne peuvent pas les lire ; seul le calcul automatique de Kelvisi lit ceux sur lesquels tu as mis une alerte, pour l'envoyer.</li>
         <li>Si tu proposes un spot au partage, l'éditeur le voit avec ton adresse e-mail pour le vérifier. Une fois validé, les autres utilisateurs voient sa position, son nom et ses réglages, jamais qui l'a partagé. Tu peux le retirer à tout moment.</li>
         <li>L'éditeur de Kelvisi voit la liste des comptes (e-mail, profil, nombre de spots et de retours), mais pas l'emplacement de tes spots privés.</li>
         <li>Hébergement de la base : Supabase, serveurs situés dans l'Union européenne. Envoi des e-mails : prestataire d'envoi d'e-mails. Aucune donnée n'est vendue ni cédée.</li>

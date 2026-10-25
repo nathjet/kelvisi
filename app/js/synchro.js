@@ -49,6 +49,8 @@ export function enAttente() {
   return Object.keys(a.spots).length + Object.keys(a.favoris).length + Object.keys(a.alertes).length;
 }
 
+const estPrive = (id) => String(id).startsWith("prive-");
+
 let minuterie = null;
 function planifier() {
   if (!comptesActifs() || !utilisateur()) return;
@@ -101,8 +103,10 @@ async function executer() {
     const aSupprimer = Object.entries(a.spots).filter(([, op]) => op === "suppr").map(([id]) => id);
     // Partage des spots : seulement si la base le connaît déjà (script SQL appliqué)
     const partage = await partageDisponible();
+    // Alertes : seulement si la base les connaît (script SQL appliqué, clés de notification publiées)
+    const avecAlertes = Boolean(await alertesDisponibles());
     const champsEnvoyes = partage ? [...CHAMPS_SPOT, "partage"] : CHAMPS_SPOT;
-    const champsLus = partage ? [...CHAMPS_SPOT, "partage", "partage_id"] : CHAMPS_SPOT;
+    const champsLus = [...CHAMPS_SPOT, ...(partage ? ["partage", "partage_id"] : []), ...(avecAlertes ? ["alerte"] : [])];
     if (aEnvoyer.length) {
       await requete("spots_prives?on_conflict=proprietaire,id", {
         methode: "POST",
@@ -125,13 +129,16 @@ async function executer() {
       });
     }
     if (retraits.length) await requete(`favoris?point_id=in.${encodeURIComponent(liste(retraits))}`, { methode: "DELETE" });
-    // Alertes : seulement si la base les connaît (script SQL appliqué, clés de notification publiées)
-    const avecAlertes = Boolean(await alertesDisponibles());
+    // Alertes : sur la ligne du favori (point Kelvisi) ou du spot privé
     if (avecAlertes) {
-      const parNiveau = {};
-      for (const [id, niveau] of Object.entries(a.alertes)) (parNiveau[niveau] ||= []).push(id);
-      for (const [niveau, ids] of Object.entries(parNiveau)) {
-        await requete(`favoris?point_id=in.${encodeURIComponent(liste(ids))}`, {
+      const groupes = {};
+      for (const [id, niveau] of Object.entries(a.alertes)) {
+        const cle = `${estPrive(id) ? "spots_prives?id" : "favoris?point_id"}|${niveau}`;
+        (groupes[cle] ||= []).push(id);
+      }
+      for (const [cle, ids] of Object.entries(groupes)) {
+        const [filtre, niveau] = cle.split("|");
+        await requete(`${filtre}=in.${encodeURIComponent(liste(ids))}`, {
           methode: "PATCH", prefer: "return=minimal", corps: { alerte: niveau === "aucune" ? null : niveau },
         });
       }
@@ -151,7 +158,7 @@ async function executer() {
     // Les modifications encore en attente gardent leur version locale
     const reste = attente();
     const encoreLocaux = new Map(lire(CLE_SPOTS, []).map((s) => [s.id, s]));
-    const fusion = spots.filter((s) => reste.spots[s.id] !== "suppr").map((s) => ({ ...s, prive: true }));
+    const fusion = spots.filter((s) => reste.spots[s.id] !== "suppr").map(({ alerte, ...s }) => ({ ...s, prive: true }));
     for (const [id, op] of Object.entries(reste.spots)) {
       if (op === "maj" && encoreLocaux.has(id)) {
         const i = fusion.findIndex((s) => s.id === id);
@@ -164,11 +171,16 @@ async function executer() {
     ecrire(CLE_SPOTS, fusion);
     ecrire(CLE_FAVORIS, favs);
     if (avecAlertes) {
-      const table = Object.fromEntries(favoris.filter((f) => f.alerte && favs.includes(f.point_id)).map((f) => [f.point_id, f.alerte]));
+      const table = Object.fromEntries([
+        ...favoris.filter((f) => f.alerte && favs.includes(f.point_id)).map((f) => [f.point_id, f.alerte]),
+        ...spots.filter((sp) => sp.alerte).map((sp) => [sp.id, sp.alerte]),
+      ]);
+      const idsSpots = new Set(fusion.map((sp) => sp.id));
       for (const [id, niveau] of Object.entries(reste.alertes)) {
         if (niveau === "aucune") delete table[id];
-        else if (favs.includes(id)) table[id] = niveau;
+        else if (favs.includes(id) || idsSpots.has(id)) table[id] = niveau;
       }
+      for (const id of Object.keys(table)) if (!favs.includes(id) && !idsSpots.has(id)) delete table[id];
       remplacerAlertes(table);
     }
     document.dispatchEvent(new CustomEvent("kelvisi-synchro"));
