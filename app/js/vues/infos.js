@@ -30,7 +30,7 @@ const PAGES = {
         <li>La fourchette et la confiance disent à quel point l'estimation est sûre. La confiance baisse avec l'échéance.</li>
         <li>Les couleurs vont de « mauvaise » à « excellente ». Les seuils ne sont pas les mêmes en Méditerranée, où l'eau est plus claire.</li>
         <li>Seuls les créneaux entre le lever et le coucher du soleil sont proposés : la chasse de nuit est interdite.</li>
-        <li>« Eau au fond » donne la température prévue à la profondeur du spot, en moyenne sur la journée (modèles de Copernicus Marine). Pour un spot à toi, elle vient du point Kelvisi le plus proche.</li>
+        <li>« Eau » et « Eau au fond » donnent la température prévue en surface et à la profondeur du spot, en moyenne sur la journée (modèles de Copernicus Marine). Pour un spot à toi, elles viennent du point Kelvisi le plus proche.</li>
       </ul>
       <h2>Lire la carte des profondeurs</h2>
       <ul>

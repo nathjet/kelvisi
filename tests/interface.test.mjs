@@ -280,6 +280,7 @@ await etape("fiche d'un point public", async () => {
   assert.ok(panneau().querySelectorAll(".condition").length >= 3, "conditions");
   await jusqua(() => /Eau au fond/.test(texte(panneau())), "température au fond");
   assert.match(texte(panneau()), /Eau au fond\s*15,5 °C\s*à 6 m, moyenne du jour/, "lue à la profondeur du point (6 m)");
+  assert.match(texte(panneau()), /Eau\s*16 °C\s*en surface, moyenne du jour/, "surface tirée du même modèle que le fond");
   panneau().querySelector('#jours-fiche button[data-jour="2"]').click();
   await attendre();
   assert.equal(panneau().querySelector('#jours-fiche button[aria-pressed="true"]').dataset.jour, "2");

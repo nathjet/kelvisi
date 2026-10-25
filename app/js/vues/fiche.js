@@ -126,9 +126,10 @@ function conditions(prevision, jour, meta) {
   if (jour.lever_soleil && jour.coucher_soleil) {
     cartes.push(`<div class="condition"><span class="etiquette">Soleil</span><span class="valeur chiffres">${heure(jour.lever_soleil)} à ${heure(jour.coucher_soleil)}</span><span class="sous">Créneaux proposés dans cette plage</span></div>`);
   }
-  if (h.temperature_eau_c !== null && h.temperature_eau_c !== undefined) {
-    cartes.push(`<div class="condition"><span class="etiquette">Eau</span><span class="valeur chiffres">${String(h.temperature_eau_c).replace(".", ",")} °C</span><span class="sous">en surface</span></div>`);
-  }
+  // Eau en surface (Open-Meteo, heure par heure), remplacée par le même modèle que le fond quand il est connu
+  const sst = h.temperature_eau_c;
+  cartes.push(`<div class="condition" data-temp-surface ${sst === null || sst === undefined ? "hidden" : ""}><span class="etiquette">Eau</span>
+    <span class="valeur chiffres">${sst === null || sst === undefined ? "" : `${String(sst).replace(".", ",")} °C`}</span><span class="sous">en surface</span></div>`);
   cartes.push('<div class="condition" data-temp-fond hidden></div>');
   if (h.courant_ms !== null && h.courant_ms !== undefined) {
     const kn = h.courant_ms / 0.514444;
@@ -526,6 +527,14 @@ async function remplirTemperatureFond(zone, meta, jour) {
   const noms = Object.fromEntries((resumeCharge()?.points || []).map((p) => [p.id, p.nom]));
   const t = temperatureAuFond(donnees, meta, jour.date, noms);
   if (!t) return;
+  // Surface et fond tirés du même modèle (Copernicus), pour que les deux valeurs se comparent
+  const surface = temperatureAuFond(donnees, { ...meta, profondeur_m: 0 }, jour.date, noms);
+  const carteSurface = zone.querySelector("[data-temp-surface]");
+  if (surface && carteSurface) {
+    carteSurface.innerHTML = `<span class="etiquette">Eau</span><span class="valeur chiffres">${String(surface.temperature).replace(".", ",")} °C</span>
+      <span class="sous">en surface, moyenne du jour</span>`;
+    carteSurface.hidden = false;
+  }
   const limite = t.profondeur < t.profondeur_demandee - 0.5;
   carte.innerHTML = `<span class="etiquette">Eau au fond</span><span class="valeur chiffres">${String(t.temperature).replace(".", ",")} °C</span>
     <span class="sous">${limite ? `vers ${metres(t.profondeur)} m, le plus profond connu ici` : `à ${metres(t.profondeur_demandee)} m`}, moyenne du jour${t.reference ? ` · d'après ${echapper(t.reference.nom)}, à ${t.reference.distance_km} km` : ""}</span>`;
