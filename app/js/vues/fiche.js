@@ -1,6 +1,7 @@
 // Fiche d'un spot : point public, spot privé, spot partagé par un utilisateur ou lieu libre touché sur la carte.
 
-import { detailPublic, pointPublic, previsionLieu } from "../donnees.js";
+import { detailPublic, pointPublic, previsionLieu, resumeCharge } from "../donnees.js";
+import { chargerTemperatures, temperatureAuFond } from "../temperatures.js";
 import { monSpot, enregistrerSpot, supprimerSpot } from "../messpots.js";
 import { enregistrerRetour, partageActif, rapportsPourMoteur, retoursDuSpot } from "../retours.js";
 import { estimerLieu } from "../profondeur.js";
@@ -125,6 +126,7 @@ function conditions(prevision, jour, meta) {
   if (h.temperature_eau_c !== null && h.temperature_eau_c !== undefined) {
     cartes.push(`<div class="condition"><span class="etiquette">Eau</span><span class="valeur chiffres">${String(h.temperature_eau_c).replace(".", ",")} °C</span><span class="sous">en surface</span></div>`);
   }
+  cartes.push('<div class="condition" data-temp-fond hidden></div>');
   if (h.courant_ms !== null && h.courant_ms !== undefined) {
     const kn = h.courant_ms / 0.514444;
     cartes.push(`<div class="condition"><span class="etiquette">Courant</span><span class="valeur chiffres">${kn.toFixed(1).replace(".", ",")} nœud${kn >= 2 ? "s" : ""}</span><span class="sous">${moment}, modèle à maille de 8 km</span></div>`);
@@ -450,9 +452,25 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
   if (bp) bp.addEventListener("click", () => partager(zone, cible, meta, jour, v));
   lierFormulaireRetour(zone, cible, ctx, meta, prevision);
   remplirProfondeur(zone, cible, ctx, meta, prevision, jour, spot);
+  remplirTemperatureFond(zone, meta, jour);
   if ((cible.type === "prive" || cible.type === "point") && spot) lierReglages(zone, cible, ctx, spot);
   if (cible.type === "prive" && spot) lierActionsPrive(zone, ctx, spot);
   if (cible.type === "communaute" && spot) lierActionsCommunaute(zone, ctx, spot);
+}
+
+// Température prévue au fond (profondeur du spot), dès que le fichier des profils est arrivé
+async function remplirTemperatureFond(zone, meta, jour) {
+  const carte = zone.querySelector("[data-temp-fond]");
+  if (!carte) return;
+  const donnees = await chargerTemperatures();
+  if (!donnees || !carte.isConnected) return;
+  const noms = Object.fromEntries((resumeCharge()?.points || []).map((p) => [p.id, p.nom]));
+  const t = temperatureAuFond(donnees, meta, jour.date, noms);
+  if (!t) return;
+  const limite = t.profondeur < t.profondeur_demandee - 0.5;
+  carte.innerHTML = `<span class="etiquette">Eau au fond</span><span class="valeur chiffres">${String(t.temperature).replace(".", ",")} °C</span>
+    <span class="sous">${limite ? `vers ${metres(t.profondeur)} m, le plus profond connu ici` : `à ${metres(t.profondeur_demandee)} m`}, moyenne du jour${t.reference ? ` · d'après ${echapper(t.reference.nom)}, à ${t.reference.distance_km} km` : ""}</span>`;
+  carte.hidden = false;
 }
 
 // Profondeur au point d'après le Shom : rempli dès que les mesures arrivent (souvent déjà en mémoire)

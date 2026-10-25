@@ -48,6 +48,20 @@ function reponseOpenMeteo(table) {
   return { latitude: fixture.lat, longitude: fixture.lon, hourly };
 }
 
+// Profils de température au fond (fichier calculé par le serveur avec Copernicus, absent du dépôt)
+function fausseTemperatures() {
+  const r = JSON.parse(readFileSync(join(APP, "donnees", "resume.json"), "utf8"));
+  // Jours des prévisions publiées (points publics) et des quatre prochains jours (lieux calculés dans le navigateur)
+  const jour = (k) => new Date(Date.now() + k * 86400000).toLocaleDateString("fr-CA", { timeZone: "Europe/Paris" });
+  const dates = [...new Set([...r.points[0].jours.map((j) => j.date), jour(-1), jour(0), jour(1), jour(2), jour(3)])];
+  const points = {};
+  for (const p of r.points) {
+    points[p.id] = { lat: p.lat, lon: p.lon, region: p.region, dates, profondeurs: [0.5, 5.1, 9.6, 15.8],
+      valeurs: dates.map((_, i) => [16 - i * 0.1, 15.6, 15.2, 14.6]) };
+  }
+  return { genere_le: new Date().toISOString(), points };
+}
+
 const appels = [];
 const envois = [];
 const entetesEnvois = [];
@@ -60,6 +74,7 @@ async function fauxFetch(entree, options = {}) {
     entetesEnvois.push(options.headers);
     return { ok: true, status: 201, json: async () => null };
   }
+  if (url.startsWith("donnees/temperatures.json")) return json(fausseTemperatures());
   if (url.startsWith("donnees/")) {
     const chemin = join(APP, decodeURIComponent(url.split("?")[0]));
     if (!existsSync(chemin)) return json(null, 404);
@@ -251,6 +266,8 @@ await etape("fiche d'un point public", async () => {
   assert.match(texte(panneau()), /Quiberon, côte sauvage/);
   assert.ok(panneau().querySelector(".graphique svg rect"), "graphique");
   assert.ok(panneau().querySelectorAll(".condition").length >= 3, "conditions");
+  await jusqua(() => /Eau au fond/.test(texte(panneau())), "température au fond");
+  assert.match(texte(panneau()), /Eau au fond\s*15,5 °C\s*à 6 m, moyenne du jour/, "lue à la profondeur du point (6 m)");
   panneau().querySelector('#jours-fiche button[data-jour="2"]').click();
   await attendre();
   assert.equal(panneau().querySelector('#jours-fiche button[aria-pressed="true"]').dataset.jour, "2");
@@ -346,6 +363,8 @@ await etape("clic en mer puis prévision d'un lieu libre", async () => {
   assert.ok(panneau().querySelector("#partager"), "lieu libre partageable");
   assert.ok(!panneau().querySelector("#favori"), "pas de favori pour un lieu libre");
   assert.match(texte(panneau()), /reprises du point Kelvisi Quiberon, côte sauvage, à \d+ km/, "valeurs calées du point de référence voisin");
+  await jusqua(() => /Eau au fond/.test(texte(panneau())), "température au fond du lieu libre");
+  assert.match(texte(panneau()), /Eau au fond\s*[\d,]+ °C\s*(à|vers) [\d,]+ m.*d'après Quiberon, côte sauvage, à \d+ km/, "profil du point Kelvisi voisin");
 });
 
 await etape("réglage puis enregistrement du lieu comme spot privé", async () => {

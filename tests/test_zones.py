@@ -42,6 +42,8 @@ REGLEMENTEES = [
     ("Cantonnement, réserve à crustacés", "Réserve à crustacés de Doëlan", "La pêche des crustacés à l’aide de toutes méthodes de pêche, y compris de pêche sous-machine, est interdite"),
     ("Pêche des oursins", "Luri", "La pêche des oursins violets, quel que soit son mode de capture, est interdite dans cette zone."),
     ("Pêche pro et loisir du bar", "", "Toute forme de pêche du bar, tant professionnelle que de loisir, est interdite chaque année du 1er mars au 31 mai"),
+    ("Pêche sous-marine, Zone d'interdiction", "Zone d'interdiction pêche sous-marine, sur le littoral des Alpes-Maritimes",
+     "Pêche : -La pêche sous-marine est interdite à l’intérieur des zones délimitées par les ouvrages portuaires, avants ports, chenaux de navigation maritime"),
 ]
 
 SANS_RAPPORT = [
@@ -54,6 +56,10 @@ SANS_RAPPORT = [
     ("Chenaux d'accès", "", "Interdiction de pêche (arts trainants, pose d'engins de pêche mouillés ou dérivants)"),
     ("AOT DPM études université de Corse", "", "AOT DPM pour des études de microhabitats sous-marins de protection juvéniles de crustacés"),
     ("ARP Natura 2000", "ARP", "Zone d’interdiction de la pêche à la senne danoise"),
+    ("Classement de salubrité", "Zone 76-01 Etretat-Le Tréport", "Groupe 1 : non classé (pêche interdite) - Groupe 2 : non classé (pêche interdite)"),
+    ("Réglementation", "", "Limite ZMFR du port de Bayonne - pose d'engins fixes de pêche est interdite"),
+    ("Filets fixes - Charente Maritime", "", "Interdiction temporaire de pêcher au filet (sauf filet à pied au sud de l'île)"),
+    ("Campagne d'études géophysiques", "", "Navire autorisé : KARINA - Navigation, mouillage, pêche, baignade, plongée sous-marine interdits dans un rayon de 0.3 mille"),
 ]
 
 
@@ -80,3 +86,35 @@ def test_normalisation():
     assert normaliser("Pêche  SOUS MARINE\n’") == "peche sous-marine '"
     assert normaliser(None) == "" and normaliser(float("nan")) == ""
     assert arrondir([[1.123456789, 2.987654321]]) == [[1.12346, 2.98765]]
+
+
+def test_construire_fusionne_les_contours_et_ecarte_les_regles_generales():
+    gpd = pytest.importorskip("geopandas")
+    from datetime import date
+
+    from shapely.geometry import Polygon, box
+
+    from zones_reglementees import construire
+
+    petit = box(5.30, 43.20, 5.31, 43.21)
+    lignes = [
+        {"couche_gpkg": "MED", "id": 1, "layer_name": "Cantonnement", "poly_name": "Cap Test", "resume": "La pêche sous toutes ses formes est interdite",
+         "ref_reg": "Arrêté n°1", "date_fin": None, "themes": None, "geometry": petit},
+        {"couche_gpkg": "MED", "id": 2, "layer_name": "Plongée", "poly_name": None, "resume": "Plongée sous-marine interdite du 1er mars au 31 août",
+         "ref_reg": "Arrêté n°2", "date_fin": None, "themes": None, "geometry": petit},
+        {"couche_gpkg": "MED", "id": 3, "layer_name": "Pêche des oursins", "poly_name": "Eaux territoriales", "resume": "La pêche des oursins est interdite",
+         "ref_reg": "Arrêté n°3", "date_fin": None, "themes": None, "geometry": box(3.0, 41.5, 7.5, 43.5)},
+        {"couche_gpkg": "MED", "id": 4, "layer_name": "Cantonnement", "poly_name": "Ancien", "resume": "Toute pêche est interdite",
+         "ref_reg": "Arrêté n°4", "date_fin": "2025-01-01", "themes": None, "geometry": box(5.4, 43.2, 5.41, 43.21)},
+        {"couche_gpkg": "MED", "id": 5, "layer_name": "Mouillage", "poly_name": None, "resume": "Mouillage interdit",
+         "ref_reg": "Arrêté n°5", "date_fin": None, "themes": None, "geometry": Polygon([(5.5, 43.2), (5.51, 43.2), (5.51, 43.21)])},
+    ]
+    zones = gpd.GeoDataFrame(lignes, crs=4326)
+    collection, revue = construire(zones, date(2026, 10, 25))
+    assert len(collection["features"]) == 1, "deux règles sur le même contour : une seule zone"
+    f = collection["features"][0]
+    assert f["properties"]["classe"] == "interdite"
+    assert [r["reference"] for r in f["properties"]["regles"]] == ["Arrêté n°1", "Arrêté n°2"]
+    assert f["properties"]["regles"][1]["periode"] is True and f["properties"]["regles"][0]["periode"] is False
+    motifs = {r["id"]: r["motif"] for r in revue}
+    assert motifs[3].startswith("règle générale") and motifs[4] == "terminée le 2025-01-01" and motifs[5] == "sans rapport"

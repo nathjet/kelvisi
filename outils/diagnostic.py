@@ -886,8 +886,10 @@ def zones_kelvisi():
     for pt in points:
         for g, prop in formes:
             if g.contains(Point(pt["lon"], pt["lat"])):
-                dedans.append(f"{pt['id']} dans « {prop['nom'][:60]} » ({prop['classe']})")
+                dedans.append(f"{pt['id']} dans « {prop['regles'][0]['nom'][:60]} » ({prop['classe']})")
     lignes.append(f"points Kelvisi dans une zone : {dedans or 'aucun'}")
+    tailles = sorted(((len(json.dumps(f["geometry"], separators=(",", ":"))), f["properties"]["regles"][0]["nom"][:40]) for f in zones["features"]), reverse=True)
+    lignes.append(f"{len(zones['features'])} contours ; les plus lourds : {tailles[:8]}")
     annoter("Zones Kelvisi", lignes)
 
 

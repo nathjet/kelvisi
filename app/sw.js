@@ -25,6 +25,7 @@ const COQUILLE = [
   "js/relief-travail.js",
   "js/retours.js",
   "js/stockage.js",
+  "js/temperatures.js",
   "js/synchro.js",
   "js/communaute.js",
   "js/moteur/moteur.js",

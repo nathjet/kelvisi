@@ -33,7 +33,7 @@ SOURCE = "https://www.data.gouv.fr/api/1/datasets/r/dd48b545-a1d1-4710-9e56-415b
 PAGE_SOURCE = "https://www.data.gouv.fr/datasets/zones-reglementaires-du-cacem"
 COUCHES_METROPOLE = ("MED", "NAMO", "SA", "MEMN")
 SURFACE_MAX_KM2 = 1500.0     # au-delà, il s'agit d'une règle générale (toute une façade, tout un département)
-TOLERANCE_DEG = 0.00008      # simplification des contours (environ 8 m)
+TOLERANCE_DEG = 0.00012      # simplification des contours (environ 12 m)
 DECIMALES = 5                # environ 1 m
 
 ESPECES = (r"crustac|oursin|gorgone|merou|corail|langouste|homard|araignee|poulpe|nacre|datte|patelle|coquillage|palourde"
@@ -57,9 +57,9 @@ _GENERAL = re.compile(
     rf"|peches? (maritimes? )?(professionnelles? (et|ou) de loisirs?|de loisirs? (et|ou) professionnelles?|pro et de loisir){_SUIVI_ENGIN}"
     rf"|(pratiquer|exercer|exercice de) la peche de loisir|peche de loisir (est |sont )?interdite"
     rf"|tout prelevement|non[- ]prelevement"
-    rf"|(^|[,:(] ?|\b(la|une|de|d'|a) )peche (maritime )?(est |sont )?interdites?{_SUIVI_ESPECE}"
+    rf"|(^|[,:(] ?|\bla )peche (maritime )?(est |sont )?interdites?{_SUIVI_ESPECE}"
     rf"|(^|[,:] ?|\b(la|a la|et la) )peche(?=,| interdit| sont interdit| et (la )?(plongee|baignade|navigation|chasse|le mouillage))"
-    rf"|(\bde |[,:] ?)pecher\b(?! (la|le|les|des|du) )"
+    rf"|(\bde |[,:] ?)pecher\b(?! (la|le|les|des|du|au|aux|a la|a l'|avec) )"
     rf"|toute activite (est |y est )?interdite|toutes? (les )?autres activites|toutes? activites? nautiques?"
     rf"|(pratiquer|pratique) des activites (sportives|nautiques|de loisirs?)"
     rf"|(^|[,:;] ?|\bet )(la )?(peche|chasse) sous-marines?(?= ?[,;]|$| et | sont| interdi)"
@@ -88,8 +88,12 @@ _REGLEMENTEE = re.compile(
     rf"(peche|chasse) sous-marine|\bapnee\b|peche (maritime )?de loisir|pecheurs? de loisir|prelevement|cantonnement"
     rf"|{ESPECES_CHASSE}|porter atteinte[^.]{{0,40}}animaux|peche maritime[^.]{{0,60}}reglement"
 )
-# Autorisations de travaux, câbles, études : pas une règle de pêche
-_HORS_SUJET = re.compile(r"\baot\b|cable|raccordement|campagne|etudes?\b|eolien|ouvrages?\b|bouee|mesures?\b")
+# Autorisations de travaux, câbles, études, classement sanitaire des coquillages : pas une règle de pêche sous-marine
+_HORS_SUJET = re.compile(r"\baot\b|cable|raccordement|campagne|etudes?\b|ouvrages?\b|bouee|mesures?\b|salubrite")
+_SANITAIRE = re.compile(r"non classe|zone dite « a eclipse »|groupe [123] :|classement (saisonnier|sanitaire|de salubrite)")
+# Interdiction qui vise des lieux génériques (ports, chenaux, abords des élevages) à l'intérieur d'un grand périmètre
+_GENERIQUE = re.compile(r"a l'interieur des (ports|zones delimitees par les ouvrages portuaires)|ouvrages portuaires|avants? ports|"
+                        r"a moins de \d+ ?m(etres)? (de|des) (tous |toutes )?(les )?(etablissements|plages|ports|installations|concessions)")
 
 
 def normaliser(texte) -> str:
@@ -113,9 +117,13 @@ def classer(layer_name="", poly_name="", resume="", themes="") -> str | None:
     """Classe une zone d'après son nom et le résumé de sa règle : "interdite", "reglementee" ou None."""
     noms = normaliser(f"{layer_name} : {poly_name}")
     texte = normaliser(resume)
+    if _HORS_SUJET.search(noms) or _SANITAIRE.search(texte):
+        return None
     for p in phrases(texte):
         if _SAUF_PSM.search(p):
             continue
+        if _GENERIQUE.search(p) and (_DIRECT.search(p) or _GENERAL.search(p)):
+            return "reglementee"
         if _DIRECT.search(p) and not _PSM_ESPECES.search(p):
             return "interdite"
         if not _INTERDIT.search(p):
@@ -128,8 +136,6 @@ def classer(layer_name="", poly_name="", resume="", themes="") -> str | None:
     if re.search(r"interdiction (de )?(la )?(peche|chasse) sous-marine|(peche|chasse) sous-marine interdite|non[- ]prelevement", noms) \
             and not _PSM_ESPECES.search(texte):
         return "interdite"
-    if _HORS_SUJET.search(noms):
-        return None
     if _REGLEMENTEE.search(texte) or _REGLEMENTEE.search(noms) or "peche sous-marine" in normaliser(themes):
         return "reglementee"
     return None
@@ -165,7 +171,7 @@ def construire(zones, aujourd_hui: date | None = None) -> tuple[dict, list[dict]
 
     aujourd_hui = aujourd_hui or date.today()
     surfaces = zones.to_crs(2154).geometry.area / 1e6
-    entites, revue = [], []
+    par_contour, revue = {}, []
     for (_, z), surface in zip(zones.iterrows(), surfaces):
         classe = classer(z.get("layer_name"), z.get("poly_name"), z.get("resume"), z.get("themes"))
         motif = ""
@@ -186,15 +192,25 @@ def construire(zones, aujourd_hui: date | None = None) -> tuple[dict, list[dict]
         if geometrie.is_empty:
             continue
         g = mapping(geometrie)
-        entites.append({
-            "type": "Feature",
-            "properties": {
-                "classe": classe, "nom": nom_zone(z), "regle": resume_court(z.get("resume")),
-                "reference": resume_court(z.get("ref_reg"), 300), "fin": fin if fin and fin != "nan" else None,
-                "periode": bool(_PERIODE.search(normaliser(z.get("resume")))),
-            },
-            "geometry": {"type": g["type"], "coordinates": arrondir(g["coordinates"])},
-        })
+        coordonnees = arrondir(g["coordinates"])
+        cle = (g["type"], json.dumps(coordonnees, separators=(",", ":")))
+        regle = {
+            "classe": classe, "nom": nom_zone(z), "regle": resume_court(z.get("resume")),
+            "reference": resume_court(z.get("ref_reg"), 300), "fin": fin if fin and fin != "nan" else None,
+            "periode": bool(_PERIODE.search(normaliser(z.get("resume")))),
+        }
+        if cle in par_contour:  # même contour pour plusieurs règles : une seule zone qui les liste toutes
+            e = par_contour[cle]
+            if regle not in e["properties"]["regles"]:
+                e["properties"]["regles"].append(regle)
+            if classe == "interdite":
+                e["properties"]["classe"] = "interdite"
+            continue
+        par_contour[cle] = {"type": "Feature", "properties": {"classe": classe, "regles": [regle]},
+                            "geometry": {"type": g["type"], "coordinates": coordonnees}}
+    entites = list(par_contour.values())
+    for e in entites:  # règle d'interdiction en premier
+        e["properties"]["regles"].sort(key=lambda r: r["classe"] != "interdite")
     # Les zones interdites sont dessinées au-dessus des zones réglementées
     entites.sort(key=lambda e: e["properties"]["classe"] == "interdite")
     collection = {
