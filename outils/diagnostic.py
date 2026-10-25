@@ -670,6 +670,141 @@ def relief():
     annoter("Relief", lignes)
 
 
+def temperature_fond():
+    """Prévisions de température en profondeur (Copernicus Marine, modèles physiques IBI, NWS, MED) :
+    jeux disponibles, profondeurs, valeurs et temps d'extraction pour quelques points (diag/temperature.json)."""
+    import json
+    import time
+    from datetime import datetime, timedelta, timezone
+    from pathlib import Path
+
+    import copernicusmarine
+    import numpy as np
+
+    Path(SORTIE).mkdir(exist_ok=True)
+    lignes, sortie = [], {"jeux": [], "essais": []}
+    for produit in ["IBI_ANALYSISFORECAST_PHY_005_001", "NWSHELF_ANALYSISFORECAST_PHY_004_013", "MEDSEA_ANALYSISFORECAST_PHY_006_013"]:
+        try:
+            cat = copernicusmarine.describe(product_id=produit, disable_progress_bar=True)
+        except TypeError:
+            cat = copernicusmarine.describe(contains=[produit], disable_progress_bar=True)
+        except Exception as e:
+            lignes.append(f"{produit} : {type(e).__name__} {str(e)[:200]}")
+            continue
+        for p in cat.products:
+            for ds in p.datasets:
+                variables, profondeur = set(), ""
+                for v in ds.versions[:1]:
+                    for part in v.parts[:1]:
+                        for svc in part.services[:1]:
+                            for var in svc.variables:
+                                variables.add(var.short_name)
+                                for c in var.coordinates:
+                                    if c.coordinate_id in ("depth", "elevation") and not profondeur:
+                                        vals = getattr(c, "values", None)
+                                        profondeur = f"{c.coordinate_id} {list(vals)[:12] if vals else (getattr(c, 'minimum_value', None), getattr(c, 'maximum_value', None))}"
+                sortie["jeux"].append({"produit": p.product_id, "jeu": ds.dataset_id, "variables": sorted(variables), "profondeur": profondeur})
+                if "thetao" in variables:
+                    lignes.append(f"{ds.dataset_id} : {profondeur[:160]}")
+
+    maintenant = datetime.now(timezone.utc)
+    points = {"quiberon": (47.47, -3.17, 12), "glenan": (47.72, -4.0, 8), "etretat": (49.71, 0.19, 10), "biarritz": (43.48, -1.57, 10),
+              "marseille": (43.21, 5.35, 15), "bonifacio": (41.38, 9.17, 12)}
+    candidats = [j for j in sortie["jeux"] if "thetao" in j["variables"] and "P1D" in j["jeu"] and ("3D" in j["jeu"] or "tem" in j["jeu"])]
+    for j in candidats:
+        med = "med" in j["jeu"].lower()
+        zone = (2.9, 41.3, 9.7, 43.8) if med else (-5.5, 43.3, 2.6, 51.2)
+        try:
+            t0 = time.time()
+            ds = copernicusmarine.open_dataset(
+                dataset_id=j["jeu"], variables=["thetao"], minimum_longitude=zone[0], maximum_longitude=zone[2],
+                minimum_latitude=zone[1], maximum_latitude=zone[3], minimum_depth=0, maximum_depth=40,
+                start_datetime=(maintenant - timedelta(days=1)).strftime("%Y-%m-%dT00:00:00"),
+                end_datetime=(maintenant + timedelta(days=5)).strftime("%Y-%m-%dT00:00:00"))
+            ouvert = time.time() - t0
+            th = ds["thetao"]
+            res = {"jeu": j["jeu"], "dims": {k: int(v) for k, v in th.sizes.items()}, "temps": [str(x)[:10] for x in th["time"].values],
+                   "profondeurs": [round(float(x), 2) for x in th["depth"].values], "ouverture_s": round(ouvert, 1), "points": {}}
+            for nom, (lat, lon, prof) in points.items():
+                if (lon > 2.8) != med:
+                    continue
+                t1 = time.time()
+                autour = th.sel(latitude=slice(lat - 0.08, lat + 0.08), longitude=slice(lon - 0.12, lon + 0.12)).load()
+                v = autour.values  # temps, profondeur, lat, lon
+                la, lo = autour["latitude"].values, autour["longitude"].values
+                d2 = (la[:, None] - lat) ** 2 + ((lo[None, :] - lon) * np.cos(np.radians(lat))) ** 2
+                profs = autour["depth"].values
+                k = int(np.argmin(np.abs(profs - prof)))
+                valide = np.isfinite(v[0, k])
+                if not valide.any():
+                    res["points"][nom] = "aucune maille d'eau à cette profondeur"
+                    continue
+                i, jj = np.unravel_index(np.argmin(np.where(valide, d2, np.inf)), d2.shape)
+                profil = v[0, :, i, jj]
+                res["points"][nom] = {"maille": [round(float(la[i]), 4), round(float(lo[jj]), 4)], "distance_km": round(float(np.sqrt(d2[i, jj])) * 111.2, 2),
+                                      "profondeur_m": round(float(profs[k]), 1), "par_jour": [round(float(x), 2) for x in v[:, k, i, jj]],
+                                      "profil_jour1": {round(float(p), 1): (None if not np.isfinite(x) else round(float(x), 2)) for p, x in zip(profs, profil)},
+                                      "extraction_s": round(time.time() - t1, 1)}
+            sortie["essais"].append(res)
+            lignes.append(f"{j['jeu']} : {res['dims']}, ouvert en {res['ouverture_s']} s ; " + " ; ".join(
+                f"{n} {p['par_jour'][:3] if isinstance(p, dict) else p}" for n, p in res["points"].items()))
+        except Exception as e:
+            lignes.append(f"{j['jeu']} : {type(e).__name__} {str(e)[:300]}")
+    Path(SORTIE, "temperature.json").write_text(json.dumps(sortie, ensure_ascii=False, indent=1), encoding="utf-8")
+    annoter("Température en profondeur", lignes)
+
+
+def zones_cacem():
+    """Zones réglementaires du CACEM (data.gouv.fr) : structure du fichier et zones qui parlent de pêche sous-marine
+    ou d'interdiction de pêche, en métropole (diag/zones/)."""
+    import json
+    import re as _re
+    import subprocess
+    import time
+    from pathlib import Path
+
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "geopandas", "pyogrio", "shapely"], check=True)
+    import geopandas as gpd
+    import pyogrio
+
+    dossier = Path(SORTIE) / "zones"
+    dossier.mkdir(parents=True, exist_ok=True)
+    gpkg = Path("/tmp/zones_cacem.gpkg")
+    t0 = time.time()
+    with requests.get("https://www.data.gouv.fr/api/1/datasets/r/dd48b545-a1d1-4710-9e56-415b895f5336", stream=True, timeout=600) as r:
+        r.raise_for_status()
+        with open(gpkg, "wb") as f:
+            for morceau in r.iter_content(1 << 20):
+                f.write(morceau)
+    lignes = [f"téléchargé {gpkg.stat().st_size / 1e6:.0f} Mo en {time.time() - t0:.0f} s"]
+    couches = pyogrio.list_layers(gpkg)
+    lignes.append(f"couches : {couches.tolist()}")
+    nom_couche = couches[0][0]
+    attributs = pyogrio.read_dataframe(gpkg, layer=nom_couche, read_geometry=False)
+    lignes.append(f"{len(attributs)} zones ; colonnes {list(attributs.columns)}")
+    for col in ("plan", "facade", "type", "layer_name"):
+        if col in attributs:
+            (dossier / f"valeurs_{col}.txt").write_text(attributs[col].astype(str).value_counts().to_string(), encoding="utf-8")
+    texte = attributs[[c for c in ("layer_name", "ref_reg", "resume", "obs", "poly_name", "type") if c in attributs]].astype(str).agg(" | ".join, axis=1)
+    motif = _re.compile(r"sous[- ]marin|chasse|harpon|toute (forme de )?p[êe]che|tout pr[ée]l[èe]vement|non[- ]pr[ée]l[èe]vement|interdiction de (la )?p[êe]che|r[ée]serve", _re.I)
+    garde = texte.str.contains(motif)
+    if "facade" in attributs:
+        garde &= ~attributs["facade"].astype(str).str.contains(r"Antilles|Guyane|Réunion|Mayotte|Saint|Sud|Océan Indien|Pacifique|OI|SA ?OI", case=False, regex=True) | attributs["facade"].isna()
+    lignes.append(f"{int(garde.sum())} zones retenues")
+    sel = attributs[garde]
+    (dossier / "zones_retenues.csv").write_text(sel.to_csv(index=False), encoding="utf-8")
+    geo = gpd.read_file(gpkg, layer=nom_couche, where=None).loc[garde.values]
+    geo = geo.to_crs(4326)
+    geo["geometry"] = geo.geometry.simplify(0.0003, preserve_topology=True)
+    geo = geo[geo.geometry.bounds["minx"] > -6] if len(geo) else geo
+    geo.to_file(dossier / "zones_retenues.geojson", driver="GeoJSON")
+    lignes.append(f"GeoJSON : {(dossier / 'zones_retenues.geojson').stat().st_size / 1e6:.1f} Mo, {len(geo)} zones en métropole")
+    exemples = sel.head(25)
+    for _, z in exemples.iterrows():
+        lignes.append(" · ".join(str(z.get(c, ""))[:90] for c in ("layer_name", "type", "resume") if c in z))
+    annoter("Zones CACEM", lignes)
+
+
 def main():
     choix = sys.argv[1:] or ["shom", "geopf", "emodnet", "copernicus", "supabase"]
     for nom in choix:
