@@ -1,0 +1,36 @@
+{
+ "ref-revellata": {
+  "zone": "Chasse sous-marine interdite ici Cantonnement Calvi · Cantonnement pêche Lire les règles Cantonnement Calvi : Cantonnement Calvi - plongée sous-marine en scaphandre autonome et en apnée interdite (sauf autorisation individuelle) Texte : Arrêté préfectoral n°146-2018 règlementant la plongée sous-mari",
+  "fond": "Eau au fond22,2 °C à 15 m, moyenne du jour",
+  "surface": "Eau22 °Cen surface",
+  "alerte": false
+ },
+ "ref-cap-d-agde": {
+  "zone": "Chasse sous-marine interdite ici Pêche sous-marine, Zone d'interdiction (selon la période de l'année) Lire les règles Pêche sous-marine, Zone d'interdiction : Zone d'interdiction de la pêche sous-marine à 1 mile autour de l'îlot de Brescou Texte : Arrêté préfectoral N°0412 du 28 avril 2008 portant r",
+  "fond": "Eau au fond18,6 °C à 8 m, moyenne du jour",
+  "surface": "Eau19,8 °Cen surface",
+  "alerte": false
+ },
+ "ref-la-ciotat": {
+  "zone": "Règles particulières ici Pêche de loisir (poulpe et marquage) · Pêche de loisir · Cœur et aire marine adjacente du PN des Calanques (selon la période de l'année) Lire les règles Pêche de loisir (poulpe et marquage) : Du 1er juin au 30 septembre de chaque année : pêche de loisir du poulpe interdite -",
+  "fond": "Eau au fond17,8 °C à 12 m, moyenne du jour",
+  "surface": "Eau20,1 °Cen surface",
+  "alerte": false
+ },
+ "ref-quiberon": {
+  "zone": null,
+  "fond": "Eau au fond14,4 °C à 6 m, moyenne du jour",
+  "surface": "Eau12,9 °Cen surface",
+  "alerte": false
+ },
+ "ref-bonifacio": {
+  "zone": "Règles particulières ici Pêche des oursins · Pêche - Périmètre de la RNBB · Plongée (selon la période de l'année) Lire les règles Pêche des oursins : La pêche et le transport des oursins sont autorisés chaque année du 15 février au 15 avril pour les pêcheurs plaisanciers - La pêche, la mise en vente",
+  "fond": "Eau au fond21 °C à 12 m, moyenne du jour",
+  "surface": "Eau21,4 °Cen surface",
+  "alerte": false
+ },
+ "push.json": 404,
+ "erreurs": [
+  "console error: Failed to load resource: the server responded with a status of 404 ()"
+ ]
+}
