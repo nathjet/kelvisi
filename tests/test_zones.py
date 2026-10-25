@@ -113,8 +113,18 @@ def test_construire_fusionne_les_contours_et_ecarte_les_regles_generales():
     collection, revue = construire(zones, date(2026, 10, 25))
     assert len(collection["features"]) == 1, "deux règles sur le même contour : une seule zone"
     f = collection["features"][0]
-    assert f["properties"]["classe"] == "interdite"
+    assert f["properties"]["classe"] == "interdite" and f["properties"]["grande"] is False
     assert [r["reference"] for r in f["properties"]["regles"]] == ["Arrêté n°1", "Arrêté n°2"]
     assert f["properties"]["regles"][1]["periode"] is True and f["properties"]["regles"][0]["periode"] is False
     motifs = {r["id"]: r["motif"] for r in revue}
     assert motifs[3].startswith("règle générale") and motifs[4] == "terminée le 2025-01-01" and motifs[5] == "sans rapport"
+
+
+def test_index_des_emprises():
+    from zones_reglementees import index_emprises
+
+    collection = {"mis_a_jour_le": "2026-10-25", "features": [
+        {"geometry": {"type": "Polygon", "coordinates": [[[5.30001, 43.2], [5.31, 43.2], [5.31, 43.20999], [5.30001, 43.2]]]}},
+        {"geometry": {"type": "MultiPolygon", "coordinates": [[[[1, 2], [3, 2], [3, 4], [1, 2]]], [[[-1, 0], [0, 0], [0, 1], [-1, 0]]]]}},
+    ]}
+    assert index_emprises(collection) == {"mis_a_jour_le": "2026-10-25", "boites": [[5.3, 43.2, 5.31, 43.21], [-1.0, 0.0, 3.0, 4.0]]}

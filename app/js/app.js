@@ -16,6 +16,7 @@ import { effacerDonneesLocales, synchroniser } from "./synchro.js";
 import { afficherEcranCompte, afficherMonCompte, masquerEcranCompte } from "./vues/compte.js";
 import { NOM_CLASSE, dateHeure, decrireMesure, distanceKm, echapper, heure, jourCourt, metres, ventDansTexte } from "./format.js";
 import { meilleureMesure, profondeursAuPoint } from "./bathymetrie.js";
+import { encartZones, zonesAuPoint } from "./zones.js";
 import { tranchesLegende } from "./relief-rendu.js";
 
 const large = window.matchMedia("(min-width: 960px)");
@@ -253,11 +254,26 @@ function surMer({ lat, lon, enMer }) {
   ouvrirFicheRapide({
     titre: `<strong>${enMer ? "Prévision à cet endroit ?" : "Ce point semble à terre"}</strong>`,
     corps: `${enMer ? '<p class="note">Kelvisi estime la profondeur et l\'orientation du lieu, puis calcule la visibilité.</p>' : '<p class="note">Touche la mer, près de la côte, là où tu veux chasser.</p>'}
+      <div data-zones-rapide hidden></div>
       <p class="profondeur-rapide" data-profondeur hidden></p>
       <div class="rangee"><button type="button" class="bouton" data-aller="#/point/${coord}">${enMer ? "Calculer la prévision" : "Calculer quand même"}</button></div>
       ${listeProches(lat, lon)}`,
   }, lierAllers);
   afficherProfondeurRapide(lat, lon);
+  afficherZonesRapide(lat, lon);
+}
+
+// Zone de pêche sous-marine interdite ou réglementée à cet endroit, ajoutée à la fiche rapide
+async function afficherZonesRapide(lat, lon) {
+  try {
+    const liste = await zonesAuPoint(lat, lon);
+    const zone = ficheRapide.querySelector("[data-zones-rapide]");
+    if (!liste.length || !zone) return;
+    zone.innerHTML = encartZones(liste, { court: true });
+    zone.hidden = false;
+  } catch (e) {
+    /* fichier des zones indisponible : rien à signaler */
+  }
 }
 
 // Profondeur lue sur les cartes du Shom, ajoutée à la fiche rapide dès qu'elle arrive
@@ -473,20 +489,23 @@ function remplirEchelleProfondeurs() {
 function lierOutilsCarte() {
   remplirEchelleProfondeurs();
   const fond = document.getElementById("fond-carte");
-  const couches = { aerien: Boolean(prefs.aerien), profondeurs: Boolean(prefs.profondeurs) };
+  const couches = { aerien: Boolean(prefs.aerien), profondeurs: Boolean(prefs.profondeurs), zones: Boolean(prefs.zones) };
   const appliquer = () => {
     fond.querySelector('[data-fond="plan"]').setAttribute("aria-pressed", String(!couches.aerien));
     fond.querySelector('[data-fond="aerien"]').setAttribute("aria-pressed", String(couches.aerien));
     fond.querySelector("[data-profondeurs]").setAttribute("aria-pressed", String(couches.profondeurs));
+    fond.querySelector("[data-zones]").setAttribute("aria-pressed", String(couches.zones));
     document.getElementById("legende-profondeurs").hidden = !couches.profondeurs;
+    document.getElementById("legende-zones").hidden = !couches.zones;
     definirCouches(couches);
-    ecrire("kelvisi-reglages", { ...lire("kelvisi-reglages", {}), aerien: couches.aerien, profondeurs: couches.profondeurs });
+    ecrire("kelvisi-reglages", { ...lire("kelvisi-reglages", {}), aerien: couches.aerien, profondeurs: couches.profondeurs, zones: couches.zones });
   };
   fond.addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b) return;
     if (b.dataset.fond) couches.aerien = b.dataset.fond === "aerien";
     if (b.hasAttribute("data-profondeurs")) couches.profondeurs = !couches.profondeurs;
+    if (b.hasAttribute("data-zones")) couches.zones = !couches.zones;
     appliquer();
   });
   document.getElementById("jours-carte").addEventListener("click", (e) => {

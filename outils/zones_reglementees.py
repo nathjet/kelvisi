@@ -1,8 +1,9 @@
 """Zones où la pêche sous-marine est interdite ou réglementée, pour la carte de Kelvisi.
 
-Source : zones réglementaires du CACEM (Centre d'appui au contrôle de l'environnement marin),
-publiées sur data.gouv.fr sous licence ouverte. Le fichier recense plus de 4 500 zones (arrêtés
-préfectoraux, décrets de réserves, cantonnements...), chacune avec un résumé de la règle.
+Source : zones réglementaires du CACEM (Centre d'appui au contrôle de l'environnement marin, ministère
+de la Transition écologique), publiées chaque semaine sur data.gouv.fr sous Licence Ouverte 2.0. Le
+fichier recense plus de 4 500 zones (arrêtés préfectoraux, décrets de réserves, cantonnements...), chacune
+avec un résumé de la règle. Les tracés sont une interprétation du CACEM et ne remplacent pas les textes.
 
 On garde les zones de métropole dont le résumé parle de pêche sous-marine, de pêche en général,
 de prélèvement ou de plongée, et on les classe :
@@ -11,7 +12,9 @@ de prélèvement ou de plongée, et on les classe :
   reglementee  la règle encadre la pêche sous-marine sans l'interdire partout (espèces, saisons,
                autorisation, réserve naturelle)
 Les zones très étendues (règles générales d'une façade, par exemple le moratoire sur les mérous dans
-toutes les eaux territoriales) et celles dont la date de fin est passée sont écartées.
+toutes les eaux territoriales) et celles dont la date de fin est passée sont écartées. Les grandes zones
+réglementées (plus de 150 km², par exemple l'aire du parc national des Calanques) sont gardées pour
+les fiches mais pas dessinées sur la carte.
 
 Le classement est fait d'après le texte du résumé : il peut se tromper. La carte le dit, et renvoie
 toujours au texte officiel (référence affichée avec chaque zone).
@@ -30,10 +33,11 @@ from datetime import date
 from pathlib import Path
 
 SOURCE = "https://www.data.gouv.fr/api/1/datasets/r/dd48b545-a1d1-4710-9e56-415b895f5336"
-PAGE_SOURCE = "https://www.data.gouv.fr/datasets/zones-reglementaires-du-cacem"
+PAGE_SOURCE = "https://www.data.gouv.fr/datasets/zones-reglementaires-cacem"
 COUCHES_METROPOLE = ("MED", "NAMO", "SA", "MEMN")
 SURFACE_MAX_KM2 = 1500.0     # au-delà, il s'agit d'une règle générale (toute une façade, tout un département)
-TOLERANCE_DEG = 0.00012      # simplification des contours (environ 12 m)
+GRANDE_KM2 = 150.0           # zone réglementée plus grande : pas dessinée (trop envahissante), mais signalée dans les fiches
+TOLERANCE_DEG = {"interdite": 0.00012, "reglementee": 0.0002, "grande": 0.0006}  # simplification (12, 20 et 60 m)
 DECIMALES = 5                # environ 1 m
 
 ESPECES = (r"crustac|oursin|gorgone|merou|corail|langouste|homard|araignee|poulpe|nacre|datte|patelle|coquillage|palourde"
@@ -188,7 +192,8 @@ def construire(zones, aujourd_hui: date | None = None) -> tuple[dict, list[dict]
                       "surface_km2": round(float(surface), 3), "nom": nom_zone(z), "resume": resume_court(z.get("resume"), 300)})
         if motif:
             continue
-        geometrie = z.geometry.simplify(TOLERANCE_DEG, preserve_topology=True)
+        grande = classe == "reglementee" and surface > GRANDE_KM2
+        geometrie = z.geometry.simplify(TOLERANCE_DEG["grande" if grande else classe], preserve_topology=True)
         if geometrie.is_empty:
             continue
         g = mapping(geometrie)
@@ -204,9 +209,9 @@ def construire(zones, aujourd_hui: date | None = None) -> tuple[dict, list[dict]
             if regle not in e["properties"]["regles"]:
                 e["properties"]["regles"].append(regle)
             if classe == "interdite":
-                e["properties"]["classe"] = "interdite"
+                e["properties"].update(classe="interdite", grande=False)
             continue
-        par_contour[cle] = {"type": "Feature", "properties": {"classe": classe, "regles": [regle]},
+        par_contour[cle] = {"type": "Feature", "properties": {"classe": classe, "grande": grande, "regles": [regle]},
                             "geometry": {"type": g["type"], "coordinates": coordonnees}}
     entites = list(par_contour.values())
     for e in entites:  # règle d'interdiction en premier
@@ -221,6 +226,24 @@ def construire(zones, aujourd_hui: date | None = None) -> tuple[dict, list[dict]
         "features": entites,
     }
     return collection, revue
+
+
+def index_emprises(collection: dict) -> dict:
+    """Emprise [ouest, sud, est, nord] de chaque zone, dans l'ordre du fichier, arrondie vers l'extérieur."""
+    import math
+
+    def points(c):
+        if isinstance(c[0], (int, float)):
+            yield c
+        else:
+            for x in c:
+                yield from points(x)
+
+    boites = []
+    for e in collection["features"]:
+        xs, ys = zip(*points(e["geometry"]["coordinates"]))
+        boites.append([math.floor(min(xs) * 1e4) / 1e4, math.floor(min(ys) * 1e4) / 1e4, math.ceil(max(xs) * 1e4) / 1e4, math.ceil(max(ys) * 1e4) / 1e4])
+    return {"mis_a_jour_le": collection["mis_a_jour_le"], "boites": boites}
 
 
 def lire_cacem(chemin: Path):
@@ -262,7 +285,16 @@ def main():
     collection, revue = construire(lire_cacem(gpkg))
     sortie = Path(args.sortie)
     sortie.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        ancien = json.loads(sortie.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        ancien = None
+    if ancien and ancien.get("features") == collection["features"]:
+        print("Aucune zone n'a changé : fichier inchangé")
+        return
     sortie.write_text(json.dumps(collection, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    # Petit index des emprises : l'application ne télécharge le fichier complet que si un lieu tombe dans l'une d'elles
+    sortie.with_name(sortie.stem + "-index.json").write_text(json.dumps(index_emprises(collection), separators=(",", ":")), encoding="utf-8")
     if args.revue:
         import csv
 

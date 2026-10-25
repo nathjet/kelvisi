@@ -2,6 +2,7 @@
 
 import { detailPublic, pointPublic, previsionLieu, resumeCharge } from "../donnees.js";
 import { chargerTemperatures, temperatureAuFond } from "../temperatures.js";
+import { encartZones, zonesAuPoint } from "../zones.js";
 import { monSpot, enregistrerSpot, supprimerSpot } from "../messpots.js";
 import { enregistrerRetour, partageActif, rapportsPourMoteur, retoursDuSpot } from "../retours.js";
 import { estimerLieu } from "../profondeur.js";
@@ -403,6 +404,7 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
     ${info ? `<p class="encart info">${echapper(info)}</p>` : ""}
     <div class="bloc">
       <div class="entete-fiche"><h1 class="titre-vue">${echapper(meta.nom)}</h1><p>${sousTitre}</p></div>
+      <div id="bloc-zones" hidden></div>
       <div class="segments" id="jours-fiche" role="group" aria-label="Jour">${prevision.jours.map((j, i) => `<button type="button" data-jour="${i}" aria-pressed="${i === iJour}">${jourCourt(j.date)}</button>`).join("")}</div>
       <div class="lecture"><div class="nombre chiffres">${metres(v)}<small>m</small></div>
         <div class="details"><span class="classe" style="background:${couleur(jour.classe)}">${NOM_CLASSE[jour.classe]}</span>
@@ -453,9 +455,25 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
   lierFormulaireRetour(zone, cible, ctx, meta, prevision);
   remplirProfondeur(zone, cible, ctx, meta, prevision, jour, spot);
   remplirTemperatureFond(zone, meta, jour);
+  remplirZones(zone, meta);
   if ((cible.type === "prive" || cible.type === "point") && spot) lierReglages(zone, cible, ctx, spot);
   if (cible.type === "prive" && spot) lierActionsPrive(zone, ctx, spot);
   if (cible.type === "communaute" && spot) lierActionsCommunaute(zone, ctx, spot);
+}
+
+// Zone où la pêche sous-marine est interdite ou réglementée, signalée en haut de la fiche
+async function remplirZones(zone, meta) {
+  const bloc = zone.querySelector("#bloc-zones");
+  if (!bloc || !Number.isFinite(meta.lat)) return;
+  let liste;
+  try {
+    liste = await zonesAuPoint(meta.lat, meta.lon);
+  } catch (e) {
+    return;
+  }
+  if (!liste.length || !bloc.isConnected) return;
+  bloc.innerHTML = encartZones(liste);
+  bloc.hidden = false;
 }
 
 // Température prévue au fond (profondeur du spot), dès que le fichier des profils est arrivé

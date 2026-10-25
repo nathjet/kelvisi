@@ -43,6 +43,7 @@
           <button type="button" data-fond="plan" aria-pressed="true">Plan</button>
           <button type="button" data-fond="aerien" aria-pressed="false">Vue aérienne</button>
           <button type="button" data-profondeurs aria-pressed="false">Profondeurs</button>
+          <button type="button" data-zones aria-pressed="false">Zones</button>
         </div>
         <div class="segments jours-carte" id="jours-carte" role="group" aria-label="Jour affiché"></div>
         <div class="legende-carte" id="legende-carte">
@@ -51,6 +52,10 @@
           <div id="legende-profondeurs" class="legende-profondeurs" hidden>
             <div class="echelle-profondeurs" id="echelle-profondeurs" role="img" aria-label="Échelle des profondeurs : de clair (0 m) à foncé (plus de 100 m)"></div>
             <span>Un trait tous les 5 m ; traits serrés : tombant. Touche la mer pour la profondeur exacte. Ne pas naviguer avec.</span>
+          </div>
+          <div id="legende-zones" class="legende-zones" hidden>
+            <span><i class="zone-interdite"></i>Chasse sous-marine interdite</span><span><i class="zone-reglementee"></i>Règles particulières</span>
+            <span>Touche une zone pour lire la règle. Liste incomplète : vérifie toujours la réglementation locale.</span>
           </div>
         </div>
       </div>

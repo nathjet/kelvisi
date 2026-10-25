@@ -1,7 +1,8 @@
 // Carte : fond OpenFreeMap, vue aérienne IGN, profondeurs (EMODnet de loin, relief du Shom redessiné
-// près des côtes), repères des spots.
+// près des côtes), zones de pêche sous-marine interdite ou réglementée, repères des spots.
 
 import { TAILLE_TUILE, URL_TUILES, installerRelief } from "./relief.js";
+import { URL_ZONES } from "./zones.js";
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 const TUILES_IGN = "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}";
@@ -28,7 +29,9 @@ let secours = false;
 const reperes = new Map();
 let cible = null;
 let rappels = { surPoint: () => {}, surMer: () => {} };
-let couches = { aerien: false, profondeurs: false };
+let couches = { aerien: false, profondeurs: false, zones: false };
+// Zones de pêche sous-marine : rouge si interdite, orange si réglementée (les plus grandes ne sont pas dessinées)
+const COULEUR_ZONE = ["match", ["get", "classe"], "interdite", "#cf3b32", "#e08a1e"];
 
 export function carteDisponible() {
   return Boolean(window.maplibregl);
@@ -124,8 +127,27 @@ function ajouterCouches() {
   }
 }
 
+// Ajoutées seulement quand on les affiche : le fichier des zones n'est pas téléchargé sinon
+function ajouterZones() {
+  if (carte.getSource("zones")) return;
+  carte.addSource("zones", { type: "geojson", data: URL_ZONES, attribution: "Zones réglementaires : CACEM (data.gouv.fr)" });
+  const dessinees = ["!=", ["get", "grande"], true];
+  carte.addLayer({
+    id: "couche-zones-fond", type: "fill", source: "zones", filter: dessinees,
+    paint: { "fill-color": COULEUR_ZONE, "fill-opacity": ["match", ["get", "classe"], "interdite", 0.3, 0.14] },
+  }, premiereCoucheTexte());
+  carte.addLayer({
+    id: "couche-zones-trait", type: "line", source: "zones", filter: dessinees,
+    paint: { "line-color": COULEUR_ZONE, "line-width": ["match", ["get", "classe"], "interdite", 1.6, 1], "line-opacity": 0.9 },
+  }, premiereCoucheTexte());
+}
+
 function appliquerCouches() {
   if (!carte || !carte.getLayer("couche-aerien")) return;
+  if (couches.zones) ajouterZones();
+  for (const id of ["couche-zones-fond", "couche-zones-trait"]) {
+    if (carte.getLayer(id)) carte.setLayoutProperty(id, "visibility", couches.zones ? "visible" : "none");
+  }
   carte.setLayoutProperty("couche-aerien", "visibility", couches.aerien ? "visible" : "none");
   carte.setLayoutProperty("couche-profondeurs", "visibility", couches.profondeurs ? "visible" : "none");
   if (carte.getLayer("couche-relief")) carte.setLayoutProperty("couche-relief", "visibility", couches.profondeurs ? "visible" : "none");

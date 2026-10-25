@@ -62,6 +62,16 @@ function fausseTemperatures() {
   return { genere_le: new Date().toISOString(), points };
 }
 
+// Zones réglementaires : une zone interdite autour du lieu libre testé, une grande zone réglementée ailleurs
+const carre = (lon, lat, r) => [[[lon - r, lat - r], [lon + r, lat - r], [lon + r, lat + r], [lon - r, lat + r], [lon - r, lat - r]]];
+const FAUSSES_ZONES = { type: "FeatureCollection", features: [
+  { type: "Feature", geometry: { type: "Polygon", coordinates: carre(5.0, 43.2, 0.2) },
+    properties: { classe: "reglementee", grande: true, regles: [{ classe: "reglementee", nom: "Parc lointain", regle: "Pêche soumise à déclaration", reference: "Décret 2", periode: false }] } },
+  { type: "Feature", geometry: { type: "Polygon", coordinates: carre(-3.2, 47.49, 0.004) },
+    properties: { classe: "interdite", grande: false, regles: [{ classe: "interdite", nom: "Cantonnement de test", regle: "Toute pêche est interdite", reference: "Arrêté n°12/2026", periode: true }] } },
+] };
+const emprise = (anneau) => [Math.min(...anneau.map((c) => c[0])), Math.min(...anneau.map((c) => c[1])), Math.max(...anneau.map((c) => c[0])), Math.max(...anneau.map((c) => c[1]))];
+
 const appels = [];
 const envois = [];
 const entetesEnvois = [];
@@ -75,6 +85,8 @@ async function fauxFetch(entree, options = {}) {
     return { ok: true, status: 201, json: async () => null };
   }
   if (url.startsWith("donnees/temperatures.json")) return json(fausseTemperatures());
+  if (url.endsWith("zones/peche-sous-marine-index.json")) return json({ boites: FAUSSES_ZONES.features.map((f) => emprise(f.geometry.coordinates[0])) });
+  if (url.endsWith("zones/peche-sous-marine.geojson")) return json(FAUSSES_ZONES);
   if (url.startsWith("donnees/")) {
     const chemin = join(APP, decodeURIComponent(url.split("?")[0]));
     if (!existsSync(chemin)) return json(null, 404);
@@ -346,6 +358,8 @@ await etape("clic en mer puis prévision d'un lieu libre", async () => {
   await attendre();
   if (!grand) {
     assert.ok(!d.getElementById("fiche-rapide").hidden, "fiche rapide");
+    await jusqua(() => !d.querySelector("#fiche-rapide [data-zones-rapide]").hidden, "zone signalée dans la fiche rapide");
+    assert.match(texte(d.querySelector("#fiche-rapide [data-zones-rapide]")), /Chasse sous-marine interdite ici : Cantonnement de test\./);
     d.querySelector("#fiche-rapide [data-aller^='#/point/']").click();
     await attendre();
   }
@@ -363,6 +377,9 @@ await etape("clic en mer puis prévision d'un lieu libre", async () => {
   assert.ok(panneau().querySelector("#partager"), "lieu libre partageable");
   assert.ok(!panneau().querySelector("#favori"), "pas de favori pour un lieu libre");
   assert.match(texte(panneau()), /reprises du point Kelvisi Quiberon, côte sauvage, à \d+ km/, "valeurs calées du point de référence voisin");
+  await jusqua(() => !panneau().querySelector("#bloc-zones").hidden, "zone signalée en haut de la fiche");
+  assert.match(texte(panneau().querySelector("#bloc-zones")), /Chasse sous-marine interdite ici\s*Cantonnement de test \(selon la période de l'année\) : Toute pêche est interdite\s*Texte : Arrêté n°12\/2026/);
+  assert.ok(panneau().querySelector("#bloc-zones .zone-interdite"), "encart rouge");
   await jusqua(() => /Eau au fond/.test(texte(panneau())), "température au fond du lieu libre");
   assert.match(texte(panneau()), /Eau au fond\s*[\d,]+ °C\s*(à|vers) [\d,]+ m.*d'après Quiberon, côte sauvage, à \d+ km/, "profil du point Kelvisi voisin");
 });
@@ -448,6 +465,17 @@ await etape("couches de la carte", async () => {
   assert.equal(carte.couches["couche-relief"].visibilite, "none");
   assert.ok(d.getElementById("legende-profondeurs").hidden);
   d.querySelector("#fond-carte [data-profondeurs]").click();
+  // Zones de pêche sous-marine : chargées seulement quand on les affiche, grandes zones non dessinées
+  assert.ok(!carte.sources.zones, "fichier des zones pas encore demandé");
+  d.querySelector("#fond-carte [data-zones]").click();
+  assert.match(carte.sources.zones.data, /zones\/peche-sous-marine\.geojson$/);
+  assert.equal(carte.couches["couche-zones-fond"].visibilite, "visible");
+  assert.deepEqual(carte.couches["couche-zones-fond"].filter, ["!=", ["get", "grande"], true]);
+  assert.ok(!d.getElementById("legende-zones").hidden);
+  assert.equal(JSON.parse(w.localStorage.getItem("kelvisi-reglages")).zones, true, "choix gardé");
+  d.querySelector("#fond-carte [data-zones]").click();
+  assert.equal(carte.couches["couche-zones-trait"].visibilite, "none");
+  assert.ok(d.getElementById("legende-zones").hidden);
 });
 
 await etape("pages d'information", async () => {

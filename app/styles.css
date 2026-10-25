@@ -394,6 +394,10 @@ select, input[type="number"], input[type="text"] {
 .encart.creneau strong { color: var(--bouee); }
 .encart.alerte { background: var(--alerte-doux); color: var(--alerte); font-weight: 700; }
 .encart.info { background: var(--surface-2); }
+.encart.zone-interdite { background: var(--alerte-doux); color: var(--alerte); border-left: 4px solid var(--alerte); }
+.encart.zone-interdite .note { color: inherit; opacity: 0.85; }
+.regles-zone { margin: 4px 0 2px; padding-left: 18px; display: grid; gap: 6px; }
+#bloc-zones { margin-top: 10px; }
 .encart .grand { font-family: var(--police-titre); font-stretch: 115%; font-weight: 800; font-size: 22px; }
 
 .graphique { overflow-x: auto; }
@@ -443,6 +447,10 @@ select, input[type="number"], input[type="text"] {
 }
 .legende-carte i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; }
 .legende-profondeurs { flex-basis: 100%; display: grid; gap: 3px; padding: 2px 0 3px; }
+.legende-zones { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 3px 10px; padding: 2px 0 3px; }
+.legende-zones span:last-child { flex-basis: 100%; }
+.legende-carte i.zone-interdite { background: rgba(207, 59, 50, 0.45); border: 1.5px solid #cf3b32; }
+.legende-carte i.zone-reglementee { background: rgba(224, 138, 30, 0.3); border: 1px solid #e08a1e; }
 .echelle-profondeurs { position: relative; display: flex; height: 10px; border-radius: 3px; overflow: visible; margin-bottom: 13px; }
 .echelle-profondeurs > i { flex: 1; height: 10px; width: auto; margin: 0; border-radius: 0; }
 .echelle-profondeurs > i:first-child { border-radius: 3px 0 0 3px; }

@@ -1,0 +1,53 @@
+# Met à jour chaque mois la carte des zones où la pêche sous-marine est interdite ou réglementée,
+# d'après les zones réglementaires du CACEM (data.gouv.fr, mises à jour chaque semaine par l'État).
+# Le fichier est publié avec le passage horaire suivant des prévisions.
+name: Zones réglementées
+
+on:
+  schedule:
+    - cron: "23 5 4 * *"   # le 4 de chaque mois, 5 h 23 UTC
+  workflow_dispatch:       # bouton « Run workflow » dans l'onglet Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zones
+  cancel-in-progress: false
+
+jobs:
+  zones:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les outils géographiques
+        run: pip install geopandas pyogrio shapely requests pytest
+
+      - name: Vérifier le classement des zones
+        run: python -m pytest -q tests/test_zones.py
+
+      - name: Produire le fichier des zones
+        run: python outils/zones_reglementees.py --revue revue-zones.csv
+
+      - name: Garder la liste de revue (onglet Actions, 30 jours)
+        uses: actions/upload-artifact@v4
+        with:
+          name: revue-zones
+          path: revue-zones.csv
+          retention-days: 30
+
+      - name: Enregistrer le nouveau fichier s'il a changé
+        run: |
+          if git diff --quiet -- app/zones; then
+            echo "Aucun changement dans les zones."
+            exit 0
+          fi
+          git -c user.name="kelvisi-zones" -c user.email="kelvisi-zones@users.noreply.github.com" add app/zones
+          git -c user.name="kelvisi-zones" -c user.email="kelvisi-zones@users.noreply.github.com" commit -q -m "Zones réglementées : mise à jour du $(date -u +%F)"
+          git push
