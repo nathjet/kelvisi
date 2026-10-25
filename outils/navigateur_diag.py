@@ -114,6 +114,49 @@ async def relief():
     annoter("Relief dans le navigateur", [f"{k} : {json.dumps(v, ensure_ascii=False)[:600]}" for k, v in resultats.items()])
 
 
+SITE = "https://nathjet.github.io/kelvisi/"
+
+
+async def nouveautes():
+    """Sur le site publié : zones de pêche sous-marine (fiche et carte) et température au fond (diag/nouveautes/)."""
+    from playwright.async_api import async_playwright
+
+    dossier = SORTIE / "nouveautes"
+    dossier.mkdir(parents=True, exist_ok=True)
+    res, erreurs = {}, []
+    async with async_playwright() as p:
+        navigateur = await p.chromium.launch()
+        ctx = await navigateur.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+        page = await ctx.new_page()
+        page.on("pageerror", lambda e: erreurs.append(str(e)))
+        page.on("console", lambda m: erreurs.append(f"console {m.type}: {m.text}") if m.type == "error" else None)
+        cacher = "() => { const e = document.getElementById('ecran-compte'); if (e) e.hidden = true; }"
+        for spot in ("ref-revellata", "ref-cap-d-agde", "ref-la-ciotat", "ref-quiberon", "ref-bonifacio"):
+            await page.goto(f"{SITE}#/spot/{spot}")
+            await page.wait_for_timeout(6000)
+            await page.evaluate(cacher)
+            lu = await page.evaluate("""() => ({
+                zone: document.querySelector('#bloc-zones:not([hidden])')?.textContent.replace(/\\s+/g, ' ').trim().slice(0, 300) || null,
+                fond: document.querySelector('[data-temp-fond]:not([hidden])')?.textContent.replace(/\\s+/g, ' ').trim() || null,
+                surface: [...document.querySelectorAll('.condition')].map((c) => c.textContent.replace(/\\s+/g, ' ').trim()).find((t) => t.startsWith('Eau')) || null,
+                alerte: Boolean(document.querySelector('#alerte-favori:not([hidden])')) })""")
+            res[spot] = lu
+            await page.screenshot(path=str(dossier / f"fiche_{spot}.png"))
+        await page.goto(f"{SITE}#/carte")
+        await page.wait_for_timeout(5000)
+        await page.evaluate(cacher)
+        await page.click("[data-zones]")
+        for nom, (lat, lon, z) in {"marseille": (43.22, 5.40, 10.5), "bonifacio": (41.39, 9.2, 11), "agde": (43.27, 3.50, 12), "morbihan": (47.5, -2.9, 10)}.items():
+            await page.evaluate("async ([lat, lon, z]) => { const c = await import('./js/carte.js'); c.voler(lat, lon, z); }", [lat, lon, z])
+            await page.wait_for_timeout(9000)
+            await page.screenshot(path=str(dossier / f"carte_{nom}.png"))
+        res["push.json"] = await page.evaluate("async () => (await fetch('donnees/push.json', { cache: 'no-cache' })).status")
+        res["erreurs"] = erreurs[:20]
+        await navigateur.close()
+    (dossier / "nouveautes.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
+    annoter("Nouveautés sur le site", [f"{k} : {json.dumps(v, ensure_ascii=False)[:500]}" for k, v in res.items()])
+
+
 async def main():
     from playwright.async_api import async_playwright
 
@@ -253,4 +296,7 @@ if __name__ == "__main__":
     import sys
 
     SORTIE.mkdir(exist_ok=True)
-    asyncio.run(relief() if "relief" in sys.argv[1:] else main())
+    if "nouveautes" in sys.argv[1:]:
+        asyncio.run(nouveautes())
+    else:
+        asyncio.run(relief() if "relief" in sys.argv[1:] else main())
