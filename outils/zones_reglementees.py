@@ -283,6 +283,13 @@ def main():
     if not gpkg.exists():
         telecharger(gpkg)
     collection, revue = construire(lire_cacem(gpkg))
+    if args.revue:
+        import csv
+
+        with open(args.revue, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=list(revue[0]))
+            w.writeheader()
+            w.writerows(revue)
     sortie = Path(args.sortie)
     sortie.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -295,13 +302,6 @@ def main():
     sortie.write_text(json.dumps(collection, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     # Petit index des emprises : l'application ne télécharge le fichier complet que si un lieu tombe dans l'une d'elles
     sortie.with_name(sortie.stem + "-index.json").write_text(json.dumps(index_emprises(collection), separators=(",", ":")), encoding="utf-8")
-    if args.revue:
-        import csv
-
-        with open(args.revue, "w", newline="", encoding="utf-8") as f:
-            w = csv.DictWriter(f, fieldnames=list(revue[0]))
-            w.writeheader()
-            w.writerows(revue)
     n = {c: sum(1 for e in collection["features"] if e["properties"]["classe"] == c) for c in ("interdite", "reglementee")}
     print(f"{n['interdite']} zones interdites, {n['reglementee']} réglementées, {sortie.stat().st_size / 1000:.0f} ko")
 

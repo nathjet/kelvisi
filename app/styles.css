@@ -396,8 +396,10 @@ select, input[type="number"], input[type="text"] {
 .encart.info { background: var(--surface-2); }
 .encart.zone-interdite { background: var(--alerte-doux); color: var(--alerte); border-left: 4px solid var(--alerte); }
 .encart.zone-interdite .note { color: inherit; opacity: 0.85; }
-.regles-zone { margin: 4px 0 2px; padding-left: 18px; display: grid; gap: 6px; }
+.regles-zone summary { cursor: pointer; font-weight: 700; margin-top: 4px; }
+.regles-zone ul { margin: 6px 0 4px; padding-left: 18px; display: grid; gap: 6px; }
 #bloc-zones { margin-top: 10px; }
+.alerte-favori { display: grid; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--ligne); }
 .encart .grand { font-family: var(--police-titre); font-stretch: 115%; font-weight: 800; font-size: 22px; }
 
 .graphique { overflow-x: auto; }

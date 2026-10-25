@@ -5,7 +5,10 @@
 --   profils        un profil par compte (prénom, département, pratique, tranche d'âge, accord e-mails)
 --   spots_prives   spots privés, visibles par leur seul propriétaire ; un spot proposé au partage
 --                  devient visible de tous (sans le nom de son auteur) une fois validé par l'éditeur
---   favoris        points Kelvisi favoris de chaque compte
+--   favoris        points Kelvisi favoris de chaque compte, avec l'alerte choisie (bonne, excellente ou aucune)
+--   abonnements_push  appareils où envoyer les alertes (notifications du navigateur)
+--   alertes_envoyees  alertes déjà envoyées (une par favori et par jour), écrites par le calcul horaire
+--   cles_push      clés de notification de Kelvisi, lisibles par le seul calcul horaire
 --   rapports       retours terrain (« Tu y étais ? »)
 --   admin.clients  vue réservée à l'éditeur : la liste des comptes, à exporter depuis Supabase
 --   admin.spots_a_valider  vue réservée à l'éditeur : les spots proposés au partage
@@ -225,6 +228,81 @@ revoke all on public.favoris from anon;
 grant select, insert, delete on public.favoris to authenticated;
 
 -- ---------------------------------------------------------------------------------------------
+-- Alertes sur les favoris (notification quand la visibilité prévue y devient bonne)
+-- ---------------------------------------------------------------------------------------------
+-- Niveau choisi sur chaque favori : null = pas d'alerte
+alter table public.favoris add column if not exists alerte text;
+alter table public.favoris drop constraint if exists favoris_alerte_valeur;
+alter table public.favoris add constraint favoris_alerte_valeur check (alerte is null or alerte in ('bonne', 'excellente'));
+grant update (alerte) on public.favoris to authenticated;
+
+-- Un abonnement par appareil et navigateur (adresse fournie par le service de notification du navigateur)
+create table if not exists public.abonnements_push (
+  proprietaire uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  endpoint text not null check (endpoint ~ '^https://' and char_length(endpoint) <= 1000),
+  p256dh text not null check (char_length(p256dh) between 20 and 200),
+  auth text not null check (char_length(auth) between 8 and 100),
+  cree_le timestamptz not null default now(),
+  primary key (proprietaire, endpoint)
+);
+
+alter table public.abonnements_push enable row level security;
+
+drop policy if exists "abonnements : réservés à leur propriétaire" on public.abonnements_push;
+create policy "abonnements : réservés à leur propriétaire" on public.abonnements_push
+  for all to authenticated
+  using (proprietaire = (select auth.uid()))
+  with check (proprietaire = (select auth.uid()));
+
+revoke all on public.abonnements_push from anon;
+grant select, insert, update, delete on public.abonnements_push to authenticated;
+
+-- Au plus 10 appareils par compte
+create or replace function public.abonnements_limite() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if (select count(*) from public.abonnements_push where proprietaire = new.proprietaire) >= 10 then
+    raise exception 'Trop d''appareils abonnés aux alertes (10 au plus)';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists abonnements_limite on public.abonnements_push;
+create trigger abonnements_limite before insert on public.abonnements_push
+  for each row execute function public.abonnements_limite();
+
+-- Alertes déjà envoyées : écrites par le calcul horaire (clé secrète), lisibles par leur destinataire
+create table if not exists public.alertes_envoyees (
+  proprietaire uuid not null references auth.users (id) on delete cascade,
+  point_id text not null check (char_length(point_id) between 1 and 64),
+  jour date not null,
+  envoye_le timestamptz not null default now(),
+  primary key (proprietaire, point_id, jour)
+);
+
+alter table public.alertes_envoyees enable row level security;
+
+drop policy if exists "alertes envoyées : lecture par leur destinataire" on public.alertes_envoyees;
+create policy "alertes envoyées : lecture par leur destinataire" on public.alertes_envoyees
+  for select to authenticated
+  using (proprietaire = (select auth.uid()));
+
+revoke all on public.alertes_envoyees from anon, authenticated;
+grant select on public.alertes_envoyees to authenticated;
+
+-- Clés de notification (VAPID) : créées par le calcul horaire au premier passage. Aucune règle
+-- d'accès : ni l'application ni les comptes ne peuvent les lire, seule la clé secrète le peut.
+create table if not exists public.cles_push (
+  id smallint primary key default 1 check (id = 1),
+  publique text not null,
+  privee text not null,
+  cree_le timestamptz not null default now()
+);
+
+alter table public.cles_push enable row level security;
+revoke all on public.cles_push from anon, authenticated;
+
+-- ---------------------------------------------------------------------------------------------
 -- Retours terrain
 -- ---------------------------------------------------------------------------------------------
 create table if not exists public.rapports (
@@ -282,6 +360,7 @@ begin
   where coalesce(last_sign_in_at, created_at) < now() - interval '3 years';
   get diagnostics n = row_count;
   delete from public.rapports where cree_le < now() - interval '3 years';
+  delete from public.alertes_envoyees where jour < current_date - 30;
   return n;
 end $$;
 

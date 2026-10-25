@@ -119,7 +119,7 @@ passe.
 
 **SQL Editor** > nouvelle requête > colle tout le fichier
 `supabase/schema.sql` > **Run**. Le script crée les profils, les spots
-privés, les favoris, les retours terrain, les règles d'accès (chacun ne voit
+privés, les favoris et leurs alertes, les retours terrain, les règles d'accès (chacun ne voit
 que ses données), la suppression de compte et ta liste de clients. Il peut
 être relancé sans risque après une mise à jour. Il est testé automatiquement
 sur une base PostgreSQL à chaque modification (workflow « Base de données »).
@@ -210,6 +210,31 @@ fait, le bouton de partage reste caché et tout fonctionne comme avant.
 Pour retirer un spot déjà publié, mets `refuse` de la même façon. Si son
 auteur le modifie, il repasse tout seul en attente de validation.
 
+### h. Activer les alertes sur les favoris
+
+Sur la fiche d'un favori, une case « M'alerter quand la visibilité y sera
+bonne » envoie une notification quand la journée devient bonne (ou
+excellente, au choix) : une fois par jour et par spot au plus, entre 8 h et
+21 h, pour aujourd'hui et les deux jours suivants.
+
+**À faire une fois** (25 octobre 2026) : **SQL Editor** > nouvelle requête >
+colle tout le fichier `supabase/schema.sql` > **Run** (le même script, qui
+fait aussi le partage des spots s'il n'est pas encore passé). Au passage
+horaire suivant, le calcul crée tout seul les clés de notification, les
+range dans la base où lui seul peut les lire, et la case apparaît dans
+l'appli. Il n'y a aucune clé à copier ni à me donner.
+
+- Tant que le script n'est pas passé, le **Bilan du calcul** affiche
+  « Alertes : tables absentes, relance supabase/schema.sql » et la case reste
+  cachée.
+- Ensuite, il affiche par exemple « Alertes : 3 notifications envoyées à
+  2 comptes » quand il y en a.
+- Sur iPhone, les notifications ne marchent qu'avec Kelvisi ajouté à l'écran
+  d'accueil (bouton Partager > « Sur l'écran d'accueil ») ; l'appli le dit
+  quand on coche la case.
+- Ne supprime pas la ligne de la table `cles_push` : tous les appareils
+  devraient se réabonner.
+
 À savoir : un projet Supabase gratuit se met en pause après une semaine sans
 activité. Le calcul horaire lit la base toutes les heures, ce qui suffit en
 principe à le garder actif.
@@ -237,6 +262,14 @@ souci, les prévisions sont publiées sans satellite : rien ne bloque.
   code.
 - Si tu changes le mot de passe de ton compte Copernicus Marine, mets aussi à
   jour le secret, sinon le satellite s'arrête (sans bloquer le reste).
+
+Les mêmes identifiants servent à la **température de l'eau au fond** des
+fiches : modèles physiques IBI (Atlantique, Manche) et MED (Méditerranée,
+Corse), moyenne de chaque jour de la surface à 40 m. Le calcul la reprend au
+plus toutes les 6 heures (le modèle change une fois par jour) ; le bilan
+indique « Température en profondeur : 97 points sur 97 ». Les noms des jeux
+se changent si besoin avec les variables `KELVISI_TEMP_IBI` et
+`KELVISI_TEMP_MED`.
 
 La page « Sources » affiche automatiquement la mention obligatoire
 « Generated using E.U. Copernicus Marine Service Information ».
@@ -304,6 +337,12 @@ depuis « Mes spots » avant le changement et les réimporter après).
   l'orientation vers le large en degrés (0 = nord, 90 = est…), l'ouverture,
   la profondeur, le fond (`roche`, `mixte`, `sable`, `vase`) et une note. Le
   plus sûr est de m'envoyer la liste des changements.
+- **Zones de pêche sous-marine** : le workflow « Zones réglementées » les
+  reprend tout seul le 4 de chaque mois (données de l'État, mises à jour
+  chaque semaine) et ne crée un commit que si une zone a changé. Pour forcer
+  une mise à jour : onglet Actions > « Zones réglementées » > **Run
+  workflow**. La liste de revue (chaque zone et son classement) est jointe au
+  passage, onglet **Summary** > *Artifacts*.
 - **Une prévision paraît fausse** : les retours « Tu y étais ? » la corrigent
   automatiquement. Si elle reste fausse, c'est souvent l'orientation ou la
   profondeur du point qui est mal réglée.
@@ -323,4 +362,7 @@ depuis « Mes spots » avant le changement et les réimporter après).
 | Calage du modèle sur le satellite | Fait sur janvier 2022 à octobre 2026 (95 points, 14 804 images) et vérifié sur une période mise de côté ; historique complet |
 | Comptes (inscription, connexion, mot de passe oublié, profil, synchronisation, suppression) | Testés de bout en bout avec un faux serveur ; schéma testé sur un vrai PostgreSQL ; à vérifier sur ton projet après l'étape 6 |
 | Profondeurs du Shom lues au point et direction du large | Vérifiées dans Chromium sur les vraies cartes du Shom (Bretagne, Provence, Pays basque, Normandie, Corse) |
+| Température au fond (Copernicus) | Lancée sur le vrai service : 97 points sur 97 en 16 s, profils jusqu'à 25-40 m |
+| Zones de pêche sous-marine (CACEM) | 3 758 zones lues, 418 interdites et 117 réglementées retenues ; classement testé sur des textes réels ; carte vérifiée dans Chromium |
+| Alertes sur les favoris | Chiffrement vérifié sur l'exemple officiel (RFC 8291) ; parcours testé avec un faux serveur ; tables testées sur PostgreSQL ; à vérifier sur ton téléphone après l'étape 6 h |
 | Conversion turbidité en mètres, plancton (« À CALER ») | Ordres de grandeur de la littérature ; seront ajustés avec les retours de la bêta |

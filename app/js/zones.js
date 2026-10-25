@@ -64,7 +64,7 @@ export async function zonesAuPoint(lat, lon) {
 }
 
 function regleHtml(r) {
-  return `<li><strong>${echapper(r.nom)}</strong>${r.periode ? " (selon la période de l'année)" : ""} : ${echapper(r.regle || "voir le texte officiel")}
+  return `<li><strong>${echapper(r.nom)}</strong> : ${echapper(r.regle || "voir le texte officiel")}
     ${r.reference ? `<br><span class="note">Texte : ${echapper(r.reference)}</span>` : ""}</li>`;
 }
 
@@ -77,7 +77,10 @@ export function encartZones(liste, { court = false } = {}) {
   if (court) {
     return `<div class="encart ${interdite ? "zone-interdite" : "info"}"><strong>${titre}</strong> : ${echapper(regles[0].nom)}${regles.length > 1 ? ` et ${regles.length - 1} autre${regles.length > 2 ? "s" : ""} règle${regles.length > 2 ? "s" : ""}` : ""}.</div>`;
   }
+  const noms = [...new Set(regles.map((r) => r.nom))];
   return `<div class="encart ${interdite ? "zone-interdite" : "info"}"><strong>${titre}</strong>
-    <ul class="regles-zone">${regles.slice(0, 4).map(regleHtml).join("")}</ul>
-    <p class="note">D'après les zones réglementaires recensées par l'État (CACEM). Tracés indicatifs et liste incomplète : seul le texte officiel fait foi.</p></div>`;
+    <span>${echapper(noms.slice(0, 3).join(" · "))}${noms.length > 3 ? " · …" : ""}${regles.some((r) => r.periode) ? " (selon la période de l'année)" : ""}</span>
+    <details class="regles-zone"><summary>Lire ${regles.length > 1 ? "les règles" : "la règle"}</summary>
+      <ul>${regles.slice(0, 4).map(regleHtml).join("")}</ul>
+      <p class="note">D'après les zones réglementaires recensées par l'État (CACEM). Tracés indicatifs et liste incomplète : seul le texte officiel fait foi.</p></details></div>`;
 }

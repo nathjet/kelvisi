@@ -9,10 +9,12 @@ Usage : python outils/calculer_previsions.py [--sortie app/donnees] [--jours 3]
   points/<id>.json   détail heure par heure d'un point (fiche du spot)
   parametres.json    constantes du modèle, lues par le moteur du navigateur
   temperatures.json  température de l'eau de la surface à 40 m autour de chaque point (si Copernicus)
+  push.json          clé publique des notifications (alertes sur les favoris, si Supabase)
 
 Variables d'environnement facultatives :
   OPEN_METEO_CLE                       clé Open-Meteo (usage commercial)
-  SUPABASE_URL, SUPABASE_SERVICE_KEY   lecture des retours terrain pour corriger chaque point
+  SUPABASE_URL, SUPABASE_SERVICE_KEY   lecture des retours terrain pour corriger chaque point,
+                                       envoi des alertes sur les favoris (voir outils/alertes.py)
   COPERNICUSMARINE_SERVICE_USERNAME,
   COPERNICUSMARINE_SERVICE_PASSWORD    correction par satellite (voir prevision/sources/copernicus.py)
                                        et température en profondeur (prevision/sources/temperature.py)
@@ -237,6 +239,29 @@ def ecrire(dossier: Path, sorties: dict) -> None:
     ecrire_json(dossier / "parametres.json", parametres_publics())
     if sorties.get("temperatures"):
         ecrire_json(dossier / "temperatures.json", sorties["temperatures"])
+    if sorties.get("push"):
+        ecrire_json(dossier / "push.json", sorties["push"])
+
+
+def envoyer_alertes(url: str, cle: str, resume: dict, maintenant: int, traiter=None) -> dict | None:
+    """Alertes sur les favoris (outils/alertes.py). Renvoie le contenu de push.json, ou None si indisponible."""
+    import alertes
+
+    traiter = traiter or alertes.traiter
+    try:
+        bilan = traiter(alertes.Base(url, cle), resume, datetime.fromtimestamp(maintenant, timezone.utc),
+                        adresse_site() or "https://github.com/nathjet/kelvisi")
+    except Exception as e:
+        statut = getattr(getattr(e, "response", None), "status_code", None)
+        noter("Alertes : tables absentes, relance supabase/schema.sql dans Supabase" if statut in (400, 404)
+              else f"Alertes indisponibles ({type(e).__name__})")
+        return None
+    if bilan["hors_horaires"]:
+        noter("Alertes : en attente (envoi entre 8 h et 21 h)")
+    elif bilan["notifications"] or bilan["abonnements_supprimes"]:
+        noter(f"Alertes : {bilan['notifications']} notifications envoyées à {bilan['comptes']} comptes"
+              + (f", {bilan['abonnements_supprimes']} abonnements expirés supprimés" if bilan["abonnements_supprimes"] else ""))
+    return {"cle_publique": bilan["cle_publique"]}
 
 
 def adresse_site() -> str | None:
@@ -426,6 +451,8 @@ def main():
         sorties["temperatures"] = temperatures
         if "Copernicus Marine" not in resume["sources"]:
             resume["sources"].insert(1, "Copernicus Marine")
+    if url and cle and resume["points"]:
+        sorties["push"] = envoyer_alertes(url, cle, resume, maintenant)
     if any(e == "ok" for e in etat_rivieres.values()):
         resume["sources"].insert(1, "Hub'Eau")
     ecrire(Path(args.sortie), sorties)

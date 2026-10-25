@@ -37,10 +37,18 @@ Atlantique, Méditerranée, Corse). Version bêta gratuite, avec un compte.
 - **Fiche d'un spot** : visibilité attendue, fourchette et confiance, meilleur
   créneau de jour, explication en une phrase, tendance, alerte de sécurité,
   heure par heure, houle au spot, vent (de terre ou de mer, en nœuds ou km/h),
-  courant, marées, température de l'eau, pluie des 48 dernières heures, débit
-  des fleuves proches, lever et coucher du soleil, phase de la Lune et période
-  de vives-eaux ou mortes-eaux.
-- **Favoris** parmi les points Kelvisi, et **partage d'une prévision par lien**.
+  courant, marées, température de l'eau en surface et **au fond** (à la
+  profondeur du spot, modèles IBI et MED de Copernicus Marine), pluie des 48
+  dernières heures, débit des fleuves proches, lever et coucher du soleil,
+  phase de la Lune et période de vives-eaux ou mortes-eaux.
+- **Zones de pêche sous-marine** : bouton « Zones » de la carte (rouge :
+  chasse interdite, orange : règles particulières) d'après les zones
+  réglementaires du CACEM ; les fiches et la fiche rapide le signalent en haut,
+  avec la règle et la référence du texte. Mise à jour mensuelle automatique.
+- **Favoris** parmi les points Kelvisi, avec une **alerte** au choix (case
+  « M'alerter quand la visibilité y sera bonne ») : notification du navigateur
+  quand la journée devient bonne ou excellente, une fois par jour et par spot,
+  entre 8 h et 21 h. **Partage d'une prévision par lien**.
 - **Mes spots** : favoris et spots privés, liés au compte et synchronisés
   entre appareils, visibles par leur seul propriétaire ; copie et import.
   Un lieu peut être proposé comme futur point Kelvisi par courriel.
@@ -148,20 +156,26 @@ app/                    application publiée (HTML, CSS, JavaScript, données)
   js/app.js             navigation, recherche, carte, fraîcheur des données
   js/carte.js           carte MapLibre, fonds, repères
   js/relief*.js         carte des profondeurs redessinée (worker)
+  js/zones.js           zones de pêche sous-marine (carte, fiches)
+  js/temperatures.js    température au fond, lue dans les profils publiés
+  js/alertes.js         alertes sur les favoris (abonnement aux notifications)
+  zones/                zones de pêche sous-marine (mises à jour chaque mois)
   js/vues/              fiche, Où aller ?, Mes spots, Infos
   js/moteur/            moteur JavaScript, Open-Meteo, EMODnet, recherche IGN
   js/config.js          réglages à compléter (éditeur, contact, Supabase)
   donnees/              prévisions publiées (régénérées toutes les heures)
   sw.js                 fonctionnement hors connexion
 prevision/              moteur Python
-  sources/              Open-Meteo, Hub'Eau, Copernicus
+  sources/              Open-Meteo, Hub'Eau, Copernicus (satellite, température en profondeur)
 spots/points.json       les 97 points Kelvisi (et leurs rivières)
 outils/
   calculer_previsions.py  calcul horaire de tous les points
   prevoir_spot.py         prévision d'un seul spot, en ligne de commande
   construire_apercu.py    version autonome de l'appli pour un aperçu
-supabase/schema.sql     table des retours terrain et ses protections
-.github/workflows/      calcul horaire et publication
+  zones_reglementees.py   zones du CACEM classées (interdite, réglementée)
+  alertes.py, webpush.py  envoi des alertes (Web Push chiffré, clés VAPID)
+supabase/schema.sql     tables (comptes, spots, favoris et alertes, retours) et leurs protections
+.github/workflows/      calcul horaire et publication, zones chaque mois, tests de la base
 tests/                  tests du moteur, des sources et de l'interface
 prototype/, demo/       maquette et démonstration des premières étapes
 ```
@@ -176,11 +190,11 @@ python outils/calculer_previsions.py                 # prévisions réelles (ré
 python -m http.server -d app 8000                    # puis http://localhost:8000
 ```
 
-## État au 17 octobre 2026
+## État au 25 octobre 2026
 
 | Élément | État |
 | --- | --- |
-| Modèle, créneaux, explications, calibrage, classement | Codé, testé (116 tests Python), calé sur le satellite |
+| Modèle, créneaux, explications, calibrage, classement | Codé, testé (174 tests Python), calé sur le satellite |
 | Open-Meteo | Lancé sur l'API réelle : 97 points calculés sans erreur |
 | Hub'Eau | Lancé sur l'API réelle : 6 stations lues, rattachées à 25 points |
 | Interface | Testée automatiquement en mobile et grand écran |
@@ -188,6 +202,9 @@ python -m http.server -d app 8000                    # puis http://localhost:800
 | Copernicus | En service depuis le 16 octobre 2026 : produits côtiers d'environ 100 m, environ 6 points sur 10 recalés à chaque passage (selon les nuages) |
 | Supabase | Projet en service : inscription, profil, spots privés, favoris, retours et suppression vérifiés sur le vrai projet |
 | Comptes | Ouverts (obligatoires) ; e-mails de mot de passe oublié en attente d'un envoi d'e-mails propre (Brevo et nom de domaine) |
+| Température au fond | Lancée sur le vrai service Copernicus (IBI, MED) : 97 points sur 97 |
+| Zones de pêche sous-marine | Fichier tiré des zones du CACEM (418 interdites, 117 réglementées), mis à jour chaque mois |
+| Alertes sur les favoris | Codées et testées ; en service dès que `supabase/schema.sql` est relancé |
 | Paiement, fonctions de la version payante | Pas commencés |
 | Photo jointe aux retours, statistiques d'audience | Pas commencées |
 
@@ -203,8 +220,17 @@ Limites connues :
   ailleurs), est lue sur la couleur des cartes du Shom (environ un mètre
   d'incertitude) et ne sert pas à naviguer.
 - Les points Kelvisi sont des zones de prévision, pas des recommandations de
-  spot : réserves et cantonnements sont à vérifier localement.
+  spot : réserves et cantonnements sont à vérifier localement. D'après les
+  zones du CACEM, six points sont dans une zone où la chasse est interdite
+  (Camarat, Cavalaire, Calvi Revellata, Cap d'Agde, Cap Sicié, Esterel) :
+  leur fiche l'affiche en rouge.
+- Les zones de pêche sous-marine sont classées d'après le résumé de chaque
+  règle : un classement peut être faux, et la liste ne couvre pas les règles
+  générales (ports, abords des plages, arrêtés municipaux).
+- La température au fond vient d'un modèle à maille de 3 à 4 km, en moyenne
+  sur la journée : une thermocline marquée près de la côte peut lui échapper.
 
 Données : Open-Meteo (CC BY 4.0), Hub'Eau (Licence Ouverte), IGN
 Géoplateforme (Licence Ouverte), Shom (Licence Ouverte), EMODnet Bathymetry,
-OpenFreeMap et OpenStreetMap (ODbL), Natural Earth, Copernicus Marine Service.
+OpenFreeMap et OpenStreetMap (ODbL), Natural Earth, Copernicus Marine Service,
+zones réglementaires du CACEM (Licence Ouverte 2.0).

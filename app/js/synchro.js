@@ -1,4 +1,4 @@
-// Synchronisation des spots privés et des favoris avec le compte.
+// Synchronisation des spots privés, des favoris et de leurs alertes avec le compte.
 //
 // L'appareil garde une copie de travail (utilisable hors connexion). Chaque modification est
 // notée dans une file d'attente, envoyée au serveur dès que possible ; ensuite la copie locale
@@ -7,6 +7,7 @@
 import { lire, ecrire, supprimer } from "./stockage.js";
 import { comptesActifs, requete, utilisateur } from "./compte.js";
 import { partageDisponible } from "./communaute.js";
+import { alertes, alertesDisponibles, remplacerAlertes } from "./alertes.js";
 
 const CLE_SPOTS = "kelvisi-spots";
 const CLE_FAVORIS = "kelvisi-favoris";
@@ -16,7 +17,7 @@ const CHAMPS_SPOT = ["id", "nom", "lat", "lon", "region", "orientation_deg", "ou
 
 function attente() {
   const a = lire(CLE_ATTENTE, null);
-  return { spots: { ...(a?.spots || {}) }, favoris: { ...(a?.favoris || {}) } };
+  return { spots: { ...(a?.spots || {}) }, favoris: { ...(a?.favoris || {}) }, alertes: { ...(a?.alertes || {}) } };
 }
 
 export function noterSpot(id, operation) {
@@ -35,9 +36,17 @@ export function noterFavori(id, operation) {
   planifier();
 }
 
+export function noterAlerte(id, niveau) {
+  if (!comptesActifs()) return;
+  const a = attente();
+  a.alertes[id] = niveau; // « bonne », « excellente » ou « aucune »
+  ecrire(CLE_ATTENTE, a);
+  planifier();
+}
+
 export function enAttente() {
   const a = attente();
-  return Object.keys(a.spots).length + Object.keys(a.favoris).length;
+  return Object.keys(a.spots).length + Object.keys(a.favoris).length + Object.keys(a.alertes).length;
 }
 
 let minuterie = null;
@@ -80,6 +89,7 @@ async function executer() {
     const a = attente();
     for (const s of lire(CLE_SPOTS, [])) a.spots[s.id] ||= "maj";
     for (const f of lire(CLE_FAVORIS, [])) a.favoris[f] ||= "ajout";
+    for (const [id, niveau] of Object.entries(alertes())) a.alertes[id] ||= niveau;
     ecrire(CLE_ATTENTE, a);
   }
   ecrire(CLE_PROPRIETAIRE, u.id);
@@ -115,16 +125,28 @@ async function executer() {
       });
     }
     if (retraits.length) await requete(`favoris?point_id=in.${encodeURIComponent(liste(retraits))}`, { methode: "DELETE" });
+    // Alertes : seulement si la base les connaît (script SQL appliqué, clés de notification publiées)
+    const avecAlertes = Boolean(await alertesDisponibles());
+    if (avecAlertes) {
+      const parNiveau = {};
+      for (const [id, niveau] of Object.entries(a.alertes)) (parNiveau[niveau] ||= []).push(id);
+      for (const [niveau, ids] of Object.entries(parNiveau)) {
+        await requete(`favoris?point_id=in.${encodeURIComponent(liste(ids))}`, {
+          methode: "PATCH", prefer: "return=minimal", corps: { alerte: niveau === "aucune" ? null : niveau },
+        });
+      }
+    }
 
     // Ce qui a été envoyé sort de la file ; une modification faite pendant l'envoi y reste
     const apres = attente();
     for (const [id, op] of Object.entries(a.spots)) if (apres.spots[id] === op) delete apres.spots[id];
     for (const [id, op] of Object.entries(a.favoris)) if (apres.favoris[id] === op) delete apres.favoris[id];
+    if (avecAlertes) for (const [id, op] of Object.entries(a.alertes)) if (apres.alertes[id] === op) delete apres.alertes[id];
     ecrire(CLE_ATTENTE, apres);
 
     const [spots, favoris] = await Promise.all([
       requete(`spots_prives?select=${champsLus.join(",")}&order=cree_le.asc`),
-      requete("favoris?select=point_id&order=cree_le.asc"),
+      requete(`favoris?select=point_id${avecAlertes ? ",alerte" : ""}&order=cree_le.asc`),
     ]);
     // Les modifications encore en attente gardent leur version locale
     const reste = attente();
@@ -141,6 +163,14 @@ async function executer() {
     for (const [id, op] of Object.entries(reste.favoris)) if (op === "ajout" && !favs.includes(id)) favs.push(id);
     ecrire(CLE_SPOTS, fusion);
     ecrire(CLE_FAVORIS, favs);
+    if (avecAlertes) {
+      const table = Object.fromEntries(favoris.filter((f) => f.alerte && favs.includes(f.point_id)).map((f) => [f.point_id, f.alerte]));
+      for (const [id, niveau] of Object.entries(reste.alertes)) {
+        if (niveau === "aucune") delete table[id];
+        else if (favs.includes(id)) table[id] = niveau;
+      }
+      remplacerAlertes(table);
+    }
     document.dispatchEvent(new CustomEvent("kelvisi-synchro"));
     return { ok: true };
   } catch (e) {
@@ -150,5 +180,5 @@ async function executer() {
 
 // À la déconnexion ou au changement de compte : rien ne reste sur l'appareil
 export function effacerDonneesLocales() {
-  for (const cle of [CLE_SPOTS, CLE_FAVORIS, CLE_ATTENTE, CLE_PROPRIETAIRE, "kelvisi-retours", "kelvisi-profil", "kelvisi-communaute"]) supprimer(cle);
+  for (const cle of [CLE_SPOTS, CLE_FAVORIS, CLE_ATTENTE, CLE_PROPRIETAIRE, "kelvisi-retours", "kelvisi-profil", "kelvisi-communaute", "kelvisi-alertes"]) supprimer(cle);
 }

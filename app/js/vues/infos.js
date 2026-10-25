@@ -30,6 +30,7 @@ const PAGES = {
         <li>La fourchette et la confiance disent à quel point l'estimation est sûre. La confiance baisse avec l'échéance.</li>
         <li>Les couleurs vont de « mauvaise » à « excellente ». Les seuils ne sont pas les mêmes en Méditerranée, où l'eau est plus claire.</li>
         <li>Seuls les créneaux entre le lever et le coucher du soleil sont proposés : la chasse de nuit est interdite.</li>
+        <li>« Eau au fond » donne la température prévue à la profondeur du spot, en moyenne sur la journée (modèles de Copernicus Marine). Pour un spot à toi, elle vient du point Kelvisi le plus proche.</li>
       </ul>
       <h2>Lire la carte des profondeurs</h2>
       <ul>
@@ -65,6 +66,7 @@ const PAGES = {
         <li>Âge minimum : 16 ans.</li>
         <li>Chasse interdite entre le coucher et le lever du soleil, et avec un appareil respiratoire (bouteille).</li>
         <li>Tailles minimales de capture, quotas et zones interdites (réserves, cantonnements, parcs) : ils varient selon les secteurs et changent chaque année.</li>
+        <li>Le bouton « Zones » de la carte montre en rouge les zones où la chasse sous-marine est interdite et en orange celles qui ont des règles particulières, d'après les zones réglementaires recensées par l'État (CACEM). Les fiches le signalent aussi. La liste n'est pas complète (ports, abords des plages en été, arrêtés municipaux) et les tracés sont indicatifs : seul le texte officiel fait foi.</li>
         <li>Depuis 2026, chaque pêcheur de loisir doit s'enregistrer et déclarer ses captures d'espèces sensibles (bar, lieu jaune, thon rouge, dorade rose) avec l'application RecFishing. Certains parcs de Méditerranée utilisent Catchmachine.</li>
       </ul>
       <p>Règles officielles et à jour : <a href="https://www.mer.gouv.fr/peche-de-loisir-en-mer" target="_blank" rel="noopener">pêche de loisir en mer (ministère de la Mer)</a>. Vérifie aussi les arrêtés de ta direction interrégionale de la mer.</p>
@@ -81,12 +83,14 @@ const PAGES = {
         <li>Vue aérienne et recherche de lieux : Géoplateforme de l'IGN (Licence Ouverte).</li>
         <li>Profondeurs près des côtes : <a href="https://data.shom.fr" target="_blank" rel="noopener">Shom</a> (Licence Ouverte) : Litto3D® Shom-IGN, MNT côtiers et MNT de façade (projet Homonim).</li>
         <li>Profondeurs en vue lointaine et hors des zones du Shom : <a href="https://emodnet.ec.europa.eu/en/bathymetry" target="_blank" rel="noopener">EMODnet Bathymetry</a>, réseau européen d'observation marine.</li>
+        <li>Zones de pêche sous-marine interdite ou réglementée : <a href="https://www.data.gouv.fr/datasets/zones-reglementaires-cacem" target="_blank" rel="noopener">zones réglementaires du CACEM</a>, ministère de la Transition écologique (Licence Ouverte 2.0), reprises chaque mois.</li>
+        <li>Température de l'eau en profondeur : modèles IBI et MED de Copernicus Marine.</li>
         <li>Comptes et données des utilisateurs : Supabase, serveurs dans l'Union européenne.</li>
         <li>Fond de carte de secours : trait de côte Natural Earth (domaine public).</li>
         <li>Carte interactive : MapLibre GL JS (licence BSD).</li>
         <li>Polices : Archivo et Atkinson Hyperlegible (licence SIL Open Font).</li>
       </ul>
-      ${ctx?.resume?.sources?.includes("Copernicus Marine") ? "<p>Images satellite : Generated using E.U. Copernicus Marine Service Information.</p>" : ""}
+      ${ctx?.resume?.sources?.includes("Copernicus Marine") ? "<p>Images satellite et température en profondeur : Generated using E.U. Copernicus Marine Service Information.</p>" : ""}
       <p>Le modèle de prévision de Kelvisi est un travail original. Ses résultats ne sont pas des données officielles.</p>`,
   },
   confidentialite: {
@@ -97,12 +101,13 @@ const PAGES = {
       <h2>Les données de ton compte</h2>
       <ul>
         <li><strong>Ce que tu donnes à l'inscription</strong> : adresse e-mail, mot de passe (stocké chiffré, personne ne peut le lire), prénom, département, pratiques, tranche d'âge, et ton choix de recevoir ou non des e-mails de Kelvisi.</li>
-        <li><strong>Ce que tu enregistres</strong> : tes spots privés, tes favoris et tes retours terrain.</li>
+        <li><strong>Ce que tu enregistres</strong> : tes spots privés, tes favoris (avec l'alerte choisie) et tes retours terrain.</li>
+        <li><strong>Si tu actives une alerte</strong> : l'adresse de notification de chaque appareil où tu l'autorises (fournie par le service de ton navigateur : Google, Mozilla ou Apple) et la liste des alertes déjà envoyées, gardée 30 jours.</li>
         <li><strong>Ce qui est noté automatiquement</strong> : dates d'inscription et de dernière connexion.</li>
       </ul>
       <h2>À quoi elles servent</h2>
       <ul>
-        <li>Faire fonctionner ton compte et retrouver tes spots sur tous tes appareils (exécution des conditions d'utilisation).</li>
+        <li>Faire fonctionner ton compte, retrouver tes spots sur tous tes appareils et t'envoyer les alertes que tu as demandées (exécution des conditions d'utilisation).</li>
         <li>Corriger les prévisions grâce aux retours terrain, et mieux connaître les utilisateurs de Kelvisi pour améliorer le service, de façon statistique (intérêt légitime).</li>
         <li>T'envoyer des nouvelles et des offres de Kelvisi, <strong>seulement si tu l'as accepté</strong> (consentement). Tu peux retirer ton accord à tout moment dans « Mon compte » ou par le lien de désinscription de chaque e-mail.</li>
       </ul>
@@ -125,6 +130,7 @@ const PAGES = {
         <li>Pour calculer la prévision d'un lieu ou d'un spot privé : sa position arrondie à environ 1 km, envoyée à Open-Meteo.</li>
         <li>Pour la profondeur d'un lieu : sa position, envoyée au Shom et à EMODnet.</li>
         <li>Le texte tapé dans la recherche, envoyé à la Géoplateforme de l'IGN. Les tuiles de carte, chargées depuis OpenFreeMap, l'IGN, le Shom et EMODnet.</li>
+        <li>Les alertes passent par le service de notification de ton navigateur (Google, Mozilla ou Apple). Leur contenu est chiffré : ce service ne peut pas le lire. L'abonnement de l'appareil est effacé quand tu t'y déconnectes.</li>
       </ul>
       <p>Ces services reçoivent aussi, comme tout site web, ton adresse IP. Kelvisi ne leur transmet rien d'autre.</p>
       <h2>Tes droits</h2>

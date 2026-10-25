@@ -17,6 +17,7 @@ import { afficherEcranCompte, afficherMonCompte, masquerEcranCompte } from "./vu
 import { NOM_CLASSE, dateHeure, decrireMesure, distanceKm, echapper, heure, jourCourt, metres, ventDansTexte } from "./format.js";
 import { meilleureMesure, profondeursAuPoint } from "./bathymetrie.js";
 import { encartZones, zonesAuPoint } from "./zones.js";
+import { verifierAbonnement } from "./alertes.js";
 import { tranchesLegende } from "./relief-rendu.js";
 
 const large = window.matchMedia("(min-width: 960px)");
@@ -442,6 +443,7 @@ async function surConnexion() {
   const r = await synchroniser();
   if (r && !r.ok && r.raison === "erreur") annoncer("Tes spots n'ont pas pu être synchronisés. Nouvel essai au prochain démarrage.");
   lireProfil().catch(() => {});
+  verifierAbonnement();
 }
 
 function lierComptes(lien) {

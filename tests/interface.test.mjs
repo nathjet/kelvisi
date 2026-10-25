@@ -378,7 +378,7 @@ await etape("clic en mer puis prévision d'un lieu libre", async () => {
   assert.ok(!panneau().querySelector("#favori"), "pas de favori pour un lieu libre");
   assert.match(texte(panneau()), /reprises du point Kelvisi Quiberon, côte sauvage, à \d+ km/, "valeurs calées du point de référence voisin");
   await jusqua(() => !panneau().querySelector("#bloc-zones").hidden, "zone signalée en haut de la fiche");
-  assert.match(texte(panneau().querySelector("#bloc-zones")), /Chasse sous-marine interdite ici\s*Cantonnement de test \(selon la période de l'année\) : Toute pêche est interdite\s*Texte : Arrêté n°12\/2026/);
+  assert.match(texte(panneau().querySelector("#bloc-zones")), /Chasse sous-marine interdite ici\s*Cantonnement de test \(selon la période de l'année\)\s*Lire la règle\s*Cantonnement de test : Toute pêche est interdite\s*Texte : Arrêté n°12\/2026/);
   assert.ok(panneau().querySelector("#bloc-zones .zone-interdite"), "encart rouge");
   await jusqua(() => /Eau au fond/.test(texte(panneau())), "température au fond du lieu libre");
   assert.match(texte(panneau()), /Eau au fond\s*[\d,]+ °C\s*(à|vers) [\d,]+ m.*d'après Quiberon, côte sauvage, à \d+ km/, "profil du point Kelvisi voisin");

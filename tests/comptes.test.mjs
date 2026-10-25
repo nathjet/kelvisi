@@ -1,7 +1,7 @@
 // Test de bout en bout des comptes, dans un navigateur simulé (jsdom), avec un faux serveur Supabase
 // qui applique les mêmes règles que supabase/schema.sql (chacun ne voit que ses données).
 //
-// Usage : node tests/comptes.test.mjs   (lance les parcours « parcours », « lien », « expire » et « partage »)
+// Usage : node tests/comptes.test.mjs   (lance les parcours « parcours », « lien », « expire », « partage » et « alertes »)
 
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -16,7 +16,7 @@ const mode = process.argv[2];
 
 if (!mode) {
   let echec = false;
-  for (const m of ["parcours", "lien", "expire", "partage"]) {
+  for (const m of ["parcours", "lien", "expire", "partage", "alertes"]) {
     const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), m], { encoding: "utf8" });
     process.stdout.write(r.stdout);
     process.stderr.write(r.stderr);
@@ -28,9 +28,12 @@ if (!mode) {
 // --- Faux serveur Supabase ------------------------------------------------------------------------
 
 const BASE = "https://supabase.test";
-const serveur = { utilisateurs: [], profils: new Map(), spots: [], favoris: [], rapports: [], appels: [],
+const serveur = { utilisateurs: [], profils: new Map(), spots: [], favoris: [], rapports: [], appels: [], abonnements: [],
   // Partage des spots installé sur la base (script SQL appliqué) : seulement dans le parcours « partage »
-  partageActif: mode === "partage" };
+  partageActif: mode === "partage",
+  // Alertes installées (script SQL appliqué, clés publiées dans donnees/push.json) : parcours « alertes »
+  alertesActives: mode === "alertes" };
+const CLE_PUSH = "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4";
 const CARACTERISTIQUES = ["nom", "lat", "lon", "orientation_deg", "ouverture_deg", "profondeur_m", "fond"];
 let compteur = 0;
 
@@ -135,7 +138,20 @@ function supabase(url, options) {
     }
   }
   if (chemin.startsWith("/rest/v1/favoris")) {
-    if (methode === "GET") return reponse(serveur.favoris.filter((f) => f.proprietaire === u.id).map((f) => ({ point_id: f.point_id })));
+    if (!serveur.alertesActives && /alerte/.test(decodeURIComponent(chemin) + JSON.stringify(corps || ""))) {
+      return reponse({ code: "PGRST204", message: "Could not find the 'alerte' column of 'favoris'" }, 400);
+    }
+    if (methode === "GET") {
+      return reponse(serveur.favoris.filter((f) => f.proprietaire === u.id)
+        .map((f) => (/alerte/.test(chemin) ? { point_id: f.point_id, alerte: f.alerte ?? null } : { point_id: f.point_id })));
+    }
+    if (methode === "PATCH") {
+      assert.deepEqual(Object.keys(corps), ["alerte"], "seule l'alerte d'un favori est modifiable");
+      assert.ok([null, "bonne", "excellente"].includes(corps.alerte), "niveau d'alerte valide");
+      const ids = filtreIn(url, "point_id");
+      for (const f of serveur.favoris) if (f.proprietaire === u.id && ids.includes(f.point_id)) f.alerte = corps.alerte;
+      return reponse(null, 204);
+    }
     if (methode === "POST") {
       for (const f of corps) if (!serveur.favoris.some((x) => x.proprietaire === u.id && x.point_id === f.point_id)) serveur.favoris.push(f);
       return reponse(null, 201);
@@ -143,6 +159,24 @@ function supabase(url, options) {
     if (methode === "DELETE") {
       const ids = filtreIn(url, "point_id");
       serveur.favoris = serveur.favoris.filter((x) => !(x.proprietaire === u.id && ids.includes(x.point_id)));
+      return reponse(null, 204);
+    }
+  }
+  if (chemin.startsWith("/rest/v1/abonnements_push")) {
+    if (methode === "POST") {
+      for (const a of corps) {
+        assert.equal(a.proprietaire, u.id, "appareil abonné au nom du compte");
+        assert.match(a.endpoint, /^https:\/\//);
+        assert.ok(a.p256dh.length > 20 && a.auth.length >= 8, "clés de chiffrement de l'appareil");
+        serveur.abonnements = serveur.abonnements.filter((x) => !(x.proprietaire === u.id && x.endpoint === a.endpoint));
+        serveur.abonnements.push(a);
+      }
+      return reponse(null, 201);
+    }
+    if (methode === "DELETE") {
+      const m = /endpoint=eq\.(.+)$/.exec(decodeURIComponent(chemin));
+      const endpoint = m ? m[1].replace(/^"|"$/g, "") : null;
+      serveur.abonnements = serveur.abonnements.filter((x) => !(x.proprietaire === u.id && x.endpoint === endpoint));
       return reponse(null, 204);
     }
   }
@@ -161,6 +195,7 @@ function supabase(url, options) {
     serveur.utilisateurs = serveur.utilisateurs.filter((x) => x.id !== u.id);
     serveur.spots = serveur.spots.filter((x) => x.proprietaire !== u.id);
     serveur.favoris = serveur.favoris.filter((x) => x.proprietaire !== u.id);
+    serveur.abonnements = serveur.abonnements.filter((x) => x.proprietaire !== u.id);
     serveur.profils.delete(u.id);
     return reponse(null, 204);
   }
@@ -189,6 +224,7 @@ function reponseOpenMeteo(table) {
 async function fauxFetch(entree, options = {}) {
   const url = String(entree);
   if (url.startsWith(BASE)) return supabase(url, options);
+  if (url.startsWith("donnees/push.json")) return serveur.alertesActives ? reponse({ cle_publique: CLE_PUSH }) : reponse(null, 404);
   if (url.startsWith("donnees/")) {
     const chemin = join(APP, decodeURIComponent(url.split("?")[0]));
     return existsSync(chemin) ? reponse(JSON.parse(readFileSync(chemin, "utf8"))) : reponse(null, 404);
@@ -228,6 +264,7 @@ class FauxRepere {
 const ADRESSES = {
   parcours: "https://kelvisi.test/",
   partage: "https://kelvisi.test/",
+  alertes: "https://kelvisi.test/",
   lien: "https://kelvisi.test/#access_token=PLACEHOLDER&expires_in=3600&refresh_token=REFRESH&token_type=bearer&type=recovery",
   expire: "https://kelvisi.test/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired",
 };
@@ -248,6 +285,29 @@ w.HTMLElement.prototype.scrollIntoView = () => {};
 for (const nom of ["window", "document", "location", "localStorage", "history", "HTMLElement", "Event", "CustomEvent", "AbortController", "FormData"]) {
   globalThis[nom] = w[nom];
 }
+// Notifications du navigateur (Web Push) : permission et abonnement simulés
+const push = { reponse: "granted", abonnement: null, demandes: 0 };
+w.Notification = class { static permission = "default"; static async requestPermission() { push.demandes++; w.Notification.permission = push.reponse; return push.reponse; } };
+w.PushManager = class {};
+const enregistrementSw = {
+  pushManager: {
+    getSubscription: async () => push.abonnement,
+    subscribe: async ({ userVisibleOnly, applicationServerKey }) => {
+      assert.ok(userVisibleOnly, "notifications toujours visibles");
+      assert.equal(applicationServerKey.length, 65, "clé publique de Kelvisi décodée");
+      push.abonnement = {
+        endpoint: "https://push.test/appareil-1", options: { applicationServerKey: applicationServerKey.buffer },
+        getKey: (n) => new Uint8Array(n === "p256dh" ? 65 : 16).fill(7).buffer,
+        unsubscribe: async () => { push.abonnement = null; return true; },
+      };
+      return push.abonnement;
+    },
+  },
+};
+Object.defineProperty(w.navigator, "serviceWorker", { configurable: true, value: {
+  register: async () => enregistrementSw, ready: Promise.resolve(enregistrementSw), getRegistration: async () => enregistrementSw,
+} });
+globalThis.Notification = w.Notification;
 Object.defineProperty(globalThis, "navigator", { value: w.navigator, configurable: true, writable: true });
 globalThis.fetch = fauxFetch;
 globalThis.requestAnimationFrame = (f) => setTimeout(f, 0);
@@ -508,6 +568,79 @@ if (mode === "partage") {
     champ.value = "roche";
     champ.dispatchEvent(new w.Event("input"));
     await jusqua(() => /Roche du large\s*Spot partagé/.test(texte(panneau().querySelector("#ou-resultats"))), "spot partagé trouvé par son nom");
+  });
+}
+
+if (mode === "alertes") {
+  const moi = creerUtilisateur("alerte@exemple.fr", "chasse2026", { prenom: "Moi" }, true);
+  serveur.favoris.push({ proprietaire: moi.id, point_id: "ref-groix", alerte: null });
+
+  await etape("connexion : favori sans alerte", async () => {
+    await jusqua(() => !ecran().hidden, "écran de compte");
+    ecran().querySelector('[data-mode="connexion"]').click();
+    const form = ecran().querySelector("form");
+    remplir(form, { email: "alerte@exemple.fr", mot_de_passe: "chasse2026" });
+    soumettre(form);
+    await jusqua(() => ecran().hidden && JSON.parse(w.localStorage.getItem("kelvisi-favoris") || "[]").includes("ref-groix"), "favori rapatrié");
+    w.location.hash = "#/spot/ref-groix";
+    await jusqua(() => panneau().querySelector("#alerte-favori:not([hidden])"), "case d'alerte");
+    assert.ok(!panneau().querySelector("#alerte-case").checked);
+    assert.match(texte(panneau().querySelector("#alerte-favori")), /M'alerter quand la visibilité y sera bonne/);
+  });
+
+  await etape("notifications refusées : message clair, rien d'enregistré", async () => {
+    push.reponse = "denied";
+    const caseAlerte = panneau().querySelector("#alerte-case");
+    caseAlerte.checked = true;
+    caseAlerte.dispatchEvent(new w.Event("change"));
+    await jusqua(() => !panneau().querySelector("#alerte-erreur").hidden, "message");
+    assert.match(panneau().querySelector("#alerte-erreur").textContent, /bloquées/);
+    assert.ok(!panneau().querySelector("#alerte-case").checked);
+    assert.equal(serveur.abonnements.length, 0);
+    w.Notification.permission = "default";
+  });
+
+  await etape("alerte activée : appareil abonné, niveau enregistré sur le compte", async () => {
+    push.reponse = "granted";
+    const caseAlerte = panneau().querySelector("#alerte-case");
+    caseAlerte.checked = true;
+    caseAlerte.dispatchEvent(new w.Event("change"));
+    await jusqua(() => serveur.favoris[0].alerte === "bonne", "alerte sur le serveur");
+    assert.equal(serveur.abonnements.length, 1);
+    assert.equal(serveur.abonnements[0].endpoint, "https://push.test/appareil-1");
+    assert.ok(panneau().querySelector("#alerte-case").checked);
+    assert.equal(panneau().querySelector('#alerte-niveau [aria-pressed="true"]').textContent, "Bonne ou mieux");
+    panneau().querySelector('#alerte-niveau [data-v="excellente"]').click();
+    await jusqua(() => serveur.favoris[0].alerte === "excellente", "niveau changé");
+    assert.deepEqual(JSON.parse(w.localStorage.getItem("kelvisi-alertes")), { "ref-groix": "excellente" });
+  });
+
+  await etape("mon compte : alertes listées et exportées", async () => {
+    w.location.hash = "#/compte";
+    await jusqua(() => /Mes alertes/.test(texte(panneau())), "bloc des alertes");
+    assert.match(texte(panneau()), /Groix.*excellente seulement/);
+  });
+
+  await etape("favori retiré : son alerte disparaît", async () => {
+    w.location.hash = "#/spot/ref-groix";
+    await jusqua(() => panneau().querySelector("#alerte-favori:not([hidden])"), "fiche");
+    panneau().querySelector("#favori").click();
+    await jusqua(() => panneau().querySelector("#alerte-favori").hidden, "case masquée");
+    await jusqua(() => serveur.favoris.length === 0, "favori supprimé du serveur");
+    assert.deepEqual(JSON.parse(w.localStorage.getItem("kelvisi-alertes") || "{}"), {});
+  });
+
+  await etape("déconnexion : l'appareil ne reçoit plus les alertes du compte", async () => {
+    panneau().querySelector("#favori").click();
+    await jusqua(() => panneau().querySelector("#alerte-favori:not([hidden])"), "case revenue");
+    assert.ok(!panneau().querySelector("#alerte-case").checked, "pas d'alerte reprise d'office");
+    w.location.hash = "#/compte";
+    await jusqua(() => panneau().querySelector("[data-deconnexion]"), "page compte");
+    panneau().querySelector("[data-deconnexion]").click();
+    await jusqua(() => !ecran().hidden, "écran de connexion");
+    assert.equal(serveur.abonnements.length, 0, "abonnement retiré du compte");
+    assert.equal(push.abonnement, null, "abonnement du navigateur résilié");
+    assert.equal(w.localStorage.getItem("kelvisi-alertes"), null);
   });
 }
 

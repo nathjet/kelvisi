@@ -2,6 +2,7 @@
 
 import { lire, ecrire } from "./stockage.js";
 import { noterFavori } from "./synchro.js";
+import { alertes, remplacerAlertes } from "./alertes.js";
 
 const CLE = "kelvisi-favoris";
 
@@ -18,8 +19,15 @@ export function estFavori(id) {
 export function basculerFavori(id) {
   const liste = favoris();
   const i = liste.indexOf(id);
-  if (i >= 0) liste.splice(i, 1);
-  else liste.push(id);
+  if (i >= 0) {
+    liste.splice(i, 1);
+    // Retiré des favoris : son alerte disparaît avec lui (sur le compte aussi, la ligne étant supprimée)
+    const a = alertes();
+    if (a[id]) {
+      delete a[id];
+      remplacerAlertes(a);
+    }
+  } else liste.push(id);
   ecrire(CLE, liste);
   noterFavori(id, i < 0 ? "ajout" : "retrait");
   return i < 0;

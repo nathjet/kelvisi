@@ -27,6 +27,7 @@ const COQUILLE = [
   "js/stockage.js",
   "js/temperatures.js",
   "js/zones.js",
+  "js/alertes.js",
   "js/synchro.js",
   "js/communaute.js",
   "js/moteur/moteur.js",
@@ -86,4 +87,31 @@ self.addEventListener("fetch", (e) => {
       return rep;
     })),
   );
+});
+
+// Alertes sur les favoris : notification envoyée par le calcul horaire (voir outils/alertes.py)
+self.addEventListener("push", (e) => {
+  let d = {};
+  try {
+    d = e.data ? e.data.json() : {};
+  } catch (err) {
+    d = { corps: e.data ? e.data.text() : "" };
+  }
+  e.waitUntil(self.registration.showNotification(d.titre || "Kelvisi", {
+    body: d.corps || "Bonne visibilité prévue sur un de tes favoris.",
+    icon: "icones/icone-192.png",
+    badge: "icones/favicon-32.png",
+    tag: d.etiquette || "kelvisi-alerte",
+    data: { url: d.url || "#/liste" },
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const cible = new URL(e.notification.data?.url || "#/liste", self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((fenetres) => {
+    const ouverte = fenetres.find((f) => f.url.startsWith(self.registration.scope));
+    if (ouverte) return ouverte.navigate(cible).then((f) => (f || ouverte).focus()).catch(() => ouverte.focus());
+    return self.clients.openWindow(cible);
+  }));
 });

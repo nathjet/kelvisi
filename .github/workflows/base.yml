@@ -38,3 +38,5 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f tests/supabase/verifier.sql
       - name: Vérifier le partage des spots (validation, anonymat, retrait)
         run: psql -v ON_ERROR_STOP=1 -f tests/supabase/partage.sql
+      - name: Vérifier les alertes (niveaux, appareils, clés inaccessibles)
+        run: psql -v ON_ERROR_STOP=1 -f tests/supabase/alertes.sql

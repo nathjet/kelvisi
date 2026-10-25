@@ -7,8 +7,10 @@ import { monSpot, enregistrerSpot, supprimerSpot } from "../messpots.js";
 import { enregistrerRetour, partageActif, rapportsPourMoteur, retoursDuSpot } from "../retours.js";
 import { estimerLieu } from "../profondeur.js";
 import { profondeursAuPoint } from "../bathymetrie.js";
-import { comptesActifs } from "../compte.js";
+import { comptesActifs, utilisateur } from "../compte.js";
 import { estFavori, basculerFavori } from "../favoris.js";
+import { NIVEAUX, alertesDisponibles, choisirAlerte, niveauAlerte } from "../alertes.js";
+import { noterAlerte } from "../synchro.js";
 import { CONFIG } from "../config.js";
 import { ETATS_PARTAGE, partageConnu, spotCommunaute } from "../communaute.js";
 import {
@@ -423,6 +425,7 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
         ${cible.type === "public" ? `<button type="button" class="bouton secondaire" id="favori" aria-pressed="${estFavori(meta.id)}">${estFavori(meta.id) ? "★ Dans mes favoris" : "☆ Ajouter aux favoris"}</button>` : ""}
         ${cible.type !== "prive" ? `<button type="button" class="bouton secondaire" id="partager">Partager</button>` : ""}</div>
       <p class="confirmation" id="message-partage" hidden></p>
+      ${cible.type === "public" ? '<div class="alerte-favori" id="alerte-favori" hidden></div>' : ""}
     </div>
     <div class="bloc"><h2 class="titre-bloc">Heure par heure</h2>${graphique(prevision, jour)}</div>
     <div class="bloc"><h2 class="titre-bloc">Conditions</h2>${conditions(prevision, jour, meta)}</div>
@@ -449,7 +452,9 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
     const oui = basculerFavori(meta.id);
     fav.setAttribute("aria-pressed", String(oui));
     fav.textContent = oui ? "★ Dans mes favoris" : "☆ Ajouter aux favoris";
+    remplirAlerte(zone, meta);
   });
+  if (cible.type === "public") remplirAlerte(zone, meta);
   const bp = zone.querySelector("#partager");
   if (bp) bp.addEventListener("click", () => partager(zone, cible, meta, jour, v));
   lierFormulaireRetour(zone, cible, ctx, meta, prevision);
@@ -459,6 +464,42 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
   if ((cible.type === "prive" || cible.type === "point") && spot) lierReglages(zone, cible, ctx, spot);
   if (cible.type === "prive" && spot) lierActionsPrive(zone, ctx, spot);
   if (cible.type === "communaute" && spot) lierActionsCommunaute(zone, ctx, spot);
+}
+
+// Case « M'alerter » d'un favori : visible avec un compte connecté, une fois les alertes en service
+async function remplirAlerte(zone, meta) {
+  const bloc = zone.querySelector("#alerte-favori");
+  if (!bloc) return;
+  if (!estFavori(meta.id) || !comptesActifs() || !utilisateur() || !(await alertesDisponibles())) {
+    bloc.hidden = true;
+    return;
+  }
+  const niveau = niveauAlerte(meta.id);
+  bloc.innerHTML = `<label class="case"><input type="checkbox" id="alerte-case" ${niveau ? "checked" : ""}> M'alerter quand la visibilité y sera bonne</label>
+    <div class="segments" id="alerte-niveau" role="group" aria-label="Niveau de l'alerte" ${niveau ? "" : "hidden"}>
+      ${Object.entries(NIVEAUX).map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${v === niveau}">${t}</button>`).join("")}</div>
+    <p class="note">Une notification au plus par jour et par spot, entre 8 h et 21 h, pour aujourd'hui et les deux jours suivants.</p>
+    <p class="erreur" id="alerte-erreur" hidden></p>`;
+  bloc.hidden = false;
+  const erreur = bloc.querySelector("#alerte-erreur");
+  const appliquer = async (choix) => {
+    erreur.hidden = true;
+    try {
+      await choisirAlerte(meta.id, choix, noterAlerte);
+    } catch (e) {
+      erreur.textContent = e.message || "Alerte impossible pour le moment.";
+      erreur.hidden = false;
+    }
+    const actuel = niveauAlerte(meta.id);
+    bloc.querySelector("#alerte-case").checked = Boolean(actuel);
+    bloc.querySelector("#alerte-niveau").hidden = !actuel;
+    bloc.querySelectorAll("#alerte-niveau button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === actuel)));
+  };
+  bloc.querySelector("#alerte-case").addEventListener("change", (e) => appliquer(e.target.checked ? niveauAlerte(meta.id) || "bonne" : null));
+  bloc.querySelector("#alerte-niveau").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (b) appliquer(b.dataset.v);
+  });
 }
 
 // Zone où la pêche sous-marine est interdite ou réglementée, signalée en haut de la fiche

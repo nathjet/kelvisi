@@ -1,12 +1,14 @@
 // Écrans du compte : accueil (inscription, connexion, mot de passe oublié), nouveau mot de passe,
-// et page « Mon compte » (profil, accord e-mails, mot de passe, export, suppression).
+// et page « Mon compte » (profil, accord e-mails, mot de passe, alertes, export, suppression).
 
 import {
   PRATIQUES, TRANCHES_AGE, changerMotDePasse, connecter, deconnecter, inscrire, lireProfil, modifierProfil,
   motDePasseOublie, profilEnMemoire, renvoyerConfirmation, supprimerCompte, utilisateur, verifierDepartement,
   verifierMotDePasse,
 } from "../compte.js";
-import { effacerDonneesLocales, synchroniser } from "../synchro.js";
+import { effacerDonneesLocales, noterAlerte, synchroniser } from "../synchro.js";
+import { NIVEAUX, alertes, choisirAlerte, desabonnerAppareil } from "../alertes.js";
+import { pointPublic } from "../donnees.js";
 import { mesSpots } from "../messpots.js";
 import { favoris } from "../favoris.js";
 import { echapper, dateHeure } from "../format.js";
@@ -242,6 +244,16 @@ async function soumettre(z, form) {
 
 // --- Page « Mon compte » --------------------------------------------------------------------------
 
+// Favoris sous alerte, avec un bouton pour toutes les retirer
+function blocAlertes() {
+  const liste = Object.entries(alertes());
+  if (!liste.length) return "";
+  return `<div class="bloc"><h2 class="titre-bloc">Mes alertes</h2>
+    <ul class="marees">${liste.map(([id, niveau]) => `<li><strong>${echapper(pointPublic(id)?.nom || id)}</strong> · ${NIVEAUX[niveau].toLowerCase()}</li>`).join("")}</ul>
+    <p class="note">Change-les depuis la fiche de chaque favori. Les notifications arrivent sur les appareils où tu les as autorisées.</p>
+    <div class="rangee"><button type="button" class="bouton secondaire" data-alertes-retirer>Désactiver toutes mes alertes</button></div></div>`;
+}
+
 export function afficherMonCompte(zone, ctx) {
   const u = utilisateur();
   if (!u) {
@@ -268,6 +280,7 @@ export function afficherMonCompte(zone, ctx) {
         <p data-message hidden></p>
         <button type="submit" class="bouton secondaire" ${horsLigne ? "disabled" : ""}>Changer mon mot de passe</button>
       </form>
+      ${blocAlertes()}
       <div class="bloc">
         <h2 class="titre-bloc">Mes données</h2>
         <p class="note">Tes spots privés ne sont visibles que par toi. Tu peux télécharger tout ce que Kelvisi garde sur ton compte.</p>
@@ -317,7 +330,7 @@ export function afficherMonCompte(zone, ctx) {
     });
 
     zone.querySelector("[data-exporter]").addEventListener("click", () => {
-      const donnees = { compte: { email: u.email }, profil: profilEnMemoire(), spots_prives: mesSpots(), favoris: favoris(), exporte_le: new Date().toISOString() };
+      const donnees = { compte: { email: u.email }, profil: profilEnMemoire(), spots_prives: mesSpots(), favoris: favoris(), alertes: alertes(), exporte_le: new Date().toISOString() };
       const lien = document.createElement("a");
       lien.href = URL.createObjectURL(new Blob([JSON.stringify(donnees, null, 2)], { type: "application/json" }));
       lien.download = "kelvisi-mes-donnees.json";
@@ -326,13 +339,20 @@ export function afficherMonCompte(zone, ctx) {
       lien.remove();
     });
     zone.querySelector("[data-deconnexion]").addEventListener("click", async () => {
+      await desabonnerAppareil();
       await deconnecter();
     });
+    const toutes = zone.querySelector("[data-alertes-retirer]");
+    if (toutes) toutes.addEventListener("click", (e) => occupe(e.currentTarget, async () => {
+      for (const id of Object.keys(alertes())) await choisirAlerte(id, null, noterAlerte);
+      rendre(profilEnMemoire(), horsLigne);
+    }));
     const confirmer = zone.querySelector("[data-confirmer]");
     zone.querySelector("[data-supprimer]").addEventListener("click", () => { confirmer.hidden = false; });
     zone.querySelector("[data-non]").addEventListener("click", () => { confirmer.hidden = true; });
     zone.querySelector("[data-oui]").addEventListener("click", (e) => occupe(e.currentTarget, async () => {
       try {
+        await desabonnerAppareil();
         await supprimerCompte();
         effacerDonneesLocales();
       } catch (err) {
