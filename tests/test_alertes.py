@@ -149,7 +149,7 @@ def test_envoi_des_alertes_du_passage():
     assert base.ecrits[0][0] == "cles_push" and len(wp.deb64(bilan["cle_publique"])) == 65, "clés créées au premier passage"
     assert sorted(envois) == [("https://push.test/a1", "Groix : 12 m demain"), ("https://push.test/a2", "Groix : 12 m demain"), ("https://push.test/b1", "Glénan : 8 m demain")]
     assert bilan == {"cle_publique": bilan["cle_publique"], "comptes": 1, "notifications": 1, "abonnements_supprimes": 1, "hors_horaires": False,
-                     "spots_prives": None}
+                     "spots_prives": None, "alertes_spots_prives": False}
     assert len(base.effaces) == 1 and "endpoint=eq.%22https%3A%2F%2Fpush.test%2Fa2%22" in base.effaces[0]
     # Seule l'alerte arrivée est notée comme envoyée : celle de B (service en panne) repartira au passage suivant
     assert base.ecrits[-1] == ("alertes_envoyees", [{"proprietaire": A, "point_id": "ref-groix", "jour": "2026-10-26"}])
@@ -176,7 +176,7 @@ def test_alertes_dans_le_calcul_horaire(monkeypatch):
     assert "relance supabase/schema.sql" in cp.BILAN[-1]
     ok = cp.envoyer_alertes("https://x.supabase.co", "sb_secret_x", {"points": []}, 1_792_918_800,
                             traiter=lambda *a, **k: {"cle_publique": "PUB", "comptes": 2, "notifications": 3, "abonnements_supprimes": 0, "hors_horaires": False})
-    assert ok == {"cle_publique": "PUB"} and cp.BILAN[-1] == "Alertes : 3 notifications envoyées à 2 comptes"
+    assert ok == {"cle_publique": "PUB", "spots_prives": False} and cp.BILAN[-1] == "Alertes : 3 notifications envoyées à 2 comptes"
 
 
 # --- Spots privés sous alerte ------------------------------------------------------------------
@@ -230,8 +230,8 @@ def test_alertes_des_spots_prives_aux_heures_prevues():
     assert base.ecrits[-1] == ("alertes_envoyees", [{"proprietaire": B, "point_id": "prive-crique", "jour": "2026-10-26"}])
 
 
-def test_spots_prives_illisibles_sans_bloquer_les_favoris():
+def test_spots_prives_sans_colonne_alerte_sans_bloquer_les_favoris():
     base = FausseBase()  # pas de table spots_prives : colonne alerte absente
     bilan = alertes.traiter(base, {"points": list(POINTS.values())}, MATIN.replace(hour=10, minute=17), "x",
                             envoyer=lambda *a: 201, prevoir_prives=lambda lignes: {})
-    assert bilan["spots_prives"].startswith("indisponibles") and bilan["notifications"] >= 1
+    assert bilan["spots_prives"] is None and bilan["alertes_spots_prives"] is False and bilan["notifications"] >= 1

@@ -233,7 +233,7 @@ function reponseOpenMeteo(table) {
 async function fauxFetch(entree, options = {}) {
   const url = String(entree);
   if (url.startsWith(BASE)) return supabase(url, options);
-  if (url.startsWith("donnees/push.json")) return serveur.alertesActives ? reponse({ cle_publique: CLE_PUSH }) : reponse(null, 404);
+  if (url.startsWith("donnees/push.json")) return serveur.alertesActives ? reponse({ cle_publique: CLE_PUSH, spots_prives: true }) : reponse(null, 404);
   if (url.startsWith("donnees/")) {
     const chemin = join(APP, decodeURIComponent(url.split("?")[0]));
     return existsSync(chemin) ? reponse(JSON.parse(readFileSync(chemin, "utf8"))) : reponse(null, 404);

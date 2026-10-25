@@ -167,12 +167,17 @@ def traiter(base: Base, resume: dict, maintenant: datetime, contact: str, envoye
     publique, privee = cles_vapid(base)
     bilan = {"cle_publique": publique, "comptes": 0, "notifications": 0, "abonnements_supprimes": 0, "hors_horaires": False,
              "spots_prives": None}
+    try:  # colonne « alerte » des spots privés présente (script SQL à jour) : l'appli peut la proposer
+        base.lire("spots_prives?select=alerte&limit=1")
+        bilan["alertes_spots_prives"] = True
+    except Exception:
+        bilan["alertes_spots_prives"] = False
     heure = maintenant.astimezone(PARIS).hour
     if not HEURE_DEBUT <= heure < HEURE_FIN:
         bilan["hors_horaires"] = True
         return bilan
     alertes = base.lire("favoris?select=proprietaire,point_id,alerte&alerte=not.is.null")
-    if prevoir_prives is not None and heure in HEURES_SPOTS_PRIVES:
+    if prevoir_prives is not None and heure in HEURES_SPOTS_PRIVES and bilan["alertes_spots_prives"]:
         try:
             lignes = base.lire(f"spots_prives?select={CHAMPS_PRIVES}&alerte=not.is.null&order=maj_le.desc")
             prevus = prevoir_prives(lignes) if lignes else {}

@@ -12,6 +12,7 @@ const CLE = "kelvisi-alertes";
 export const NIVEAUX = { bonne: "Bonne ou mieux", excellente: "Excellente seulement" };
 
 let config = null;
+let surSpots = false;
 
 export class ErreurAlerte extends Error {
   constructor(message, code) {
@@ -43,11 +44,19 @@ export function alertesDisponibles() {
   if (!config) {
     config = fetch("donnees/push.json", { cache: "no-cache" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((c) => (c && c.cle_publique ? c.cle_publique : null))
+      .then((c) => {
+        surSpots = Boolean(c?.spots_prives);
+        return c && c.cle_publique ? c.cle_publique : null;
+      })
       .catch(() => null);
     config.then((c) => { if (!c) config = null; });
   }
   return config;
+}
+
+// Alertes sur les spots privés : seulement quand la base connaît la colonne (script SQL à jour)
+export async function alertesSurSpots() {
+  return Boolean(await alertesDisponibles()) && surSpots;
 }
 
 export function notificationsPossibles() {

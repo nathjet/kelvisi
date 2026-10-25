@@ -272,7 +272,9 @@ def envoyer_alertes(url: str, cle: str, resume: dict, maintenant: int, spots=(),
     elif bilan["notifications"] or bilan["abonnements_supprimes"]:
         noter(f"Alertes : {bilan['notifications']} notifications envoyées à {bilan['comptes']} comptes"
               + (f", {bilan['abonnements_supprimes']} abonnements expirés supprimés" if bilan["abonnements_supprimes"] else ""))
-    return {"cle_publique": bilan["cle_publique"]}
+    if bilan.get("alertes_spots_prives") is False:
+        noter("Alertes : pas encore sur les spots privés, relance supabase/schema.sql dans Supabase")
+    return {"cle_publique": bilan["cle_publique"], "spots_prives": bool(bilan.get("alertes_spots_prives"))}
 
 
 def adresse_site() -> str | None:

@@ -9,7 +9,7 @@ import { estimerLieu } from "../profondeur.js";
 import { profondeursAuPoint } from "../bathymetrie.js";
 import { comptesActifs, utilisateur } from "../compte.js";
 import { estFavori, basculerFavori } from "../favoris.js";
-import { NIVEAUX, alertesDisponibles, choisirAlerte, niveauAlerte } from "../alertes.js";
+import { NIVEAUX, alertesDisponibles, alertesSurSpots, choisirAlerte, niveauAlerte } from "../alertes.js";
 import { noterAlerte } from "../synchro.js";
 import { CONFIG } from "../config.js";
 import { ETATS_PARTAGE, partageConnu, spotCommunaute } from "../communaute.js";
@@ -471,7 +471,8 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
 async function remplirAlerte(zone, meta, type = "public") {
   const bloc = zone.querySelector("#alerte-favori");
   if (!bloc) return;
-  if ((type === "public" && !estFavori(meta.id)) || !comptesActifs() || !utilisateur() || !(await alertesDisponibles())) {
+  if ((type === "public" && !estFavori(meta.id)) || !comptesActifs() || !utilisateur() || !(await alertesDisponibles())
+      || (type === "prive" && !(await alertesSurSpots()))) {
     bloc.hidden = true;
     return;
   }

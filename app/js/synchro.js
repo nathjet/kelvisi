@@ -7,7 +7,7 @@
 import { lire, ecrire, supprimer } from "./stockage.js";
 import { comptesActifs, requete, utilisateur } from "./compte.js";
 import { partageDisponible } from "./communaute.js";
-import { alertes, alertesDisponibles, remplacerAlertes } from "./alertes.js";
+import { alertes, alertesDisponibles, alertesSurSpots, remplacerAlertes } from "./alertes.js";
 
 const CLE_SPOTS = "kelvisi-spots";
 const CLE_FAVORIS = "kelvisi-favoris";
@@ -105,8 +105,9 @@ async function executer() {
     const partage = await partageDisponible();
     // Alertes : seulement si la base les connaît (script SQL appliqué, clés de notification publiées)
     const avecAlertes = Boolean(await alertesDisponibles());
+    const alertesSpots = avecAlertes && (await alertesSurSpots());
     const champsEnvoyes = partage ? [...CHAMPS_SPOT, "partage"] : CHAMPS_SPOT;
-    const champsLus = [...CHAMPS_SPOT, ...(partage ? ["partage", "partage_id"] : []), ...(avecAlertes ? ["alerte"] : [])];
+    const champsLus = [...CHAMPS_SPOT, ...(partage ? ["partage", "partage_id"] : []), ...(alertesSpots ? ["alerte"] : [])];
     if (aEnvoyer.length) {
       await requete("spots_prives?on_conflict=proprietaire,id", {
         methode: "POST",
@@ -133,6 +134,7 @@ async function executer() {
     if (avecAlertes) {
       const groupes = {};
       for (const [id, niveau] of Object.entries(a.alertes)) {
+        if (estPrive(id) && !alertesSpots) continue;
         const cle = `${estPrive(id) ? "spots_prives?id" : "favoris?point_id"}|${niveau}`;
         (groupes[cle] ||= []).push(id);
       }
@@ -148,7 +150,7 @@ async function executer() {
     const apres = attente();
     for (const [id, op] of Object.entries(a.spots)) if (apres.spots[id] === op) delete apres.spots[id];
     for (const [id, op] of Object.entries(a.favoris)) if (apres.favoris[id] === op) delete apres.favoris[id];
-    if (avecAlertes) for (const [id, op] of Object.entries(a.alertes)) if (apres.alertes[id] === op) delete apres.alertes[id];
+    if (avecAlertes) for (const [id, op] of Object.entries(a.alertes)) if (apres.alertes[id] === op && (alertesSpots || !estPrive(id))) delete apres.alertes[id];
     ecrire(CLE_ATTENTE, apres);
 
     const [spots, favoris] = await Promise.all([
@@ -173,7 +175,7 @@ async function executer() {
     if (avecAlertes) {
       const table = Object.fromEntries([
         ...favoris.filter((f) => f.alerte && favs.includes(f.point_id)).map((f) => [f.point_id, f.alerte]),
-        ...spots.filter((sp) => sp.alerte).map((sp) => [sp.id, sp.alerte]),
+        ...(alertesSpots ? spots.filter((sp) => sp.alerte).map((sp) => [sp.id, sp.alerte]) : []),
       ]);
       const idsSpots = new Set(fusion.map((sp) => sp.id));
       for (const [id, niveau] of Object.entries(reste.alertes)) {
