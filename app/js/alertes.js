@@ -1,6 +1,7 @@
-// Alertes sur les points favoris : une notification quand la visibilité prévue y devient bonne.
+// Alertes sur les favoris et les spots privés : une notification quand la visibilité prévue atteint
+// le seuil choisi par l'utilisateur, en mètres.
 //
-// Le niveau choisi est gardé sur l'appareil et sur le compte (colonne « alerte » des favoris) ;
+// Le seuil est gardé sur l'appareil et sur le compte (colonne « alerte_m » des favoris et des spots) ;
 // l'appareil s'abonne aux notifications de son navigateur (Web Push), et le calcul horaire envoie
 // les alertes (outils/alertes.py). La clé publique des notifications est dans donnees/push.json :
 // sans ce fichier, les alertes ne sont pas encore en service.
@@ -9,10 +10,12 @@ import { lire, ecrire, supprimer } from "./stockage.js";
 import { comptesActifs, requete, utilisateur } from "./compte.js";
 
 const CLE = "kelvisi-alertes";
-export const NIVEAUX = { bonne: "Bonne ou mieux", excellente: "Excellente seulement" };
+// Seuils proposés (mètres de visibilité sur le meilleur créneau du jour)
+export const SEUILS_M = [2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 18, 20, 25];
+const seuilValide = (v) => Number.isFinite(v) && v >= 1 && v <= 40;
+export const texteSeuil = (m) => `à partir de ${String(m).replace(".", ",")} m`;
 
 let config = null;
-let surSpots = false;
 
 export class ErreurAlerte extends Error {
   constructor(message, code) {
@@ -21,13 +24,13 @@ export class ErreurAlerte extends Error {
   }
 }
 
-// { point_id: "bonne" | "excellente" }
+// { identifiant du favori ou du spot: seuil en mètres }
 export function alertes() {
   const a = lire(CLE, {});
-  return a && typeof a === "object" && !Array.isArray(a) ? Object.fromEntries(Object.entries(a).filter(([, v]) => v in NIVEAUX)) : {};
+  return a && typeof a === "object" && !Array.isArray(a) ? Object.fromEntries(Object.entries(a).filter(([, v]) => seuilValide(v))) : {};
 }
 
-export function niveauAlerte(id) {
+export function seuilAlerte(id) {
   return alertes()[id] || null;
 }
 
@@ -39,24 +42,17 @@ export function oublierAlertes() {
   supprimer(CLE);
 }
 
-// Clé publique des notifications ; null si les alertes ne sont pas encore en service
+// Clé publique des notifications ; null si les alertes ne sont pas encore en service (fichier absent,
+// ou base qui ne connaît pas encore les seuils en mètres)
 export function alertesDisponibles() {
   if (!config) {
     config = fetch("donnees/push.json", { cache: "no-cache" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((c) => {
-        surSpots = Boolean(c?.spots_prives);
-        return c && c.cle_publique ? c.cle_publique : null;
-      })
+      .then((c) => (c && c.cle_publique && c.seuils_m ? c.cle_publique : null))
       .catch(() => null);
     config.then((c) => { if (!c) config = null; });
   }
   return config;
-}
-
-// Alertes sur les spots privés : seulement quand la base connaît la colonne (script SQL à jour)
-export async function alertesSurSpots() {
-  return Boolean(await alertesDisponibles()) && surSpots;
 }
 
 export function notificationsPossibles() {
@@ -106,17 +102,18 @@ export async function abonnerAppareil({ demander = true } = {}) {
   return abonnement;
 }
 
-// Active, modifie ou retire l'alerte d'un favori (niveau null : plus d'alerte)
-export async function choisirAlerte(id, niveau, noter) {
-  if (niveau) {
+// Active, modifie ou retire l'alerte d'un favori ou d'un spot (seuil null : plus d'alerte)
+export async function choisirAlerte(id, seuil, noter) {
+  if (seuil !== null && !seuilValide(seuil)) throw new ErreurAlerte("Choisis un seuil entre 1 et 40 m.", "seuil");
+  if (seuil !== null) {
     if (!comptesActifs() || !utilisateur()) throw new ErreurAlerte("Connecte-toi pour recevoir des alertes.", "compte");
     await abonnerAppareil();
   }
   const a = alertes();
-  if (niveau) a[id] = niveau;
+  if (seuil !== null) a[id] = seuil;
   else delete a[id];
   ecrire(CLE, a);
-  noter(id, niveau || "aucune");
+  noter(id, seuil ?? "aucune");
 }
 
 // Au démarrage : l'abonnement de l'appareil est renouvelé s'il a disparu (sans rien demander)

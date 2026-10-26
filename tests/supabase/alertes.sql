@@ -6,35 +6,49 @@ insert into auth.users (id, email) values
   ('55555555-5555-5555-5555-555555555555', 'alerte@exemple.fr'),
   ('66666666-6666-6666-6666-666666666666', 'voisin@exemple.fr');
 
+-- Reprise de la première version (niveau « bonne » ou « excellente ») : relancer le script les convertit en mètres
+insert into public.favoris (proprietaire, point_id, alerte) values ('66666666-6666-6666-6666-666666666666', 'ref-ancien', 'excellente');
+insert into public.spots_prives (id, proprietaire, nom, lat, lon, region, orientation_deg, ouverture_deg, profondeur_m, fond, alerte)
+values ('prive-ancien', '66666666-6666-6666-6666-666666666666', 'Calanque', 43.2, 5.4, 'mediterranee', 180, 90, 10, 'roche', 'bonne');
+\i supabase/schema.sql
+do $$
+begin
+  assert (select alerte_m from public.favoris where point_id = 'ref-ancien') = 7, 'excellente : 7 m en Atlantique';
+  assert (select alerte_m from public.spots_prives where id = 'prive-ancien') = 8, 'bonne en Méditerranée : 8 m';
+  assert (select count(*) from public.favoris where alerte is not null) = 0, 'ancienne colonne vidée';
+end $$;
+delete from public.favoris where point_id = 'ref-ancien';
+delete from public.spots_prives where id = 'prive-ancien';
+
 set role authenticated;
 set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
 insert into public.favoris (point_id) values ('ref-groix'), ('ref-glenan');
-update public.favoris set alerte = 'bonne' where point_id = 'ref-groix';
-update public.favoris set alerte = 'excellente' where point_id = 'ref-glenan';
-update public.favoris set alerte = null where point_id = 'ref-glenan';
+update public.favoris set alerte_m = 6 where point_id = 'ref-groix';
+update public.favoris set alerte_m = 12.5 where point_id = 'ref-glenan';
+update public.favoris set alerte_m = null where point_id = 'ref-glenan';
 -- Alerte sur un spot privé, sans toucher à son partage
 insert into public.spots_prives (id, nom, lat, lon, region, orientation_deg, ouverture_deg, profondeur_m, fond, partage)
 values ('prive-alerte', 'Ma crique', 47.49, -3.2, 'atlantique', 270, 90, 8, 'roche', 'en_attente');
-update public.spots_prives set alerte = 'bonne' where id = 'prive-alerte';
+update public.spots_prives set alerte_m = 8 where id = 'prive-alerte';
 insert into public.abonnements_push (endpoint, p256dh, auth)
 values ('https://fcm.googleapis.com/fcm/send/abc', 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6', 'BTBZMqHH6r4Tts7J');
 
 do $$
 begin
-  assert (select alerte from public.favoris where point_id = 'ref-groix') = 'bonne', 'alerte choisie';
-  assert (select alerte from public.favoris where point_id = 'ref-glenan') is null, 'alerte retirée';
+  assert (select alerte_m from public.favoris where point_id = 'ref-groix') = 6, 'seuil choisi';
+  assert (select alerte_m from public.favoris where point_id = 'ref-glenan') is null, 'alerte retirée';
   assert (select count(*) from public.abonnements_push) = 1, 'un appareil abonné';
-  assert (select alerte from public.spots_prives where id = 'prive-alerte') = 'bonne', 'alerte sur un spot privé';
+  assert (select alerte_m from public.spots_prives where id = 'prive-alerte') = 8, 'alerte sur un spot privé';
   assert (select partage from public.spots_prives where id = 'prive-alerte') = 'en_attente', 'partage inchangé par l''alerte';
   begin
-    update public.spots_prives set alerte = 'parfois' where id = 'prive-alerte';
-    raise exception 'ÉCHEC : niveau d''alerte inconnu accepté sur un spot';
+    update public.spots_prives set alerte_m = 0 where id = 'prive-alerte';
+    raise exception 'ÉCHEC : seuil de 0 m accepté sur un spot';
   exception when check_violation then null;
   end;
   -- Valeurs refusées
   begin
-    update public.favoris set alerte = 'moyenne' where point_id = 'ref-groix';
-    raise exception 'ÉCHEC : niveau d''alerte inconnu accepté';
+    update public.favoris set alerte_m = 80 where point_id = 'ref-groix';
+    raise exception 'ÉCHEC : seuil de 80 m accepté';
   exception when check_violation then null;
   end;
   begin

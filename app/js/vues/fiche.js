@@ -9,7 +9,7 @@ import { estimerLieu } from "../profondeur.js";
 import { profondeursAuPoint } from "../bathymetrie.js";
 import { comptesActifs, utilisateur } from "../compte.js";
 import { estFavori, basculerFavori } from "../favoris.js";
-import { NIVEAUX, alertesDisponibles, alertesSurSpots, choisirAlerte, niveauAlerte } from "../alertes.js";
+import { SEUILS_M, alertesDisponibles, choisirAlerte, seuilAlerte } from "../alertes.js";
 import { noterAlerte } from "../synchro.js";
 import { CONFIG } from "../config.js";
 import { ETATS_PARTAGE, partageConnu, spotCommunaute } from "../communaute.js";
@@ -467,42 +467,45 @@ function rendre(zone, cible, ctx, { meta, prevision, spot, info }) {
   if (cible.type === "communaute" && spot) lierActionsCommunaute(zone, ctx, spot);
 }
 
-// Case « M'alerter » d'un favori ou d'un spot privé : visible avec un compte connecté, une fois les alertes en service
+// Alerte d'un favori ou d'un spot privé : case et seuil en mètres, visibles avec un compte connecté,
+// une fois les alertes en service
 async function remplirAlerte(zone, meta, type = "public") {
   const bloc = zone.querySelector("#alerte-favori");
   if (!bloc) return;
-  if ((type === "public" && !estFavori(meta.id)) || !comptesActifs() || !utilisateur() || !(await alertesDisponibles())
-      || (type === "prive" && !(await alertesSurSpots()))) {
+  if ((type === "public" && !estFavori(meta.id)) || !comptesActifs() || !utilisateur() || !(await alertesDisponibles())) {
     bloc.hidden = true;
     return;
   }
-  const niveau = niveauAlerte(meta.id);
-  bloc.innerHTML = `<label class="case"><input type="checkbox" id="alerte-case" ${niveau ? "checked" : ""}> M'alerter quand la visibilité y sera bonne</label>
-    <div class="segments" id="alerte-niveau" role="group" aria-label="Niveau de l'alerte" ${niveau ? "" : "hidden"}>
-      ${Object.entries(NIVEAUX).map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${v === niveau}">${t}</button>`).join("")}</div>
-    <p class="note">Une notification au plus par jour et par spot, entre 8 h et 21 h, pour aujourd'hui et les deux jours suivants.${type === "prive"
+  const seuil = seuilAlerte(meta.id);
+  const [, bonne = 4, excellente = 7] = meta.seuils || [];
+  const choix = [...new Set([...SEUILS_M, bonne, ...(seuil ? [seuil] : [])])].sort((a, b) => a - b);
+  const defaut = seuil ?? bonne;
+  const m = (x) => String(x).replace(".", ",");
+  bloc.innerHTML = `<label class="case"><input type="checkbox" id="alerte-case" ${seuil ? "checked" : ""}> M'alerter quand la visibilité prévue atteint :</label>
+    <div class="rangee"><label class="etiquette" for="alerte-seuil">Seuil</label>
+      <select id="alerte-seuil">${choix.map((x) => `<option value="${x}" ${x === defaut ? "selected" : ""}>${m(x)} m${x === bonne ? " (bonne ici)" : x === excellente ? " (excellente ici)" : ""}</option>`).join("")}</select></div>
+    <p class="note">Visibilité du meilleur créneau du jour, le grand chiffre de la fiche. Ici, elle est dite bonne à partir de ${m(bonne)} m et excellente à partir de ${m(excellente)} m.
+      Une notification au plus par jour et par spot, entre 8 h et 21 h, pour aujourd'hui et les deux jours suivants.${type === "prive"
       ? " Pour l'alerte, Kelvisi recalcule la prévision de ton spot cinq fois par jour (de 8 h à 20 h), sans tes retours terrain ; sa position n'est jamais publiée." : ""}</p>
     <p class="erreur" id="alerte-erreur" hidden></p>`;
   bloc.hidden = false;
   const erreur = bloc.querySelector("#alerte-erreur");
-  const appliquer = async (choix) => {
+  const caseAlerte = bloc.querySelector("#alerte-case");
+  const choixSeuil = bloc.querySelector("#alerte-seuil");
+  const appliquer = async (valeur) => {
     erreur.hidden = true;
     try {
-      await choisirAlerte(meta.id, choix, noterAlerte);
+      await choisirAlerte(meta.id, valeur, noterAlerte);
     } catch (e) {
       erreur.textContent = e.message || "Alerte impossible pour le moment.";
       erreur.hidden = false;
     }
-    const actuel = niveauAlerte(meta.id);
-    bloc.querySelector("#alerte-case").checked = Boolean(actuel);
-    bloc.querySelector("#alerte-niveau").hidden = !actuel;
-    bloc.querySelectorAll("#alerte-niveau button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === actuel)));
+    const actuel = seuilAlerte(meta.id);
+    caseAlerte.checked = Boolean(actuel);
+    if (actuel) choixSeuil.value = String(actuel);
   };
-  bloc.querySelector("#alerte-case").addEventListener("change", (e) => appliquer(e.target.checked ? niveauAlerte(meta.id) || "bonne" : null));
-  bloc.querySelector("#alerte-niveau").addEventListener("click", (e) => {
-    const b = e.target.closest("button");
-    if (b) appliquer(b.dataset.v);
-  });
+  caseAlerte.addEventListener("change", () => appliquer(caseAlerte.checked ? Number(choixSeuil.value) : null));
+  choixSeuil.addEventListener("change", () => { if (caseAlerte.checked) appliquer(Number(choixSeuil.value)); });
 }
 
 // Zone où la pêche sous-marine est interdite ou réglementée, signalée en haut de la fiche

@@ -5,8 +5,8 @@
 --   profils        un profil par compte (prénom, département, pratique, tranche d'âge, accord e-mails)
 --   spots_prives   spots privés, visibles par leur seul propriétaire ; un spot proposé au partage
 --                  devient visible de tous (sans le nom de son auteur) une fois validé par l'éditeur
---   favoris        points Kelvisi favoris de chaque compte, avec l'alerte choisie (bonne, excellente ou aucune)
---                  (les spots privés ont la même colonne « alerte »)
+--   favoris        points Kelvisi favoris de chaque compte, avec le seuil d'alerte choisi (en mètres, ou aucun)
+--                  (les spots privés ont la même colonne « alerte_m »)
 --   abonnements_push  appareils où envoyer les alertes (notifications du navigateur)
 --   alertes_envoyees  alertes déjà envoyées (une par favori et par jour), écrites par le calcul horaire
 --   cles_push      clés de notification de Kelvisi, lisibles par le seul calcul horaire
@@ -229,19 +229,32 @@ revoke all on public.favoris from anon;
 grant select, insert, delete on public.favoris to authenticated;
 
 -- ---------------------------------------------------------------------------------------------
--- Alertes sur les favoris (notification quand la visibilité prévue y devient bonne)
+-- Alertes sur les favoris et les spots privés (notification quand la visibilité prévue atteint un seuil)
 -- ---------------------------------------------------------------------------------------------
--- Niveau choisi sur chaque favori : null = pas d'alerte
-alter table public.favoris add column if not exists alerte text;
-alter table public.favoris drop constraint if exists favoris_alerte_valeur;
-alter table public.favoris add constraint favoris_alerte_valeur check (alerte is null or alerte in ('bonne', 'excellente'));
-grant update (alerte) on public.favoris to authenticated;
+-- Seuil choisi, en mètres de visibilité (de 1 à 40) : null = pas d'alerte. Sur un spot privé, la
+-- prévision est alors calculée par le calcul horaire (clé secrète) pour l'alerte, sans être publiée.
+alter table public.favoris add column if not exists alerte_m real;
+alter table public.favoris drop constraint if exists favoris_alerte_m_valeur;
+alter table public.favoris add constraint favoris_alerte_m_valeur check (alerte_m is null or alerte_m between 1 and 40);
+grant update (alerte_m) on public.favoris to authenticated;
 
--- Même choix sur les spots privés : leur prévision est alors calculée par le calcul horaire
--- (clé secrète) pour envoyer l'alerte, sans jamais être publiée
+alter table public.spots_prives add column if not exists alerte_m real;
+alter table public.spots_prives drop constraint if exists spots_prives_alerte_m_valeur;
+alter table public.spots_prives add constraint spots_prives_alerte_m_valeur check (alerte_m is null or alerte_m between 1 and 40);
+
+-- Première version des alertes (niveau « bonne » ou « excellente », 25 octobre 2026) : reprise en
+-- mètres avec les seuils de la façade, puis la colonne n'est plus utilisée par l'application
+alter table public.favoris add column if not exists alerte text;
 alter table public.spots_prives add column if not exists alerte text;
-alter table public.spots_prives drop constraint if exists spots_prives_alerte_valeur;
-alter table public.spots_prives add constraint spots_prives_alerte_valeur check (alerte is null or alerte in ('bonne', 'excellente'));
+update public.favoris set alerte_m = case alerte when 'excellente' then 7 else 4 end
+  where alerte in ('bonne', 'excellente') and alerte_m is null;
+update public.spots_prives set alerte_m = case
+    when region = 'mediterranee' then case alerte when 'excellente' then 15 else 8 end
+    else case alerte when 'excellente' then 7 else 4 end end
+  where alerte in ('bonne', 'excellente') and alerte_m is null;
+update public.favoris set alerte = null where alerte is not null;
+update public.spots_prives set alerte = null where alerte is not null;
+revoke update (alerte) on public.favoris from authenticated;
 
 -- Un abonnement par appareil et navigateur (adresse fournie par le service de notification du navigateur)
 create table if not exists public.abonnements_push (

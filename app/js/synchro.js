@@ -7,7 +7,7 @@
 import { lire, ecrire, supprimer } from "./stockage.js";
 import { comptesActifs, requete, utilisateur } from "./compte.js";
 import { partageDisponible } from "./communaute.js";
-import { alertes, alertesDisponibles, alertesSurSpots, remplacerAlertes } from "./alertes.js";
+import { alertes, alertesDisponibles, remplacerAlertes } from "./alertes.js";
 
 const CLE_SPOTS = "kelvisi-spots";
 const CLE_FAVORIS = "kelvisi-favoris";
@@ -39,7 +39,7 @@ export function noterFavori(id, operation) {
 export function noterAlerte(id, niveau) {
   if (!comptesActifs()) return;
   const a = attente();
-  a.alertes[id] = niveau; // « bonne », « excellente » ou « aucune »
+  a.alertes[id] = niveau; // seuil en mètres, ou « aucune »
   ecrire(CLE_ATTENTE, a);
   planifier();
 }
@@ -105,9 +105,8 @@ async function executer() {
     const partage = await partageDisponible();
     // Alertes : seulement si la base les connaît (script SQL appliqué, clés de notification publiées)
     const avecAlertes = Boolean(await alertesDisponibles());
-    const alertesSpots = avecAlertes && (await alertesSurSpots());
     const champsEnvoyes = partage ? [...CHAMPS_SPOT, "partage"] : CHAMPS_SPOT;
-    const champsLus = [...CHAMPS_SPOT, ...(partage ? ["partage", "partage_id"] : []), ...(alertesSpots ? ["alerte"] : [])];
+    const champsLus = [...CHAMPS_SPOT, ...(partage ? ["partage", "partage_id"] : []), ...(avecAlertes ? ["alerte_m"] : [])];
     if (aEnvoyer.length) {
       await requete("spots_prives?on_conflict=proprietaire,id", {
         methode: "POST",
@@ -134,14 +133,13 @@ async function executer() {
     if (avecAlertes) {
       const groupes = {};
       for (const [id, niveau] of Object.entries(a.alertes)) {
-        if (estPrive(id) && !alertesSpots) continue;
         const cle = `${estPrive(id) ? "spots_prives?id" : "favoris?point_id"}|${niveau}`;
         (groupes[cle] ||= []).push(id);
       }
       for (const [cle, ids] of Object.entries(groupes)) {
         const [filtre, niveau] = cle.split("|");
         await requete(`${filtre}=in.${encodeURIComponent(liste(ids))}`, {
-          methode: "PATCH", prefer: "return=minimal", corps: { alerte: niveau === "aucune" ? null : niveau },
+          methode: "PATCH", prefer: "return=minimal", corps: { alerte_m: niveau === "aucune" ? null : Number(niveau) },
         });
       }
     }
@@ -150,17 +148,17 @@ async function executer() {
     const apres = attente();
     for (const [id, op] of Object.entries(a.spots)) if (apres.spots[id] === op) delete apres.spots[id];
     for (const [id, op] of Object.entries(a.favoris)) if (apres.favoris[id] === op) delete apres.favoris[id];
-    if (avecAlertes) for (const [id, op] of Object.entries(a.alertes)) if (apres.alertes[id] === op && (alertesSpots || !estPrive(id))) delete apres.alertes[id];
+    if (avecAlertes) for (const [id, op] of Object.entries(a.alertes)) if (apres.alertes[id] === op) delete apres.alertes[id];
     ecrire(CLE_ATTENTE, apres);
 
     const [spots, favoris] = await Promise.all([
       requete(`spots_prives?select=${champsLus.join(",")}&order=cree_le.asc`),
-      requete(`favoris?select=point_id${avecAlertes ? ",alerte" : ""}&order=cree_le.asc`),
+      requete(`favoris?select=point_id${avecAlertes ? ",alerte_m" : ""}&order=cree_le.asc`),
     ]);
     // Les modifications encore en attente gardent leur version locale
     const reste = attente();
     const encoreLocaux = new Map(lire(CLE_SPOTS, []).map((s) => [s.id, s]));
-    const fusion = spots.filter((s) => reste.spots[s.id] !== "suppr").map(({ alerte, ...s }) => ({ ...s, prive: true }));
+    const fusion = spots.filter((s) => reste.spots[s.id] !== "suppr").map(({ alerte_m, ...s }) => ({ ...s, prive: true }));
     for (const [id, op] of Object.entries(reste.spots)) {
       if (op === "maj" && encoreLocaux.has(id)) {
         const i = fusion.findIndex((s) => s.id === id);
@@ -174,8 +172,8 @@ async function executer() {
     ecrire(CLE_FAVORIS, favs);
     if (avecAlertes) {
       const table = Object.fromEntries([
-        ...favoris.filter((f) => f.alerte && favs.includes(f.point_id)).map((f) => [f.point_id, f.alerte]),
-        ...(alertesSpots ? spots.filter((sp) => sp.alerte).map((sp) => [sp.id, sp.alerte]) : []),
+        ...favoris.filter((f) => f.alerte_m && favs.includes(f.point_id)).map((f) => [f.point_id, Number(f.alerte_m)]),
+        ...spots.filter((sp) => sp.alerte_m).map((sp) => [sp.id, Number(sp.alerte_m)]),
       ]);
       const idsSpots = new Set(fusion.map((sp) => sp.id));
       for (const [id, niveau] of Object.entries(reste.alertes)) {

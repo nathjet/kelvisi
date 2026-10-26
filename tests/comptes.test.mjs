@@ -110,12 +110,12 @@ function supabase(url, options) {
     // Sans le script de partage, la base ne connaît pas la colonne « partage » : elle refuse la requête
     const colonneInconnue = reponse({ code: "PGRST204", message: "Could not find the 'partage' column of 'spots_prives'" }, 400);
     if (!serveur.alertesActives && /alerte/.test(decodeURIComponent(chemin) + JSON.stringify(corps || ""))) {
-      return reponse({ code: "PGRST204", message: "Could not find the 'alerte' column of 'spots_prives'" }, 400);
+      return reponse({ code: "PGRST204", message: "Could not find the 'alerte_m' column of 'spots_prives'" }, 400);
     }
     if (methode === "PATCH") {
-      assert.deepEqual(Object.keys(corps), ["alerte"], "seule l'alerte change par ce chemin");
+      assert.deepEqual(Object.keys(corps), ["alerte_m"], "seule l'alerte change par ce chemin");
       const ids = filtreIn(url, "id");
-      for (const sp of serveur.spots) if (sp.proprietaire === u.id && ids.includes(sp.id)) sp.alerte = corps.alerte;
+      for (const sp of serveur.spots) if (sp.proprietaire === u.id && ids.includes(sp.id)) sp.alerte_m = corps.alerte_m;
       return reponse(null, 204);
     }
     if (methode === "GET") {
@@ -148,17 +148,17 @@ function supabase(url, options) {
   }
   if (chemin.startsWith("/rest/v1/favoris")) {
     if (!serveur.alertesActives && /alerte/.test(decodeURIComponent(chemin) + JSON.stringify(corps || ""))) {
-      return reponse({ code: "PGRST204", message: "Could not find the 'alerte' column of 'favoris'" }, 400);
+      return reponse({ code: "PGRST204", message: "Could not find the 'alerte_m' column of 'favoris'" }, 400);
     }
     if (methode === "GET") {
       return reponse(serveur.favoris.filter((f) => f.proprietaire === u.id)
-        .map((f) => (/alerte/.test(chemin) ? { point_id: f.point_id, alerte: f.alerte ?? null } : { point_id: f.point_id })));
+        .map((f) => (/alerte_m/.test(chemin) ? { point_id: f.point_id, alerte_m: f.alerte_m ?? null } : { point_id: f.point_id })));
     }
     if (methode === "PATCH") {
-      assert.deepEqual(Object.keys(corps), ["alerte"], "seule l'alerte d'un favori est modifiable");
-      assert.ok([null, "bonne", "excellente"].includes(corps.alerte), "niveau d'alerte valide");
+      assert.deepEqual(Object.keys(corps), ["alerte_m"], "seule l'alerte d'un favori est modifiable");
+      assert.ok(corps.alerte_m === null || (typeof corps.alerte_m === "number" && corps.alerte_m >= 1 && corps.alerte_m <= 40), "seuil en mètres valide");
       const ids = filtreIn(url, "point_id");
-      for (const f of serveur.favoris) if (f.proprietaire === u.id && ids.includes(f.point_id)) f.alerte = corps.alerte;
+      for (const f of serveur.favoris) if (f.proprietaire === u.id && ids.includes(f.point_id)) f.alerte_m = corps.alerte_m;
       return reponse(null, 204);
     }
     if (methode === "POST") {
@@ -233,7 +233,7 @@ function reponseOpenMeteo(table) {
 async function fauxFetch(entree, options = {}) {
   const url = String(entree);
   if (url.startsWith(BASE)) return supabase(url, options);
-  if (url.startsWith("donnees/push.json")) return serveur.alertesActives ? reponse({ cle_publique: CLE_PUSH, spots_prives: true }) : reponse(null, 404);
+  if (url.startsWith("donnees/push.json")) return serveur.alertesActives ? reponse({ cle_publique: CLE_PUSH, seuils_m: true }) : reponse(null, 404);
   if (url.startsWith("donnees/")) {
     const chemin = join(APP, decodeURIComponent(url.split("?")[0]));
     return existsSync(chemin) ? reponse(JSON.parse(readFileSync(chemin, "utf8"))) : reponse(null, 404);
@@ -582,7 +582,7 @@ if (mode === "partage") {
 
 if (mode === "alertes") {
   const moi = creerUtilisateur("alerte@exemple.fr", "chasse2026", { prenom: "Moi" }, true);
-  serveur.favoris.push({ proprietaire: moi.id, point_id: "ref-groix", alerte: null });
+  serveur.favoris.push({ proprietaire: moi.id, point_id: "ref-groix", alerte_m: null });
 
   await etape("connexion : favori sans alerte", async () => {
     await jusqua(() => !ecran().hidden, "écran de compte");
@@ -594,7 +594,9 @@ if (mode === "alertes") {
     w.location.hash = "#/spot/ref-groix";
     await jusqua(() => panneau().querySelector("#alerte-favori:not([hidden])"), "case d'alerte");
     assert.ok(!panneau().querySelector("#alerte-case").checked);
-    assert.match(texte(panneau().querySelector("#alerte-favori")), /M'alerter quand la visibilité y sera bonne/);
+    assert.match(texte(panneau().querySelector("#alerte-favori")), /M'alerter quand la visibilité prévue atteint/);
+    assert.equal(panneau().querySelector("#alerte-seuil").value, "4", "seuil proposé : bonne visibilité de la façade");
+    assert.match(panneau().querySelector("#alerte-seuil option:checked").textContent, /4 m \(bonne ici\)/);
   });
 
   await etape("notifications refusées : message clair, rien d'enregistré", async () => {
@@ -609,19 +611,20 @@ if (mode === "alertes") {
     w.Notification.permission = "default";
   });
 
-  await etape("alerte activée : appareil abonné, niveau enregistré sur le compte", async () => {
+  await etape("alerte activée : appareil abonné, seuil enregistré sur le compte", async () => {
     push.reponse = "granted";
     const caseAlerte = panneau().querySelector("#alerte-case");
     caseAlerte.checked = true;
     caseAlerte.dispatchEvent(new w.Event("change"));
-    await jusqua(() => serveur.favoris[0].alerte === "bonne", "alerte sur le serveur");
+    await jusqua(() => serveur.favoris[0].alerte_m === 4, "alerte sur le serveur");
     assert.equal(serveur.abonnements.length, 1);
     assert.equal(serveur.abonnements[0].endpoint, "https://push.test/appareil-1");
     assert.ok(panneau().querySelector("#alerte-case").checked);
-    assert.equal(panneau().querySelector('#alerte-niveau [aria-pressed="true"]').textContent, "Bonne ou mieux");
-    panneau().querySelector('#alerte-niveau [data-v="excellente"]').click();
-    await jusqua(() => serveur.favoris[0].alerte === "excellente", "niveau changé");
-    assert.deepEqual(JSON.parse(w.localStorage.getItem("kelvisi-alertes")), { "ref-groix": "excellente" });
+    const choix = panneau().querySelector("#alerte-seuil");
+    choix.value = "10";
+    choix.dispatchEvent(new w.Event("change"));
+    await jusqua(() => serveur.favoris[0].alerte_m === 10, "seuil changé");
+    assert.deepEqual(JSON.parse(w.localStorage.getItem("kelvisi-alertes")), { "ref-groix": 10 });
   });
 
   await etape("alerte sur un spot privé, enregistrée sur la ligne du spot", async () => {
@@ -634,19 +637,23 @@ if (mode === "alertes") {
     w.location.hash = "#/prive/prive-crique";
     await jusqua(() => panneau().querySelector("#alerte-favori:not([hidden])"), "case d'alerte du spot privé");
     assert.match(texte(panneau().querySelector("#alerte-favori")), /sa position n'est jamais publiée/);
+    const choix = panneau().querySelector("#alerte-seuil");
+    choix.value = "6";
+    choix.dispatchEvent(new w.Event("change"));
+    assert.equal(serveur.spots.find((x) => x.id === "prive-crique").alerte_m, undefined, "rien d'enregistré tant que la case n'est pas cochée");
     const caseAlerte = panneau().querySelector("#alerte-case");
     caseAlerte.checked = true;
     caseAlerte.dispatchEvent(new w.Event("change"));
-    await jusqua(() => serveur.spots.find((x) => x.id === "prive-crique").alerte === "bonne", "alerte du spot sur le serveur");
-    assert.equal(serveur.favoris[0].alerte, "excellente", "l'alerte du favori n'a pas bougé");
-    assert.ok(!JSON.parse(w.localStorage.getItem("kelvisi-spots")).some((x) => "alerte" in x), "l'alerte n'est pas rangée dans le spot");
+    await jusqua(() => serveur.spots.find((x) => x.id === "prive-crique").alerte_m === 6, "alerte du spot sur le serveur");
+    assert.equal(serveur.favoris[0].alerte_m, 10, "l'alerte du favori n'a pas bougé");
+    assert.ok(!JSON.parse(w.localStorage.getItem("kelvisi-spots")).some((x) => "alerte_m" in x), "l'alerte n'est pas rangée dans le spot");
   });
 
   await etape("mon compte : alertes listées et exportées", async () => {
     w.location.hash = "#/compte";
     await jusqua(() => /Mes alertes/.test(texte(panneau())), "bloc des alertes");
-    assert.match(texte(panneau()), /Groix.*excellente seulement/);
-    assert.match(texte(panneau()), /Ma crique.*bonne ou mieux/);
+    assert.match(texte(panneau()), /Groix, côte sud · à partir de 10 m/);
+    assert.match(texte(panneau()), /Ma crique · à partir de 6 m/);
   });
 
   await etape("spot privé supprimé : son alerte disparaît", async () => {
@@ -655,7 +662,7 @@ if (mode === "alertes") {
     panneau().querySelector("#prive-supprimer").click();
     panneau().querySelector("#prive-oui").click();
     await jusqua(() => !serveur.spots.some((x) => x.id === "prive-crique"), "spot supprimé du serveur");
-    assert.deepEqual(JSON.parse(w.localStorage.getItem("kelvisi-alertes")), { "ref-groix": "excellente" });
+    assert.deepEqual(JSON.parse(w.localStorage.getItem("kelvisi-alertes")), { "ref-groix": 10 });
   });
 
   await etape("favori retiré : son alerte disparaît", async () => {

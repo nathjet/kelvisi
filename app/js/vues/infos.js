@@ -101,7 +101,7 @@ const PAGES = {
       <h2>Les données de ton compte</h2>
       <ul>
         <li><strong>Ce que tu donnes à l'inscription</strong> : adresse e-mail, mot de passe (stocké chiffré, personne ne peut le lire), prénom, département, pratiques, tranche d'âge, et ton choix de recevoir ou non des e-mails de Kelvisi.</li>
-        <li><strong>Ce que tu enregistres</strong> : tes spots privés, tes favoris (avec l'alerte choisie) et tes retours terrain.</li>
+        <li><strong>Ce que tu enregistres</strong> : tes spots privés, tes favoris, le seuil de tes alertes et tes retours terrain.</li>
         <li><strong>Si tu actives une alerte</strong> : l'adresse de notification de chaque appareil où tu l'autorises (fournie par le service de ton navigateur : Google, Mozilla ou Apple) et la liste des alertes déjà envoyées, gardée 30 jours. Pour une alerte sur un de tes spots privés, sa position et ses réglages sont lus par le calcul de Kelvisi pour en tirer la prévision : elle n'est ni publiée ni gardée.</li>
         <li><strong>Ce qui est noté automatiquement</strong> : dates d'inscription et de dernière connexion.</li>
       </ul>

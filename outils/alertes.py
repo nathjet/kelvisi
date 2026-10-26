@@ -1,7 +1,8 @@
 """Alertes sur les favoris et les spots privés : une notification quand la visibilité prévue y devient bonne.
 
 Chaque utilisateur choisit, sur ses favoris (points Kelvisi) et ses spots privés, d'être alerté
-(colonne `alerte` des tables favoris et spots_prives : "bonne" ou "excellente"). Les prévisions des
+(colonne `alerte_m` des tables favoris et spots_prives : la visibilité, en mètres, à partir de
+laquelle prévenir). Les prévisions des
 spots privés sous alerte sont calculées ici, cinq fois par jour (8 h, 11 h, 14 h, 17 h et 20 h,
 heure de Paris), et ne sont jamais publiées. À chaque calcul horaire, pour aujourd'hui et les deux jours suivants, on
 cherche les favoris dont la journée atteint ce niveau avec un créneau conseillé, puis on envoie une
@@ -24,14 +25,13 @@ from zoneinfo import ZoneInfo
 import webpush
 
 PARIS = ZoneInfo("Europe/Paris")
-RANG = {"mauvaise": 0, "moyenne": 1, "bonne": 2, "excellente": 3}
-SEUIL = {"bonne": 2, "excellente": 3}
+SEUIL_MIN_M, SEUIL_MAX_M = 1.0, 40.0
 HEURE_DEBUT, HEURE_FIN = 8, 21
 JOURS = 3
 # Spots privés : prévision recalculée à ces heures seulement (deux appels Open-Meteo par position)
 HEURES_SPOTS_PRIVES = {8, 11, 14, 17, 20}
 MAX_SPOTS_PRIVES = 150
-CHAMPS_PRIVES = "proprietaire,id,nom,lat,lon,region,orientation_deg,ouverture_deg,profondeur_m,fond,alerte"
+CHAMPS_PRIVES = "proprietaire,id,nom,lat,lon,region,orientation_deg,ouverture_deg,profondeur_m,fond,alerte_m"
 JOURS_SEMAINE = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 
 
@@ -87,12 +87,18 @@ def a_signaler(points: dict, alertes: list[dict], deja: set, maintenant: datetim
     resultat = defaultdict(list)
     for a in alertes:
         point = a.get("point") or points.get(a["point_id"])
-        seuil = SEUIL.get(a.get("alerte") or "")
+        try:
+            seuil = float(a.get("alerte_m"))
+        except (TypeError, ValueError):
+            seuil = None
+        if seuil is not None and not SEUIL_MIN_M <= seuil <= SEUIL_MAX_M:
+            seuil = None
         if not point or seuil is None:
             continue
         for jour in point.get("jours", [])[:JOURS]:
             cr = jour.get("meilleur_creneau")
-            if jour["date"] < aujourd_hui or not cr or RANG.get(jour.get("classe"), -1) < seuil:
+            # Visibilité du meilleur créneau du jour : le grand chiffre de la fiche
+            if jour["date"] < aujourd_hui or not cr or cr.get("visibilite_m") is None or cr["visibilite_m"] < seuil:
                 continue
             if jour["date"] == aujourd_hui and datetime.fromisoformat(cr["fin"]) <= maintenant:
                 continue
@@ -114,10 +120,10 @@ def message(liste: list, maintenant: datetime) -> dict:
         jours = ", ".join(f"{round(j['meilleur_creneau']['visibilite_m'])} m {nom_du_jour(j['date'], aujourd_hui)}"
                           for _, j in sorted(groupe, key=lambda x: x[1]["date"]))
         lignes.append(f"{point['nom']} : {jours}")
-    excellente = any(j.get("classe") == "excellente" for _, j in liste)
+    meilleure = max(round(j["meilleur_creneau"]["visibilite_m"]) for _, j in liste)
     reste = len(lignes) - 3
     return {
-        "titre": "Excellente visibilité prévue" if excellente else "Bonne visibilité prévue",
+        "titre": f"Jusqu'à {meilleure} m de visibilité prévue",
         "corps": "\n".join(lignes[:3]) + (f"\net {reste} autre{'s' if reste > 1 else ''} favori{'s' if reste > 1 else ''}" if reste > 0 else ""),
         "url": (next(iter(par_point.values()))[0][0].get("lien") or f"#/spot/{next(iter(par_point))}") if len(par_point) == 1 else "#/liste",
         "etiquette": "kelvisi-alerte",
@@ -167,22 +173,24 @@ def traiter(base: Base, resume: dict, maintenant: datetime, contact: str, envoye
     publique, privee = cles_vapid(base)
     bilan = {"cle_publique": publique, "comptes": 0, "notifications": 0, "abonnements_supprimes": 0, "hors_horaires": False,
              "spots_prives": None}
-    try:  # colonne « alerte » des spots privés présente (script SQL à jour) : l'appli peut la proposer
-        base.lire("spots_prives?select=alerte&limit=1")
-        bilan["alertes_spots_prives"] = True
+    try:  # seuils en mètres connus de la base (script SQL à jour) : l'appli peut proposer les alertes
+        base.lire("favoris?select=alerte_m&limit=1")
+        base.lire("spots_prives?select=alerte_m&limit=1")
+        bilan["seuils_m"] = True
     except Exception:
-        bilan["alertes_spots_prives"] = False
+        bilan["seuils_m"] = False
+        return bilan
     heure = maintenant.astimezone(PARIS).hour
     if not HEURE_DEBUT <= heure < HEURE_FIN:
         bilan["hors_horaires"] = True
         return bilan
-    alertes = base.lire("favoris?select=proprietaire,point_id,alerte&alerte=not.is.null")
-    if prevoir_prives is not None and heure in HEURES_SPOTS_PRIVES and bilan["alertes_spots_prives"]:
+    alertes = base.lire("favoris?select=proprietaire,point_id,alerte_m&alerte_m=not.is.null")
+    if prevoir_prives is not None and heure in HEURES_SPOTS_PRIVES:
         try:
-            lignes = base.lire(f"spots_prives?select={CHAMPS_PRIVES}&alerte=not.is.null&order=maj_le.desc")
+            lignes = base.lire(f"spots_prives?select={CHAMPS_PRIVES}&alerte_m=not.is.null&order=maj_le.desc")
             prevus = prevoir_prives(lignes) if lignes else {}
             bilan["spots_prives"] = len(prevus)
-            alertes = alertes + [{"proprietaire": l["proprietaire"], "point_id": l["id"], "alerte": l["alerte"], "point": prevus[(l["proprietaire"], l["id"])]}
+            alertes = alertes + [{"proprietaire": l["proprietaire"], "point_id": l["id"], "alerte_m": l["alerte_m"], "point": prevus[(l["proprietaire"], l["id"])]}
                                  for l in lignes if (l["proprietaire"], l["id"]) in prevus]
         except Exception as e:
             bilan["spots_prives"] = f"indisponibles ({type(e).__name__})"

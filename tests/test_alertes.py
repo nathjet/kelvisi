@@ -81,19 +81,23 @@ def jour(date, classe, debut="10:00", fin="13:00", visi=9.0):
 
 
 POINTS = {
-    "ref-groix": {"id": "ref-groix", "nom": "Groix", "jours": [jour("2026-10-25", "bonne"), jour("2026-10-26", "excellente", visi=12.4), jour("2026-10-27", "moyenne")]},
-    "ref-glenan": {"id": "ref-glenan", "nom": "Glénan", "jours": [jour("2026-10-25", "moyenne"), jour("2026-10-26", "bonne", visi=8.2), {"date": "2026-10-27", "classe": "bonne", "meilleur_creneau": None}]},
+    "ref-groix": {"id": "ref-groix", "nom": "Groix", "jours": [jour("2026-10-25", "bonne"), jour("2026-10-26", "excellente", visi=12.4), jour("2026-10-27", "moyenne", visi=3.0)]},
+    "ref-glenan": {"id": "ref-glenan", "nom": "Glénan", "jours": [jour("2026-10-25", "moyenne", visi=3.0), jour("2026-10-26", "bonne", visi=8.2), {"date": "2026-10-27", "classe": "bonne", "meilleur_creneau": None}]},
 }
 A, B = "aaaa", "bbbb"
 MATIN = datetime(2026, 10, 25, 7, 30, tzinfo=timezone.utc)  # 8 h 30 à Paris (heure d'hiver)
 
 
 def test_choix_des_jours_a_signaler():
-    alertes_ = [{"proprietaire": A, "point_id": "ref-groix", "alerte": "bonne"}, {"proprietaire": A, "point_id": "ref-glenan", "alerte": "excellente"},
-                {"proprietaire": B, "point_id": "ref-glenan", "alerte": "bonne"}, {"proprietaire": B, "point_id": "ref-inconnu", "alerte": "bonne"}]
+    alertes_ = [{"proprietaire": A, "point_id": "ref-groix", "alerte_m": 4}, {"proprietaire": A, "point_id": "ref-glenan", "alerte_m": 10},
+                {"proprietaire": B, "point_id": "ref-glenan", "alerte_m": 4}, {"proprietaire": B, "point_id": "ref-inconnu", "alerte_m": 4},
+                {"proprietaire": B, "point_id": "ref-groix", "alerte_m": 0}, {"proprietaire": B, "point_id": "ref-groix", "alerte_m": "beaucoup"}]
     r = alertes.a_signaler(POINTS, alertes_, set(), MATIN)
     assert [(p["id"], j["date"]) for p, j in r[A]] == [("ref-groix", "2026-10-25"), ("ref-groix", "2026-10-26")]
-    assert [(p["id"], j["date"]) for p, j in r[B]] == [("ref-glenan", "2026-10-26")], "pas de créneau conseillé le 27"
+    assert [(p["id"], j["date"]) for p, j in r[B]] == [("ref-glenan", "2026-10-26")], "3 m le 25, pas de créneau conseillé le 27, seuils invalides ignorés"
+    # Seuil de 12 m : seule la journée à 12,4 m de Groix
+    r = alertes.a_signaler(POINTS, [{"proprietaire": A, "point_id": "ref-groix", "alerte_m": 12}], set(), MATIN)
+    assert [j["date"] for _, j in r[A]] == ["2026-10-26"]
     # Déjà signalé, ou créneau du jour passé : rien de nouveau
     r = alertes.a_signaler(POINTS, alertes_[:1], {(A, "ref-groix", "2026-10-26")}, datetime(2026, 10, 25, 12, 30, tzinfo=timezone.utc))
     assert r == {}
@@ -101,10 +105,10 @@ def test_choix_des_jours_a_signaler():
 
 def test_message_regroupe_les_favoris():
     m = alertes.message([(POINTS["ref-groix"], POINTS["ref-groix"]["jours"][1]), (POINTS["ref-groix"], POINTS["ref-groix"]["jours"][0])], MATIN)
-    assert m == {"titre": "Excellente visibilité prévue", "corps": "Groix : 9 m aujourd'hui, 12 m demain", "url": "#/spot/ref-groix", "etiquette": "kelvisi-alerte"}
+    assert m == {"titre": "Jusqu'à 12 m de visibilité prévue", "corps": "Groix : 9 m aujourd'hui, 12 m demain", "url": "#/spot/ref-groix", "etiquette": "kelvisi-alerte"}
     autres = [({"id": f"p{i}", "nom": f"Spot {i}"}, jour("2026-10-27", "bonne")) for i in range(5)]
     m = alertes.message(autres, MATIN)
-    assert m["titre"] == "Bonne visibilité prévue" and m["url"] == "#/liste"
+    assert m["titre"] == "Jusqu'à 9 m de visibilité prévue" and m["url"] == "#/liste"
     assert m["corps"].splitlines() == ["Spot 0 : 9 m mardi", "Spot 1 : 9 m mardi", "Spot 2 : 9 m mardi", "et 2 autres favoris"]
 
 
@@ -112,8 +116,9 @@ class FausseBase:
     def __init__(self, cles=None):
         self.tables = {
             "cles_push": cles or [],
-            "favoris": [{"proprietaire": A, "point_id": "ref-groix", "alerte": "bonne"}, {"proprietaire": B, "point_id": "ref-glenan", "alerte": "bonne"},
-                        {"proprietaire": B, "point_id": "ref-groix", "alerte": None}],
+            "favoris": [{"proprietaire": A, "point_id": "ref-groix", "alerte_m": 4}, {"proprietaire": B, "point_id": "ref-glenan", "alerte_m": 5},
+                        {"proprietaire": B, "point_id": "ref-groix", "alerte_m": None}],
+            "spots_prives": [],
             "alertes_envoyees": [{"proprietaire": A, "point_id": "ref-groix", "jour": "2026-10-25"}],
             "abonnements_push": [{"proprietaire": A, "endpoint": "https://push.test/a1", "p256dh": UA_PUBLIQUE, "auth": AUTH},
                                  {"proprietaire": A, "endpoint": "https://push.test/a2", "p256dh": UA_PUBLIQUE, "auth": AUTH},
@@ -125,7 +130,7 @@ class FausseBase:
         table = chemin.split("?")[0]
         lignes = self.tables[table]
         if table == "favoris":
-            lignes = [x for x in lignes if x["alerte"]]
+            lignes = [x for x in lignes if x["alerte_m"]]
         return [dict(x) for x in lignes]
 
     def ecrire(self, chemin, corps, prefer=""):
@@ -149,7 +154,7 @@ def test_envoi_des_alertes_du_passage():
     assert base.ecrits[0][0] == "cles_push" and len(wp.deb64(bilan["cle_publique"])) == 65, "clés créées au premier passage"
     assert sorted(envois) == [("https://push.test/a1", "Groix : 12 m demain"), ("https://push.test/a2", "Groix : 12 m demain"), ("https://push.test/b1", "Glénan : 8 m demain")]
     assert bilan == {"cle_publique": bilan["cle_publique"], "comptes": 1, "notifications": 1, "abonnements_supprimes": 1, "hors_horaires": False,
-                     "spots_prives": None, "alertes_spots_prives": False}
+                     "spots_prives": None, "seuils_m": True}
     assert len(base.effaces) == 1 and "endpoint=eq.%22https%3A%2F%2Fpush.test%2Fa2%22" in base.effaces[0]
     # Seule l'alerte arrivée est notée comme envoyée : celle de B (service en panne) repartira au passage suivant
     assert base.ecrits[-1] == ("alertes_envoyees", [{"proprietaire": A, "point_id": "ref-groix", "jour": "2026-10-26"}])
@@ -175,14 +180,18 @@ def test_alertes_dans_le_calcul_horaire(monkeypatch):
     assert cp.envoyer_alertes("https://x.supabase.co", "sb_secret_x", {"points": []}, 1_792_918_800, traiter=absente) is None
     assert "relance supabase/schema.sql" in cp.BILAN[-1]
     ok = cp.envoyer_alertes("https://x.supabase.co", "sb_secret_x", {"points": []}, 1_792_918_800,
-                            traiter=lambda *a, **k: {"cle_publique": "PUB", "comptes": 2, "notifications": 3, "abonnements_supprimes": 0, "hors_horaires": False})
-    assert ok == {"cle_publique": "PUB", "spots_prives": False} and cp.BILAN[-1] == "Alertes : 3 notifications envoyées à 2 comptes"
+                            traiter=lambda *a, **k: {"cle_publique": "PUB", "comptes": 2, "notifications": 3, "abonnements_supprimes": 0, "hors_horaires": False, "seuils_m": True})
+    assert ok == {"cle_publique": "PUB", "seuils_m": True} and cp.BILAN[-1] == "Alertes : 3 notifications envoyées à 2 comptes"
+    vieux = cp.envoyer_alertes("https://x.supabase.co", "sb_secret_x", {"points": []}, 1_792_918_800,
+                               traiter=lambda *a, **k: {"cle_publique": "PUB", "comptes": 0, "notifications": 0, "abonnements_supprimes": 0,
+                                                        "hors_horaires": False, "seuils_m": False})
+    assert vieux == {"cle_publique": "PUB", "seuils_m": False} and "seuils en mètres absents" in cp.BILAN[-1]
 
 
 # --- Spots privés sous alerte ------------------------------------------------------------------
 
 LIGNE_PRIVEE = {"proprietaire": B, "id": "prive-crique", "nom": "Ma crique", "lat": 47.4912, "lon": -3.2031, "region": "atlantique",
-                "orientation_deg": 270, "ouverture_deg": 90, "profondeur_m": 8, "fond": "roche", "alerte": "bonne"}
+                "orientation_deg": 270, "ouverture_deg": 90, "profondeur_m": 8, "fond": "roche", "alerte_m": 6}
 
 
 def test_prevision_des_spots_prives():
@@ -225,13 +234,14 @@ def test_alertes_des_spots_prives_aux_heures_prevues():
     # 11 h 17 à Paris : calculés, alerte envoyée avec un lien vers le spot privé
     bilan = alertes.traiter(base, {"points": []}, datetime(2026, 10, 25, 10, 17, tzinfo=timezone.utc), "x", envoyer=envoyer, prevoir_prives=prevoir_prives)
     assert lu == [["prive-crique"]] and bilan["spots_prives"] == 1
-    assert envois == [("https://push.test/b1", {"titre": "Bonne visibilité prévue", "corps": "Ma crique : 8 m demain", "url": "#/prive/prive-crique",
+    assert envois == [("https://push.test/b1", {"titre": "Jusqu'à 8 m de visibilité prévue", "corps": "Ma crique : 8 m demain", "url": "#/prive/prive-crique",
                                                  "etiquette": "kelvisi-alerte"})]
     assert base.ecrits[-1] == ("alertes_envoyees", [{"proprietaire": B, "point_id": "prive-crique", "jour": "2026-10-26"}])
 
 
-def test_spots_prives_sans_colonne_alerte_sans_bloquer_les_favoris():
-    base = FausseBase()  # pas de table spots_prives : colonne alerte absente
+def test_base_pas_a_jour_aucun_envoi():
+    base = FausseBase()
+    del base.tables["spots_prives"]  # script SQL pas relancé : colonne alerte_m absente
     bilan = alertes.traiter(base, {"points": list(POINTS.values())}, MATIN.replace(hour=10, minute=17), "x",
-                            envoyer=lambda *a: 201, prevoir_prives=lambda lignes: {})
-    assert bilan["spots_prives"] is None and bilan["alertes_spots_prives"] is False and bilan["notifications"] >= 1
+                            envoyer=lambda *a: pytest.fail("aucun envoi"), prevoir_prives=lambda lignes: {})
+    assert bilan["seuils_m"] is False and bilan["notifications"] == 0 and bilan["cle_publique"]

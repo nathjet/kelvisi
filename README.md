@@ -46,9 +46,9 @@ Atlantique, Méditerranée, Corse). Version bêta gratuite, avec un compte.
   réglementaires du CACEM ; les fiches et la fiche rapide le signalent en haut,
   avec la règle et la référence du texte. Mise à jour mensuelle automatique.
 - **Favoris** parmi les points Kelvisi, et **alerte** au choix sur un favori
-  ou un spot privé (case « M'alerter quand la visibilité y sera bonne ») :
-  notification du navigateur quand la journée devient bonne ou excellente, une
-  fois par jour et par spot, entre 8 h et 21 h. **Partage d'une prévision par lien**.
+  ou un spot privé, avec un seuil de visibilité en mètres choisi par
+  l'utilisateur : notification du navigateur quand le meilleur créneau d'une
+  journée l'atteint, une fois par jour et par spot, entre 8 h et 21 h. **Partage d'une prévision par lien**.
 - **Mes spots** : favoris et spots privés, liés au compte et synchronisés
   entre appareils, visibles par leur seul propriétaire ; copie et import.
   Un lieu peut être proposé comme futur point Kelvisi par courriel.

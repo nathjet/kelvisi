@@ -213,8 +213,10 @@ auteur le modifie, il repasse tout seul en attente de validation.
 ### h. Activer les alertes sur les favoris
 
 Sur la fiche d'un favori ou d'un spot privé, une case « M'alerter quand la
-visibilité y sera bonne » envoie une notification quand la journée devient
-bonne (ou excellente, au choix) : une fois par jour et par spot au plus,
+visibilité prévue atteint » et un seuil en mètres (de 2 à 25 m, proposé par
+défaut au niveau « bonne » de la façade : 4 m en Manche et Atlantique, 8 m en
+Méditerranée) envoient une notification quand le meilleur créneau d'une
+journée atteint ce seuil : une fois par jour et par spot au plus,
 entre 8 h et 21 h, pour aujourd'hui et les deux jours suivants. Pour les spots
 privés sous alerte, le calcul horaire recalcule leur prévision à 8 h, 11 h,
 14 h, 17 h et 20 h (150 spots au plus, deux appels Open-Meteo par position) ;
@@ -229,8 +231,10 @@ range dans la base où lui seul peut les lire, et la case apparaît dans
 l'appli. Il n'y a aucune clé à copier ni à me donner.
 
 - Tant que le script n'est pas passé, le **Bilan du calcul** affiche
-  « Alertes : tables absentes, relance supabase/schema.sql » et la case reste
-  cachée.
+  « Alertes : tables absentes » ou « seuils en mètres absents de la base,
+  relance supabase/schema.sql » et la case reste cachée. Relancer le script
+  convertit les alertes déjà posées (« bonne » devient 4 m, ou 8 m en
+  Méditerranée ; « excellente » devient 7 m, ou 15 m).
 - Ensuite, il affiche par exemple « Alertes : 3 notifications envoyées à
   2 comptes » quand il y en a.
 - Sur iPhone, les notifications ne marchent qu'avec Kelvisi ajouté à l'écran
